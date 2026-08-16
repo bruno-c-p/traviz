@@ -1,0 +1,1752 @@
+[
+  {
+    "code": "AFG",
+    "name": "Afghanistan",
+    "flag": "🇦🇫",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "ALA",
+    "name": "Åland Islands",
+    "flag": "🇦🇽",
+    "continent": "Europe",
+    "counted": false
+  },
+  {
+    "code": "ALB",
+    "name": "Albania",
+    "flag": "🇦🇱",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "DZA",
+    "name": "Algeria",
+    "flag": "🇩🇿",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "ASM",
+    "name": "American Samoa",
+    "flag": "🇦🇸",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "AND",
+    "name": "Andorra",
+    "flag": "🇦🇩",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "AGO",
+    "name": "Angola",
+    "flag": "🇦🇴",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "AIA",
+    "name": "Anguilla",
+    "flag": "🇦🇮",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "ATA",
+    "name": "Antarctica",
+    "flag": "🇦🇶",
+    "continent": "Antarctica",
+    "counted": false
+  },
+  {
+    "code": "ATG",
+    "name": "Antigua and Barbuda",
+    "flag": "🇦🇬",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "ARG",
+    "name": "Argentina",
+    "flag": "🇦🇷",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "ARM",
+    "name": "Armenia",
+    "flag": "🇦🇲",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "ABW",
+    "name": "Aruba",
+    "flag": "🇦🇼",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "AUS",
+    "name": "Australia",
+    "flag": "🇦🇺",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "AUT",
+    "name": "Austria",
+    "flag": "🇦🇹",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "AZE",
+    "name": "Azerbaijan",
+    "flag": "🇦🇿",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "BHS",
+    "name": "Bahamas",
+    "flag": "🇧🇸",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "BHR",
+    "name": "Bahrain",
+    "flag": "🇧🇭",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "BGD",
+    "name": "Bangladesh",
+    "flag": "🇧🇩",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "BRB",
+    "name": "Barbados",
+    "flag": "🇧🇧",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "BLR",
+    "name": "Belarus",
+    "flag": "🇧🇾",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "BEL",
+    "name": "Belgium",
+    "flag": "🇧🇪",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "BLZ",
+    "name": "Belize",
+    "flag": "🇧🇿",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "BEN",
+    "name": "Benin",
+    "flag": "🇧🇯",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "BMU",
+    "name": "Bermuda",
+    "flag": "🇧🇲",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "BTN",
+    "name": "Bhutan",
+    "flag": "🇧🇹",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "BOL",
+    "name": "Bolivia",
+    "flag": "🇧🇴",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "BIH",
+    "name": "Bosnia and Herzegovina",
+    "flag": "🇧🇦",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "BWA",
+    "name": "Botswana",
+    "flag": "🇧🇼",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "BVT",
+    "name": "Bouvet Island",
+    "flag": "🇧🇻",
+    "continent": "Antarctica",
+    "counted": false
+  },
+  {
+    "code": "BRA",
+    "name": "Brazil",
+    "flag": "🇧🇷",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "IOT",
+    "name": "British Indian Ocean Territory",
+    "flag": "🇮🇴",
+    "continent": "Africa",
+    "counted": false
+  },
+  {
+    "code": "VGB",
+    "name": "British Virgin Islands",
+    "flag": "🇻🇬",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "BRN",
+    "name": "Brunei",
+    "flag": "🇧🇳",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "BGR",
+    "name": "Bulgaria",
+    "flag": "🇧🇬",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "BFA",
+    "name": "Burkina Faso",
+    "flag": "🇧🇫",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "BDI",
+    "name": "Burundi",
+    "flag": "🇧🇮",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "KHM",
+    "name": "Cambodia",
+    "flag": "🇰🇭",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "CMR",
+    "name": "Cameroon",
+    "flag": "🇨🇲",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "CAN",
+    "name": "Canada",
+    "flag": "🇨🇦",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "CPV",
+    "name": "Cape Verde",
+    "flag": "🇨🇻",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "BES",
+    "name": "Caribbean Netherlands",
+    "flag": "🏳️",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "CYM",
+    "name": "Cayman Islands",
+    "flag": "🇰🇾",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "CAF",
+    "name": "Central African Republic",
+    "flag": "🇨🇫",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "TCD",
+    "name": "Chad",
+    "flag": "🇹🇩",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "CHL",
+    "name": "Chile",
+    "flag": "🇨🇱",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "CHN",
+    "name": "China",
+    "flag": "🇨🇳",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "CXR",
+    "name": "Christmas Island",
+    "flag": "🇨🇽",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "CCK",
+    "name": "Cocos (Keeling) Islands",
+    "flag": "🇨🇨",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "COL",
+    "name": "Colombia",
+    "flag": "🇨🇴",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "COM",
+    "name": "Comoros",
+    "flag": "🇰🇲",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "COK",
+    "name": "Cook Islands",
+    "flag": "🇨🇰",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "CRI",
+    "name": "Costa Rica",
+    "flag": "🇨🇷",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "HRV",
+    "name": "Croatia",
+    "flag": "🇭🇷",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "CUB",
+    "name": "Cuba",
+    "flag": "🇨🇺",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "CUW",
+    "name": "Curaçao",
+    "flag": "🇨🇼",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "CYP",
+    "name": "Cyprus",
+    "flag": "🇨🇾",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "CZE",
+    "name": "Czechia",
+    "flag": "🇨🇿",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "DNK",
+    "name": "Denmark",
+    "flag": "🇩🇰",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "DJI",
+    "name": "Djibouti",
+    "flag": "🇩🇯",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "DMA",
+    "name": "Dominica",
+    "flag": "🇩🇲",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "DOM",
+    "name": "Dominican Republic",
+    "flag": "🇩🇴",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "COD",
+    "name": "DR Congo",
+    "flag": "🇨🇩",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "ECU",
+    "name": "Ecuador",
+    "flag": "🇪🇨",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "EGY",
+    "name": "Egypt",
+    "flag": "🇪🇬",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "SLV",
+    "name": "El Salvador",
+    "flag": "🇸🇻",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "GNQ",
+    "name": "Equatorial Guinea",
+    "flag": "🇬🇶",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "ERI",
+    "name": "Eritrea",
+    "flag": "🇪🇷",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "EST",
+    "name": "Estonia",
+    "flag": "🇪🇪",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "SWZ",
+    "name": "Eswatini",
+    "flag": "🇸🇿",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "ETH",
+    "name": "Ethiopia",
+    "flag": "🇪🇹",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "FLK",
+    "name": "Falkland Islands",
+    "flag": "🇫🇰",
+    "continent": "South America",
+    "counted": false
+  },
+  {
+    "code": "FRO",
+    "name": "Faroe Islands",
+    "flag": "🇫🇴",
+    "continent": "Europe",
+    "counted": false
+  },
+  {
+    "code": "FJI",
+    "name": "Fiji",
+    "flag": "🇫🇯",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "FIN",
+    "name": "Finland",
+    "flag": "🇫🇮",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "FRA",
+    "name": "France",
+    "flag": "🇫🇷",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "GUF",
+    "name": "French Guiana",
+    "flag": "🇬🇫",
+    "continent": "South America",
+    "counted": false
+  },
+  {
+    "code": "PYF",
+    "name": "French Polynesia",
+    "flag": "🇵🇫",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "ATF",
+    "name": "French Southern and Antarctic Lands",
+    "flag": "🇹🇫",
+    "continent": "Antarctica",
+    "counted": false
+  },
+  {
+    "code": "GAB",
+    "name": "Gabon",
+    "flag": "🇬🇦",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "GMB",
+    "name": "Gambia",
+    "flag": "🇬🇲",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "GEO",
+    "name": "Georgia",
+    "flag": "🇬🇪",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "DEU",
+    "name": "Germany",
+    "flag": "🇩🇪",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "GHA",
+    "name": "Ghana",
+    "flag": "🇬🇭",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "GIB",
+    "name": "Gibraltar",
+    "flag": "🇬🇮",
+    "continent": "Europe",
+    "counted": false
+  },
+  {
+    "code": "GRC",
+    "name": "Greece",
+    "flag": "🇬🇷",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "GRL",
+    "name": "Greenland",
+    "flag": "🇬🇱",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "GRD",
+    "name": "Grenada",
+    "flag": "🇬🇩",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "GLP",
+    "name": "Guadeloupe",
+    "flag": "🇬🇵",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "GUM",
+    "name": "Guam",
+    "flag": "🇬🇺",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "GTM",
+    "name": "Guatemala",
+    "flag": "🇬🇹",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "GGY",
+    "name": "Guernsey",
+    "flag": "🇬🇬",
+    "continent": "Europe",
+    "counted": false
+  },
+  {
+    "code": "GIN",
+    "name": "Guinea",
+    "flag": "🇬🇳",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "GNB",
+    "name": "Guinea-Bissau",
+    "flag": "🇬🇼",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "GUY",
+    "name": "Guyana",
+    "flag": "🇬🇾",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "HTI",
+    "name": "Haiti",
+    "flag": "🇭🇹",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "HMD",
+    "name": "Heard Island and McDonald Islands",
+    "flag": "🇭🇲",
+    "continent": "Antarctica",
+    "counted": false
+  },
+  {
+    "code": "HND",
+    "name": "Honduras",
+    "flag": "🇭🇳",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "HKG",
+    "name": "Hong Kong",
+    "flag": "🇭🇰",
+    "continent": "Asia",
+    "counted": false
+  },
+  {
+    "code": "HUN",
+    "name": "Hungary",
+    "flag": "🇭🇺",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "ISL",
+    "name": "Iceland",
+    "flag": "🇮🇸",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "IND",
+    "name": "India",
+    "flag": "🇮🇳",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "IDN",
+    "name": "Indonesia",
+    "flag": "🇮🇩",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "IRN",
+    "name": "Iran",
+    "flag": "🇮🇷",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "IRQ",
+    "name": "Iraq",
+    "flag": "🇮🇶",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "IRL",
+    "name": "Ireland",
+    "flag": "🇮🇪",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "IMN",
+    "name": "Isle of Man",
+    "flag": "🇮🇲",
+    "continent": "Europe",
+    "counted": false
+  },
+  {
+    "code": "ISR",
+    "name": "Israel",
+    "flag": "🇮🇱",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "ITA",
+    "name": "Italy",
+    "flag": "🇮🇹",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "CIV",
+    "name": "Ivory Coast",
+    "flag": "🇨🇮",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "JAM",
+    "name": "Jamaica",
+    "flag": "🇯🇲",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "JPN",
+    "name": "Japan",
+    "flag": "🇯🇵",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "JEY",
+    "name": "Jersey",
+    "flag": "🇯🇪",
+    "continent": "Europe",
+    "counted": false
+  },
+  {
+    "code": "JOR",
+    "name": "Jordan",
+    "flag": "🇯🇴",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "KAZ",
+    "name": "Kazakhstan",
+    "flag": "🇰🇿",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "KEN",
+    "name": "Kenya",
+    "flag": "🇰🇪",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "KIR",
+    "name": "Kiribati",
+    "flag": "🇰🇮",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "UNK",
+    "name": "Kosovo",
+    "flag": "🇽🇰",
+    "continent": "Europe",
+    "counted": false
+  },
+  {
+    "code": "KWT",
+    "name": "Kuwait",
+    "flag": "🇰🇼",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "KGZ",
+    "name": "Kyrgyzstan",
+    "flag": "🇰🇬",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "LAO",
+    "name": "Laos",
+    "flag": "🇱🇦",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "LVA",
+    "name": "Latvia",
+    "flag": "🇱🇻",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "LBN",
+    "name": "Lebanon",
+    "flag": "🇱🇧",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "LSO",
+    "name": "Lesotho",
+    "flag": "🇱🇸",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "LBR",
+    "name": "Liberia",
+    "flag": "🇱🇷",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "LBY",
+    "name": "Libya",
+    "flag": "🇱🇾",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "LIE",
+    "name": "Liechtenstein",
+    "flag": "🇱🇮",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "LTU",
+    "name": "Lithuania",
+    "flag": "🇱🇹",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "LUX",
+    "name": "Luxembourg",
+    "flag": "🇱🇺",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "MAC",
+    "name": "Macau",
+    "flag": "🇲🇴",
+    "continent": "Asia",
+    "counted": false
+  },
+  {
+    "code": "MDG",
+    "name": "Madagascar",
+    "flag": "🇲🇬",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "MWI",
+    "name": "Malawi",
+    "flag": "🇲🇼",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "MYS",
+    "name": "Malaysia",
+    "flag": "🇲🇾",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "MDV",
+    "name": "Maldives",
+    "flag": "🇲🇻",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "MLI",
+    "name": "Mali",
+    "flag": "🇲🇱",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "MLT",
+    "name": "Malta",
+    "flag": "🇲🇹",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "MHL",
+    "name": "Marshall Islands",
+    "flag": "🇲🇭",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "MTQ",
+    "name": "Martinique",
+    "flag": "🇲🇶",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "MRT",
+    "name": "Mauritania",
+    "flag": "🇲🇷",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "MUS",
+    "name": "Mauritius",
+    "flag": "🇲🇺",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "MYT",
+    "name": "Mayotte",
+    "flag": "🇾🇹",
+    "continent": "Africa",
+    "counted": false
+  },
+  {
+    "code": "MEX",
+    "name": "Mexico",
+    "flag": "🇲🇽",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "FSM",
+    "name": "Micronesia",
+    "flag": "🇫🇲",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "MDA",
+    "name": "Moldova",
+    "flag": "🇲🇩",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "MCO",
+    "name": "Monaco",
+    "flag": "🇲🇨",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "MNG",
+    "name": "Mongolia",
+    "flag": "🇲🇳",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "MNE",
+    "name": "Montenegro",
+    "flag": "🇲🇪",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "MSR",
+    "name": "Montserrat",
+    "flag": "🇲🇸",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "MAR",
+    "name": "Morocco",
+    "flag": "🇲🇦",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "MOZ",
+    "name": "Mozambique",
+    "flag": "🇲🇿",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "MMR",
+    "name": "Myanmar",
+    "flag": "🇲🇲",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "NAM",
+    "name": "Namibia",
+    "flag": "🇳🇦",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "NRU",
+    "name": "Nauru",
+    "flag": "🇳🇷",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "NPL",
+    "name": "Nepal",
+    "flag": "🇳🇵",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "NLD",
+    "name": "Netherlands",
+    "flag": "🇳🇱",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "NCL",
+    "name": "New Caledonia",
+    "flag": "🇳🇨",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "NZL",
+    "name": "New Zealand",
+    "flag": "🇳🇿",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "NIC",
+    "name": "Nicaragua",
+    "flag": "🇳🇮",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "NER",
+    "name": "Niger",
+    "flag": "🇳🇪",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "NGA",
+    "name": "Nigeria",
+    "flag": "🇳🇬",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "NIU",
+    "name": "Niue",
+    "flag": "🇳🇺",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "NFK",
+    "name": "Norfolk Island",
+    "flag": "🇳🇫",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "PRK",
+    "name": "North Korea",
+    "flag": "🇰🇵",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "MKD",
+    "name": "North Macedonia",
+    "flag": "🇲🇰",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "MNP",
+    "name": "Northern Mariana Islands",
+    "flag": "🇲🇵",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "NOR",
+    "name": "Norway",
+    "flag": "🇳🇴",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "OMN",
+    "name": "Oman",
+    "flag": "🇴🇲",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "PAK",
+    "name": "Pakistan",
+    "flag": "🇵🇰",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "PLW",
+    "name": "Palau",
+    "flag": "🇵🇼",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "PSE",
+    "name": "Palestine",
+    "flag": "🇵🇸",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "PAN",
+    "name": "Panama",
+    "flag": "🇵🇦",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "PNG",
+    "name": "Papua New Guinea",
+    "flag": "🇵🇬",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "PRY",
+    "name": "Paraguay",
+    "flag": "🇵🇾",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "PER",
+    "name": "Peru",
+    "flag": "🇵🇪",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "PHL",
+    "name": "Philippines",
+    "flag": "🇵🇭",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "PCN",
+    "name": "Pitcairn Islands",
+    "flag": "🇵🇳",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "POL",
+    "name": "Poland",
+    "flag": "🇵🇱",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "PRT",
+    "name": "Portugal",
+    "flag": "🇵🇹",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "PRI",
+    "name": "Puerto Rico",
+    "flag": "🇵🇷",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "QAT",
+    "name": "Qatar",
+    "flag": "🇶🇦",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "COG",
+    "name": "Republic of the Congo",
+    "flag": "🇨🇬",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "REU",
+    "name": "Réunion",
+    "flag": "🇷🇪",
+    "continent": "Africa",
+    "counted": false
+  },
+  {
+    "code": "ROU",
+    "name": "Romania",
+    "flag": "🇷🇴",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "RUS",
+    "name": "Russia",
+    "flag": "🇷🇺",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "RWA",
+    "name": "Rwanda",
+    "flag": "🇷🇼",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "BLM",
+    "name": "Saint Barthélemy",
+    "flag": "🇧🇱",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "SHN",
+    "name": "Saint Helena, Ascension and Tristan da Cunha",
+    "flag": "🇸🇭",
+    "continent": "Africa",
+    "counted": false
+  },
+  {
+    "code": "KNA",
+    "name": "Saint Kitts and Nevis",
+    "flag": "🇰🇳",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "LCA",
+    "name": "Saint Lucia",
+    "flag": "🇱🇨",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "MAF",
+    "name": "Saint Martin",
+    "flag": "🇲🇫",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "SPM",
+    "name": "Saint Pierre and Miquelon",
+    "flag": "🇵🇲",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "VCT",
+    "name": "Saint Vincent and the Grenadines",
+    "flag": "🇻🇨",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "WSM",
+    "name": "Samoa",
+    "flag": "🇼🇸",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "SMR",
+    "name": "San Marino",
+    "flag": "🇸🇲",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "STP",
+    "name": "São Tomé and Príncipe",
+    "flag": "🇸🇹",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "SAU",
+    "name": "Saudi Arabia",
+    "flag": "🇸🇦",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "SEN",
+    "name": "Senegal",
+    "flag": "🇸🇳",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "SRB",
+    "name": "Serbia",
+    "flag": "🇷🇸",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "SYC",
+    "name": "Seychelles",
+    "flag": "🇸🇨",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "SLE",
+    "name": "Sierra Leone",
+    "flag": "🇸🇱",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "SGP",
+    "name": "Singapore",
+    "flag": "🇸🇬",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "SXM",
+    "name": "Sint Maarten",
+    "flag": "🇸🇽",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "SVK",
+    "name": "Slovakia",
+    "flag": "🇸🇰",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "SVN",
+    "name": "Slovenia",
+    "flag": "🇸🇮",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "SLB",
+    "name": "Solomon Islands",
+    "flag": "🇸🇧",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "SOM",
+    "name": "Somalia",
+    "flag": "🇸🇴",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "ZAF",
+    "name": "South Africa",
+    "flag": "🇿🇦",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "SGS",
+    "name": "South Georgia",
+    "flag": "🇬🇸",
+    "continent": "Antarctica",
+    "counted": false
+  },
+  {
+    "code": "KOR",
+    "name": "South Korea",
+    "flag": "🇰🇷",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "SSD",
+    "name": "South Sudan",
+    "flag": "🇸🇸",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "ESP",
+    "name": "Spain",
+    "flag": "🇪🇸",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "LKA",
+    "name": "Sri Lanka",
+    "flag": "🇱🇰",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "SDN",
+    "name": "Sudan",
+    "flag": "🇸🇩",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "SUR",
+    "name": "Suriname",
+    "flag": "🇸🇷",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "SJM",
+    "name": "Svalbard and Jan Mayen",
+    "flag": "🇸🇯",
+    "continent": "Europe",
+    "counted": false
+  },
+  {
+    "code": "SWE",
+    "name": "Sweden",
+    "flag": "🇸🇪",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "CHE",
+    "name": "Switzerland",
+    "flag": "🇨🇭",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "SYR",
+    "name": "Syria",
+    "flag": "🇸🇾",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "TWN",
+    "name": "Taiwan",
+    "flag": "🇹🇼",
+    "continent": "Asia",
+    "counted": false
+  },
+  {
+    "code": "TJK",
+    "name": "Tajikistan",
+    "flag": "🇹🇯",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "TZA",
+    "name": "Tanzania",
+    "flag": "🇹🇿",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "THA",
+    "name": "Thailand",
+    "flag": "🇹🇭",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "TLS",
+    "name": "Timor-Leste",
+    "flag": "🇹🇱",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "TGO",
+    "name": "Togo",
+    "flag": "🇹🇬",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "TKL",
+    "name": "Tokelau",
+    "flag": "🇹🇰",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "TON",
+    "name": "Tonga",
+    "flag": "🇹🇴",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "TTO",
+    "name": "Trinidad and Tobago",
+    "flag": "🇹🇹",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "TUN",
+    "name": "Tunisia",
+    "flag": "🇹🇳",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "TUR",
+    "name": "Türkiye",
+    "flag": "🇹🇷",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "TKM",
+    "name": "Turkmenistan",
+    "flag": "🇹🇲",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "TCA",
+    "name": "Turks and Caicos Islands",
+    "flag": "🇹🇨",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "TUV",
+    "name": "Tuvalu",
+    "flag": "🇹🇻",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "UGA",
+    "name": "Uganda",
+    "flag": "🇺🇬",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "UKR",
+    "name": "Ukraine",
+    "flag": "🇺🇦",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "ARE",
+    "name": "United Arab Emirates",
+    "flag": "🇦🇪",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "GBR",
+    "name": "United Kingdom",
+    "flag": "🇬🇧",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "USA",
+    "name": "United States",
+    "flag": "🇺🇸",
+    "continent": "North America",
+    "counted": true
+  },
+  {
+    "code": "UMI",
+    "name": "United States Minor Outlying Islands",
+    "flag": "🇺🇲",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "VIR",
+    "name": "United States Virgin Islands",
+    "flag": "🇻🇮",
+    "continent": "North America",
+    "counted": false
+  },
+  {
+    "code": "URY",
+    "name": "Uruguay",
+    "flag": "🇺🇾",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "UZB",
+    "name": "Uzbekistan",
+    "flag": "🇺🇿",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "VUT",
+    "name": "Vanuatu",
+    "flag": "🇻🇺",
+    "continent": "Oceania",
+    "counted": true
+  },
+  {
+    "code": "VAT",
+    "name": "Vatican City",
+    "flag": "🇻🇦",
+    "continent": "Europe",
+    "counted": true
+  },
+  {
+    "code": "VEN",
+    "name": "Venezuela",
+    "flag": "🇻🇪",
+    "continent": "South America",
+    "counted": true
+  },
+  {
+    "code": "VNM",
+    "name": "Vietnam",
+    "flag": "🇻🇳",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "WLF",
+    "name": "Wallis and Futuna",
+    "flag": "🇼🇫",
+    "continent": "Oceania",
+    "counted": false
+  },
+  {
+    "code": "ESH",
+    "name": "Western Sahara",
+    "flag": "🇪🇭",
+    "continent": "Africa",
+    "counted": false
+  },
+  {
+    "code": "YEM",
+    "name": "Yemen",
+    "flag": "🇾🇪",
+    "continent": "Asia",
+    "counted": true
+  },
+  {
+    "code": "ZMB",
+    "name": "Zambia",
+    "flag": "🇿🇲",
+    "continent": "Africa",
+    "counted": true
+  },
+  {
+    "code": "ZWE",
+    "name": "Zimbabwe",
+    "flag": "🇿🇼",
+    "continent": "Africa",
+    "counted": true
+  }
+]
