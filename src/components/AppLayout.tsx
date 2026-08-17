@@ -33,6 +33,7 @@ export function AppLayout() {
       </div>
 
       <div
+        data-panel-scroll
         className={[
           "absolute inset-y-0 left-0 z-10 w-full overflow-y-auto border-slate-200 bg-white/95 shadow-xl backdrop-blur-md transition-transform duration-300 ease-out md:w-[420px] md:border-r",
           isMapRoute ? "-translate-x-full" : "translate-x-0",

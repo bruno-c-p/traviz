@@ -1,5 +1,7 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
+import type { Range } from "@tanstack/react-virtual";
 import { Search, X } from "lucide-react";
 import countriesData from "../data/countries.json";
 import type { Continent, Country } from "../lib/stats";
@@ -27,10 +29,23 @@ const FILTERS: readonly { value: StateColorKey; label: string }[] = [
   { value: "unmarked", label: "Unmarked" },
 ];
 
-function matchRank(name: string, query: string): number {
-  const lower = name.toLowerCase();
-  if (lower.startsWith(query)) return 0;
-  if (lower.includes(query)) return 1;
+const ROW_HEIGHT = 45;
+const HEADER_HEIGHT = 30;
+
+type ListItem =
+  | { type: "header"; continent: Continent; count: number }
+  | { type: "row"; country: Country };
+
+function normalize(value: string): string {
+  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+}
+
+const normalizedNames = new Map(countries.map((c) => [c.code, normalize(c.name)]));
+
+function matchRank(code: string, query: string): number {
+  const name = normalizedNames.get(code)!;
+  if (name.startsWith(query)) return 0;
+  if (name.includes(query)) return 1;
   return -1;
 }
 
@@ -56,19 +71,22 @@ export function CountryList() {
     return countries.filter((c) => activeFilters.has((marks[c.code] ?? "unmarked") as StateColorKey));
   }, [marks, activeFilters]);
 
-  const trimmedQuery = query.trim().toLowerCase();
+  const trimmedQuery = normalize(query.trim());
 
   const searchResults = useMemo(() => {
     if (!trimmedQuery) return null;
     return stateFiltered
-      .map((country) => ({ country, rank: matchRank(country.name, trimmedQuery) }))
+      .map((country) => ({ country, rank: matchRank(country.code, trimmedQuery) }))
       .filter((entry) => entry.rank >= 0)
       .sort((a, b) => a.rank - b.rank || a.country.name.localeCompare(b.country.name))
       .map((entry) => entry.country);
   }, [stateFiltered, trimmedQuery]);
 
-  const groups = useMemo(() => {
-    if (searchResults) return null;
+  const items = useMemo<ListItem[]>(() => {
+    if (searchResults) {
+      return searchResults.map((country) => ({ type: "row", country }));
+    }
+
     const byContinent = new Map<Continent, Country[]>();
     for (const country of stateFiltered) {
       const bucket = byContinent.get(country.continent);
@@ -78,17 +96,79 @@ export function CountryList() {
         byContinent.set(country.continent, [country]);
       }
     }
-    return CONTINENT_ORDER.map((continent) => ({
-      continent,
-      countries: byContinent.get(continent) ?? [],
-    })).filter((group) => group.countries.length > 0);
+
+    const flat: ListItem[] = [];
+    for (const continent of CONTINENT_ORDER) {
+      const list = byContinent.get(continent);
+      if (!list || list.length === 0) continue;
+      flat.push({ type: "header", continent, count: list.length });
+      for (const country of list) {
+        flat.push({ type: "row", country });
+      }
+    }
+    return flat;
   }, [stateFiltered, searchResults]);
+
+  const headerIndexes = useMemo(() => {
+    const indexes: number[] = [];
+    items.forEach((item, index) => {
+      if (item.type === "header") indexes.push(index);
+    });
+    return indexes;
+  }, [items]);
+
+  const scrollRef = useRef<HTMLElement | null>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  const activeHeaderRef = useRef<number | null>(null);
+
+  // The list shares the panel's scroll container with the search and filter
+  // block above it, so the virtualizer needs that block's height as its scroll
+  // margin. Remeasure when the block resizes — the filter chips wrap on narrow
+  // viewports, which moves the list down.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const header = headerRef.current;
+    if (!list || !header) return;
+
+    scrollRef.current = list.closest<HTMLElement>("[data-panel-scroll]");
+
+    const measure = () => setScrollMargin(list.offsetTop);
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+
+  const rangeExtractor = useCallback(
+    (range: Range) => {
+      const indexes = defaultRangeExtractor(range);
+      const active = headerIndexes.findLast((index) => index <= range.startIndex);
+      activeHeaderRef.current = active ?? null;
+      if (active === undefined || indexes.includes(active)) return indexes;
+      return [active, ...indexes];
+    },
+    [headerIndexes],
+  );
+
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (index) => (items[index].type === "header" ? HEADER_HEIGHT : ROW_HEIGHT),
+    overscan: 8,
+    scrollMargin,
+    rangeExtractor,
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
 
   return (
     <>
       <h1 className="px-6 pt-6 text-lg font-semibold text-slate-900">List</h1>
 
-      <div className="space-y-3 px-4 pt-4">
+      <div ref={headerRef} className="space-y-3 px-4 pt-4">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <input
@@ -135,30 +215,45 @@ export function CountryList() {
         </div>
       </div>
 
-      <div className="mt-3">
-        {searchResults ? (
-          searchResults.length > 0 ? (
-            searchResults.map((country) => <CountryRow key={country.code} country={country} />)
-          ) : (
-            <p className="px-6 py-8 text-center text-sm text-slate-500">
-              No countries match “{query.trim()}”.
-            </p>
-          )
-        ) : groups && groups.length > 0 ? (
-          groups.map(({ continent, countries: list }) => (
-            <div key={continent}>
-              <div className="sticky top-0 z-10 border-y border-slate-100 bg-white/95 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-600 backdrop-blur-md">
-                {continent} <span className="text-slate-500">{list.length}</span>
-              </div>
-              {list.map((country) => (
-                <CountryRow key={country.code} country={country} />
-              ))}
-            </div>
-          ))
-        ) : (
+      <div ref={listRef} className="relative mt-3">
+        {items.length === 0 ? (
           <p className="px-6 py-8 text-center text-sm text-slate-500">
-            No countries match the selected filters.
+            {searchResults
+              ? `No countries match “${query.trim()}”.`
+              : "No countries match the selected filters."}
           </p>
+        ) : (
+          <div style={{ height: virtualizer.getTotalSize() }}>
+            {virtualItems.map((virtualItem) => {
+              const item = items[virtualItem.index];
+              const stuck = item.type === "header" && activeHeaderRef.current === virtualItem.index;
+
+              return (
+                <div
+                  key={virtualItem.key}
+                  style={{
+                    position: stuck ? "sticky" : "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: virtualItem.size,
+                    zIndex: item.type === "header" ? 10 : undefined,
+                    transform: stuck
+                      ? undefined
+                      : `translateY(${virtualItem.start - scrollMargin}px)`,
+                  }}
+                >
+                  {item.type === "header" ? (
+                    <div className="flex h-full items-center border-y border-slate-100 bg-white/95 px-4 text-xs font-semibold uppercase tracking-wide text-slate-600 backdrop-blur-md">
+                      {item.continent} <span className="ml-1 text-slate-500">{item.count}</span>
+                    </div>
+                  ) : (
+                    <CountryRow country={item.country} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </>
@@ -167,7 +262,7 @@ export function CountryList() {
 
 const CountryRow = memo(function CountryRow({ country }: { country: Country }) {
   return (
-    <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-2">
+    <div className="flex h-full items-center gap-3 border-b border-slate-100 bg-white px-4">
       <span className="text-xl leading-none">{country.flag}</span>
       <span className="min-w-0 flex-1 truncate text-sm text-slate-900">{country.name}</span>
       {!country.counted && (
