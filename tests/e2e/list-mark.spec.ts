@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { countryByName, countryRow, listFilterBar, readMarks, resetAppStorage } from "./helpers";
+import { countryByName, countryRow, countryRows, listFilterBar, readMarks, resetAppStorage } from "./helpers";
 
 test.describe("marking via the List", () => {
   test.beforeEach(async ({ page }) => {
@@ -73,29 +73,29 @@ test.describe("marking via the List", () => {
 
     const filters = listFilterBar(page);
 
-    await filters.getByRole("button", { name: "Visited", exact: true }).click();
-    await expect(countryRow(page, "Portugal")).toBeVisible();
-    await expect(countryRow(page, "Spain")).toHaveCount(0);
-    await expect(countryRow(page, "Andorra")).toHaveCount(0);
-    await expect(countryRow(page, "Germany")).toHaveCount(0);
-    await filters.getByRole("button", { name: "Visited", exact: true }).click();
+    // Each of these three filters matches exactly one country, so the whole
+    // filtered list fits in the virtualizer's window and every match is in the
+    // DOM. Asserting the total row count is therefore exact, and rules out the
+    // other countries without depending on what happens to be scrolled into view.
+    async function expectOnlyMatch(filterLabel: string, name: string) {
+      await filters.getByRole("button", { name: filterLabel, exact: true }).click();
+      await expect(countryRows(page)).toHaveCount(1);
+      await expect(countryRow(page, name)).toBeVisible();
+      await filters.getByRole("button", { name: filterLabel, exact: true }).click();
+    }
 
-    await filters.getByRole("button", { name: "Want", exact: true }).click();
-    await expect(countryRow(page, "Spain")).toBeVisible();
-    await expect(countryRow(page, "Portugal")).toHaveCount(0);
-    await expect(countryRow(page, "Andorra")).toHaveCount(0);
-    await filters.getByRole("button", { name: "Want", exact: true }).click();
+    await expectOnlyMatch("Visited", "Portugal");
+    await expectOnlyMatch("Want", "Spain");
+    await expectOnlyMatch("Not interested", "Andorra");
 
-    await filters.getByRole("button", { name: "Not interested", exact: true }).click();
-    await expect(countryRow(page, "Andorra")).toBeVisible();
-    await expect(countryRow(page, "Portugal")).toHaveCount(0);
-    await expect(countryRow(page, "Spain")).toHaveCount(0);
-    await filters.getByRole("button", { name: "Not interested", exact: true }).click();
-
+    // "Unmarked" matches every country except the three marked above, far more
+    // than the virtualizer renders at once. Search to pull a specific country
+    // into the window: search runs on top of the active filter, so a country
+    // the filter excludes stays absent even when searched by exact name.
     await filters.getByRole("button", { name: "Unmarked", exact: true }).click();
+    await search.fill("Germany");
     await expect(countryRow(page, "Germany")).toBeVisible();
+    await search.fill("Portugal");
     await expect(countryRow(page, "Portugal")).toHaveCount(0);
-    await expect(countryRow(page, "Spain")).toHaveCount(0);
-    await expect(countryRow(page, "Andorra")).toHaveCount(0);
   });
 });

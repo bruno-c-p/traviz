@@ -63,6 +63,38 @@ export async function waitForMapReady(page: Page): Promise<void> {
   );
 }
 
+// The globe auto-rotates until the user interacts with it, which makes any
+// "find a land pixel, then click it" sequence a race: the country under that
+// pixel drifts away in the gap between the two steps, so the click can land on
+// ocean (or on a neighbour) and never open the popover. Any click on the canvas
+// stops the spin permanently — see the `map.on("click", stopSpin)` handler in
+// MapCanvas — so click once, then wait for the camera to actually come to rest
+// before locating anything.
+export async function stopGlobeSpin(page: Page): Promise<void> {
+  const box = await page.locator(".mapboxgl-canvas").boundingBox();
+  if (!box) throw new Error("Map canvas not found");
+
+  await page.mouse.click(box.x + 2, box.y + 2);
+  // That corner is normally off-globe, but dismiss a popover in case it wasn't.
+  await page.keyboard.press("Escape");
+
+  await page.waitForFunction(() => {
+    const map = (window as unknown as { __map?: MapboxMap }).__map;
+    return !!map && !map.isMoving();
+  });
+
+  // isMoving() is false between spin ticks too, so confirm the camera is
+  // genuinely at rest across a window several ticks wide rather than sampled
+  // in a gap.
+  const readLng = () => page.evaluate(() => (window as unknown as { __map: MapboxMap }).__map.getCenter().lng);
+  const before = await readLng();
+  await page.waitForTimeout(300);
+  const after = await readLng();
+  if (before !== after) {
+    throw new Error(`Globe still spinning after canvas click (lng ${before} -> ${after})`);
+  }
+}
+
 // Country-agnostic: samples a grid of on-screen points and asks Mapbox
 // (via the window.__map handle the app already exposes) which of them sit
 // over a rendered country polygon whose ISO code we recognize. Never assumes
@@ -103,8 +135,12 @@ export async function findLandPixel(page: Page): Promise<{ x: number; y: number 
   return point;
 }
 
+export function countryRows(page: Page) {
+  return page.locator("div.flex.items-center.gap-3.border-b.border-slate-100");
+}
+
 export function countryRow(page: Page, name: string) {
-  return page.locator("div.flex.items-center.gap-3.border-b.border-slate-100").filter({ hasText: name });
+  return countryRows(page).filter({ hasText: name });
 }
 
 export function listFilterBar(page: Page) {

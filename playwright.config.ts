@@ -8,6 +8,12 @@ export default defineConfig({
   fullyParallel: true,
   retries: 0,
   reporter: "list",
+  // AppLayout mounts the Mapbox globe on every route, and WebGL here runs on
+  // swiftshader (software rendering), so each parallel worker is paying real
+  // CPU for its own globe. Individual tests land well under 30s in isolation
+  // but creep toward it under full-suite contention; 60s keeps that headroom
+  // without hiding a genuinely hung test.
+  timeout: 60_000,
   webServer: {
     command: `pnpm build && pnpm preview --port ${PORT} --strictPort`,
     url: BASE_URL,

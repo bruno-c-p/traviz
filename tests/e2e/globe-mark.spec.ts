@@ -1,17 +1,16 @@
 import { expect, test } from "@playwright/test";
-import { findLandPixel, readMarks, resetAppStorage, waitForMapReady } from "./helpers";
+import { findLandPixel, readMarks, resetAppStorage, stopGlobeSpin, waitForMapReady } from "./helpers";
 
-// KNOWN BLOCKER: the globe's auto-rotate keeps Mapbox in a permanent
-// isMoving() === true state, and Mapbox suppresses click events while
-// moving. Every test in this file is expected to fail (timeout waiting for
-// the mark popover) until that is fixed elsewhere. Written country-agnostic
-// on purpose: the globe spins, so a fixed pixel maps to a different country
-// on every run — never assert which one.
+// Written country-agnostic on purpose: the globe spins until first interaction,
+// so which country sits under a given pixel differs from run to run — never
+// assert which one. `stopGlobeSpin` parks the camera first so that locating a
+// land pixel and clicking it are not racing the rotation.
 
 test.describe("globe click-to-mark", () => {
   test.beforeEach(async ({ page }) => {
     await resetAppStorage(page);
     await waitForMapReady(page);
+    await stopGlobeSpin(page);
   });
 
   test("clicking a country opens the mark popover, marking it persists across reload", async ({ page }) => {
