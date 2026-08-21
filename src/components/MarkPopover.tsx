@@ -97,7 +97,7 @@ export function MarkPopover({ country, anchor, onClose }: MarkPopoverProps) {
       role="dialog"
       aria-label={`Mark ${country.name}`}
       style={style}
-      className="fixed z-[60] w-64 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-2xl backdrop-blur-md"
+      className="fixed z-[60] w-max max-w-[calc(100vw-1rem)] rounded-xl border border-slate-200 bg-white/95 p-4 shadow-2xl backdrop-blur-md"
     >
       <div className="mb-3 flex items-center gap-2">
         <span className="text-2xl leading-none">{country.flag}</span>

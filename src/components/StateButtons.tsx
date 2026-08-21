@@ -26,7 +26,7 @@ export function StateButtons({ code, size = "md" }: { code: string; size?: "sm" 
   const buttonSizeClass = compact ? "h-7 w-7" : "h-9 gap-1.5 px-3 text-xs";
 
   return (
-    <div role="group" aria-label="Mark country state" className="flex items-center gap-1.5">
+    <div role="group" aria-label="Mark country state" className="flex flex-wrap items-center gap-1.5">
       {COUNTRY_STATES.map((state) => {
         const Icon = STATE_ICONS[state];
         const active = currentState === state;
