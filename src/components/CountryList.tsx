@@ -1,3 +1,5 @@
+"use client";
+
 import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";

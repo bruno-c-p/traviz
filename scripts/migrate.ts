@@ -1,6 +1,6 @@
 import { getMigrations } from "better-auth/db/migration";
-import { auth } from "../api/_lib/auth.ts";
-import { turso } from "../api/_lib/db.ts";
+import { auth } from "../src/lib/server/auth.ts";
+import { turso } from "../src/lib/server/db.ts";
 
 async function main(): Promise<void> {
   const { toBeCreated, toBeAdded, runMigrations } = await getMigrations(auth.options);

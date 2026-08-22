@@ -1,3 +1,5 @@
+"use client";
+
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import type { MotionValue, SpringOptions } from "motion/react";
 import { useEffect, useRef, useState } from "react";

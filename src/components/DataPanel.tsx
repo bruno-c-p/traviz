@@ -1,10 +1,12 @@
+"use client";
+
 import { AlertTriangle, LogOut } from "lucide-react";
 import { useState } from "react";
-import { authClient } from "../lib/authClient";
+import { authClient, useAuthSession } from "../lib/authClient";
 import { useCountriesStore } from "../store/countries";
 
 export function DataPanel() {
-  const { data: session } = authClient.useSession();
+  const { data: session } = useAuthSession();
   const syncError = useCountriesStore((s) => s.syncError);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [resetDone, setResetDone] = useState(false);

@@ -1,6 +1,8 @@
-import { useLocation } from "@tanstack/react-router";
+"use client";
+
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import countriesData from "../data/countries.json";
 import { STATE_COLORS } from "../lib/colors";
@@ -65,7 +67,7 @@ interface PopoverState {
 export function MapCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [popover, setPopover] = useState<PopoverState | null>(null);
-  const { pathname } = useLocation();
+  const pathname = usePathname();
 
   // The popover is anchored to a screen point; it doesn't make sense once
   // the user has navigated away from the map route.
@@ -79,7 +81,7 @@ export function MapCanvas() {
 
     const map = new mapboxgl.Map({
       container,
-      accessToken: import.meta.env.VITE_MAPBOX_TOKEN,
+      accessToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
       style: "mapbox://styles/mapbox/light-v11",
       projection: "globe",
       center: [0, 20],

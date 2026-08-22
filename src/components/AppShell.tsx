@@ -1,7 +1,9 @@
-import { Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+"use client";
+
 import { BarChart3, Database, Globe, List as ListIcon } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { authClient } from "../lib/authClient";
+import { useAuthSession } from "../lib/authClient";
 import { useCountriesStore } from "../store/countries";
 import type { DockItemData } from "./Dock";
 import { AuthPanel } from "./AuthPanel";
@@ -18,15 +20,15 @@ const NAV_ITEMS = [
 const ACTIVE_DOT_CLASS =
   "after:absolute after:-bottom-1.5 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-teal-600 after:content-['']";
 
-function SignedInLayout() {
-  const { pathname } = useLocation();
-  const navigate = useNavigate();
+function SignedInLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
   const isMapRoute = pathname === "/";
 
   const dockItems: DockItemData[] = NAV_ITEMS.map(({ to, label, Icon }) => ({
     icon: <Icon size={20} strokeWidth={1.75} />,
     label,
-    onClick: () => navigate({ to }),
+    onClick: () => router.push(to),
     className: pathname === to ? ACTIVE_DOT_CLASS : undefined,
   }));
 
@@ -43,9 +45,7 @@ function SignedInLayout() {
           isMapRoute ? "-translate-x-full" : "translate-x-0",
         ].join(" ")}
       >
-        <div className="flex min-h-full flex-col pb-28">
-          <Outlet />
-        </div>
+        <div className="flex min-h-full flex-col pb-28">{children}</div>
       </div>
 
       <Dock items={dockItems} />
@@ -53,8 +53,8 @@ function SignedInLayout() {
   );
 }
 
-export function AppLayout() {
-  const { data: session, isPending } = authClient.useSession();
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const { data: session, isPending } = useAuthSession();
   const userId = session?.user.id;
 
   useEffect(() => {
@@ -77,5 +77,5 @@ export function AppLayout() {
     return <AuthPanel />;
   }
 
-  return <SignedInLayout />;
+  return <SignedInLayout>{children}</SignedInLayout>;
 }

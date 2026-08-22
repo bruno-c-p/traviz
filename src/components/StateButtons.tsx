@@ -1,3 +1,5 @@
+"use client";
+
 import { Ban, Check, Star, X } from "lucide-react";
 import type { ComponentType } from "react";
 import { COUNTRY_STATES, STATE_COLORS, STATE_TEXT_COLORS } from "../lib/colors";

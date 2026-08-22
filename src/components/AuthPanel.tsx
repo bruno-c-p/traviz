@@ -1,6 +1,8 @@
+"use client";
+
 import { Globe } from "lucide-react";
 import { useState } from "react";
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 import { authClient } from "../lib/authClient";
 
 type Mode = "signin" | "signup";
@@ -22,7 +24,7 @@ export function AuthPanel() {
     setError(null);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
     setBusy(true);

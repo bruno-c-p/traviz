@@ -1,4 +1,4 @@
-import { auth } from "../_lib/auth.ts";
+import { auth } from "../../../../lib/server/auth";
 
 export async function GET(request: Request): Promise<Response> {
   return auth.handler(request);

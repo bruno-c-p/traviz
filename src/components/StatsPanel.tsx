@@ -1,3 +1,5 @@
+"use client";
+
 import countriesData from "../data/countries.json";
 import type { Continent, ContinentStats, Country, StateCounts } from "../lib/stats";
 import { computeStats } from "../lib/stats";

@@ -1,13 +1,10 @@
-import { createRequire } from "node:module";
-import { COUNTRY_STATES } from "../src/lib/colors.ts";
-import type { Marks } from "../src/lib/colors.ts";
-import { auth } from "./_lib/auth.ts";
-import { turso } from "./_lib/db.ts";
+import countriesData from "../../../data/countries.json";
+import { COUNTRY_STATES } from "../../../lib/colors";
+import type { Marks } from "../../../lib/colors";
+import { auth } from "../../../lib/server/auth";
+import { turso } from "../../../lib/server/db";
 
-const require = createRequire(import.meta.url);
-const countriesData = require("../src/data/countries.json") as { code: string }[];
-
-const VALID_CODES = new Set(countriesData.map((c) => c.code));
+const VALID_CODES = new Set((countriesData as { code: string }[]).map((c) => c.code));
 const MAX_MARKS = VALID_CODES.size;
 
 function json(body: unknown, status = 200): Response {
