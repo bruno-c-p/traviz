@@ -1,6 +1,10 @@
 import { Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { BarChart3, Database, Globe, List as ListIcon } from "lucide-react";
+import { useEffect } from "react";
+import { authClient } from "../lib/authClient";
+import { useCountriesStore } from "../store/countries";
 import type { DockItemData } from "./Dock";
+import { AuthPanel } from "./AuthPanel";
 import { Dock } from "./Dock";
 import { MapCanvas } from "./MapCanvas";
 
@@ -14,7 +18,7 @@ const NAV_ITEMS = [
 const ACTIVE_DOT_CLASS =
   "after:absolute after:-bottom-1.5 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-teal-600 after:content-['']";
 
-export function AppLayout() {
+function SignedInLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const isMapRoute = pathname === "/";
@@ -47,4 +51,31 @@ export function AppLayout() {
       <Dock items={dockItems} />
     </div>
   );
+}
+
+export function AppLayout() {
+  const { data: session, isPending } = authClient.useSession();
+  const userId = session?.user.id;
+
+  useEffect(() => {
+    if (!userId) return;
+    void useCountriesStore.getState().load();
+    return () => {
+      useCountriesStore.getState().clearLocal();
+    };
+  }, [userId]);
+
+  if (isPending) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-100">
+        <p className="text-sm text-slate-500">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <AuthPanel />;
+  }
+
+  return <SignedInLayout />;
 }

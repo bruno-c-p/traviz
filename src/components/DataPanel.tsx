@@ -1,75 +1,26 @@
-import { useRef, useState } from "react";
-import type { ChangeEvent } from "react";
-import { AlertTriangle, Download, Upload } from "lucide-react";
-import countriesData from "../data/countries.json";
-import type { Country } from "../lib/stats";
-import { exportMarks, importMarks } from "../lib/importExport";
-import type { SkippedEntry } from "../lib/importExport";
+import { AlertTriangle, LogOut } from "lucide-react";
+import { useState } from "react";
+import { authClient } from "../lib/authClient";
 import { useCountriesStore } from "../store/countries";
 
-const countries = countriesData as Country[];
-const VALID_CODES = countries.map((c) => c.code);
-
-const SKIP_REASON_LABEL: Record<SkippedEntry["reason"], string> = {
-  unknown_code: "Unknown country code",
-  invalid_state: "Not a valid state value",
-  invalid_value: "Value was not a string",
-};
-
-type ImportOutcome =
-  | { ok: true; appliedCount: number; skipped: SkippedEntry[] }
-  | { ok: false; error: string };
-
-function todayStamp(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function DataPanel() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importOutcome, setImportOutcome] = useState<ImportOutcome | null>(null);
+  const { data: session } = authClient.useSession();
+  const syncError = useCountriesStore((s) => s.syncError);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [resetDone, setResetDone] = useState(false);
-
-  function handleExport() {
-    const marks = useCountriesStore.getState().marks;
-    const json = exportMarks(marks);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `traviz-${todayStamp()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-
-    const text = await file.text();
-    const result = importMarks(text, VALID_CODES);
-
-    if (!result.ok) {
-      setImportOutcome({ ok: false, error: result.error });
-      return;
-    }
-
-    useCountriesStore.getState().replaceAll(result.marks);
-    setImportOutcome({
-      ok: true,
-      appliedCount: Object.keys(result.marks).length,
-      skipped: result.skipped,
-    });
-  }
+  const [signingOut, setSigningOut] = useState(false);
 
   function handleResetConfirmed() {
     useCountriesStore.getState().resetAll();
     setConfirmingReset(false);
-    setImportOutcome(null);
     setResetDone(true);
+  }
+
+  async function handleSignOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    await authClient.signOut();
+    setSigningOut(false);
   }
 
   return (
@@ -78,65 +29,26 @@ export function DataPanel() {
 
       <div className="flex flex-col gap-8 px-6 py-6">
         <section>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Export</h2>
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Account</h2>
           <p className="mb-3 text-sm text-slate-600">
-            Download all your marks as a JSON file you can back up or re-import later.
+            Your marks are stored in your account. Sign in on any device to pick up where you left off.
           </p>
-          <button
-            type="button"
-            onClick={handleExport}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm hover:bg-slate-50"
-          >
-            <Download className="h-4 w-4" />
-            Export marks
-          </button>
-        </section>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <span className="min-w-0 truncate text-sm text-slate-900">{session?.user.email ?? ""}</span>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <LogOut className="h-4 w-4" />
+              {signingOut ? "Signing out…" : "Sign out"}
+            </button>
+          </div>
 
-        <section>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Import</h2>
-          <p className="mb-3 text-sm text-slate-600">
-            Import a previously exported JSON file. This replaces your current marks.
-          </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm hover:bg-slate-50"
-          >
-            <Upload className="h-4 w-4" />
-            Import marks
-          </button>
-
-          {importOutcome && !importOutcome.ok && (
-            <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {importOutcome.error}
-            </div>
-          )}
-
-          {importOutcome && importOutcome.ok && (
-            <div className="mt-3 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-800">
-              <p>
-                Imported {importOutcome.appliedCount} mark{importOutcome.appliedCount === 1 ? "" : "s"}.{" "}
-                {importOutcome.skipped.length > 0
-                  ? `Skipped ${importOutcome.skipped.length} row${importOutcome.skipped.length === 1 ? "" : "s"}.`
-                  : "No rows skipped."}
-              </p>
-              {importOutcome.skipped.length > 0 && (
-                <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-xs text-teal-700">
-                  {importOutcome.skipped.map((entry, i) => (
-                    <li key={`${entry.code}-${i}`}>
-                      <span className="font-mono">{entry.code}</span>: {SKIP_REASON_LABEL[entry.reason]}{" "}
-                      <span className="text-slate-500">({JSON.stringify(entry.value)})</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+          {syncError && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Couldn't sync your latest changes: {syncError}
             </div>
           )}
         </section>

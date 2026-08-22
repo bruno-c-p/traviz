@@ -1,11 +1,14 @@
 import { X } from "lucide-react";
 import { useState } from "react";
-import { load, save } from "../store/storage";
 
 const HINT_STORAGE_KEY = "traviz-first-run-hint-dismissed";
 
 function readDismissed(): boolean {
-  return load(HINT_STORAGE_KEY) === "1";
+  try {
+    return globalThis.localStorage?.getItem(HINT_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 export function FirstRunHint() {
@@ -14,7 +17,11 @@ export function FirstRunHint() {
   if (dismissed) return null;
 
   function dismiss() {
-    save(HINT_STORAGE_KEY, "1");
+    try {
+      globalThis.localStorage?.setItem(HINT_STORAGE_KEY, "1");
+    } catch {
+      /* localStorage unavailable: hint just reappears next visit */
+    }
     setDismissed(true);
   }
 

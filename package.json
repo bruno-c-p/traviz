@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "gen:countries": "node --experimental-strip-types scripts/build-countries.ts",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.ts",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
@@ -12,8 +13,12 @@
     "format": "oxfmt ."
   },
   "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "@libsql/kysely-libsql": "^0.4.1",
     "@tanstack/react-router": "^1.170.29",
     "@tanstack/react-virtual": "^3.14.9",
+    "better-auth": "^1.7.1",
+    "kysely": "^0.29.5",
     "lucide-react": "^1.31.0",
     "mapbox-gl": "^3.28.1",
     "motion": "^13.1.0",
