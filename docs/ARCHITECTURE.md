@@ -842,7 +842,7 @@ All submitted-form rules live in [docs/FORM_HANDLING.md](FORM_HANDLING.md). Read
 
 ### File Organization
 
-Every Server Action lives in `features/<name>/actions/<verb>.ts` — **one verb per file**, with `"use server"` at the top of the file (file-level directive).
+Every Server Action lives in `features/<name>/actions/<verb>.ts` — **one verb per file**, with `"use server"` at the top of the file (file-level directive). See the [feature-folders skill](../.agents/skills/feature-folders/SKILL.md) for the full layout.
 
 ```
 features/meal-log/

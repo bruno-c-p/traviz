@@ -1,6 +1,6 @@
 "use server";
 
-import { clearMarksForUser } from "@/lib/server/marks";
+import { clearMarksForUser } from "@/features/marks/services/marks";
 import { requireUserId } from "@/lib/server/session";
 
 export async function clearMarksAction(): Promise<void> {
