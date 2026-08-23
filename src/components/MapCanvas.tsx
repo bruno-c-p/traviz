@@ -182,7 +182,7 @@ export function MapCanvas() {
           "source-layer": COUNTRY_SOURCE_LAYER,
           filter: WORLDVIEW_FILTER,
           paint: {
-            "line-color": "#0B1120",
+            "line-color": "#868685",
             "line-width": ["interpolate", ["linear"], ["zoom"], 0, 0.4, 6, 1.2],
             "line-opacity": 0.6,
           },

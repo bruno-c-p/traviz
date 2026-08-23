@@ -18,7 +18,7 @@ const NAV_ITEMS = [
 ] as const;
 
 const ACTIVE_DOT_CLASS =
-  "after:absolute after:-bottom-1.5 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-teal-600 after:content-['']";
+  "after:absolute after:-bottom-1.5 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-primary after:content-['']";
 
 function SignedInLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -33,7 +33,7 @@ function SignedInLayout({ children }: { children: React.ReactNode }) {
   }));
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-slate-100">
+    <div className="fixed inset-0 overflow-hidden bg-canvas-soft">
       <div className="absolute inset-0">
         <MapCanvas />
       </div>
@@ -41,7 +41,7 @@ function SignedInLayout({ children }: { children: React.ReactNode }) {
       <div
         data-panel-scroll
         className={[
-          "absolute inset-y-0 left-0 z-10 w-full overflow-y-auto border-slate-200 bg-white/95 shadow-xl backdrop-blur-md transition-transform duration-300 ease-out md:w-[420px] md:border-r",
+          "absolute inset-y-0 left-0 z-10 w-full overflow-y-auto border-canvas-soft bg-canvas/95 shadow-xl backdrop-blur-md transition-transform duration-300 ease-out md:w-[420px] md:border-r",
           isMapRoute ? "-translate-x-full" : "translate-x-0",
         ].join(" ")}
       >
@@ -67,8 +67,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isPending) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-slate-100">
-        <p className="text-sm text-slate-500">Loading…</p>
+      <div className="fixed inset-0 flex items-center justify-center bg-canvas-soft">
+        <p className="text-sm text-mute">Loading…</p>
       </div>
     );
   }

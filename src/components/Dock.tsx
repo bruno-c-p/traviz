@@ -56,7 +56,7 @@ function DockLabel({ isHovered, children }: { isHovered: MotionValue<number>; ch
           transition={{ duration: 0.2 }}
           role="tooltip"
           style={{ x: "-50%" }}
-          className="pointer-events-none absolute -top-7 left-1/2 w-fit whitespace-pre rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 shadow-md"
+          className="pointer-events-none absolute -top-7 left-1/2 w-fit whitespace-pre rounded-md bg-ink px-2 py-1 text-xs text-canvas-soft shadow-md"
         >
           {children}
         </motion.div>
@@ -121,8 +121,8 @@ function DockItem({
         role="button"
         aria-label={label}
         className={[
-          "relative inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white/90 text-slate-600 outline-none",
-          "focus-visible:ring-2 focus-visible:ring-teal-600",
+          "relative inline-flex cursor-pointer items-center justify-center rounded-xl bg-canvas text-mute outline-none",
+          "focus-visible:ring-2 focus-visible:ring-primary",
           className,
         ]
           .filter(Boolean)
@@ -131,7 +131,7 @@ function DockItem({
         {icon}
         {!showPersistentLabel && <DockLabel isHovered={isHovered}>{label}</DockLabel>}
       </motion.div>
-      {showPersistentLabel && <span className="text-[10px] leading-none text-slate-600">{label}</span>}
+      {showPersistentLabel && <span className="text-[10px] leading-none text-mute">{label}</span>}
     </div>
   );
 }
@@ -173,7 +173,7 @@ export function Dock({
         role="toolbar"
         aria-label="Application dock"
         className={[
-          "pointer-events-auto flex w-fit items-end gap-4 rounded-2xl border border-slate-200 bg-white/90 px-2 pb-2 shadow-lg backdrop-blur-md",
+          "pointer-events-auto flex w-fit items-end gap-4 rounded-2xl bg-canvas/90 px-2 pb-2 shadow-lg backdrop-blur-md",
           showPersistentLabel ? "items-center py-2" : "",
           className,
         ]

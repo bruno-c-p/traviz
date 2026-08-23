@@ -46,11 +46,11 @@ export function StateButtons({ code, size = "md" }: { code: string; size?: "sm" 
             style={active ? { backgroundColor: `${color}26`, borderColor: color, color: textColor } : undefined}
             className={[
               "inline-flex items-center justify-center rounded-full border font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               buttonSizeClass,
               active
                 ? "border-transparent"
-                : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                : "border-transparent bg-canvas-soft text-mute hover:bg-primary-pale hover:text-ink",
             ].join(" ")}
           >
             <Icon size={iconSize} />
@@ -66,8 +66,8 @@ export function StateButtons({ code, size = "md" }: { code: string; size?: "sm" 
           title="Clear"
           onClick={() => clear(code)}
           className={[
-            "inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600",
+            "inline-flex items-center justify-center rounded-full bg-canvas-soft text-mute transition-colors hover:bg-primary-pale hover:text-ink",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             compact ? "h-7 w-7" : "h-9 w-9",
           ].join(" ")}
         >

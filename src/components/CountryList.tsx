@@ -168,25 +168,25 @@ export function CountryList() {
 
   return (
     <>
-      <h1 className="px-6 pt-6 text-lg font-semibold text-slate-900">List</h1>
+      <h1 className="px-6 pt-6 text-lg font-semibold text-ink">List</h1>
 
       <div ref={headerRef} className="space-y-3 px-4 pt-4">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-mute" />
           <input
             type="text"
             value={query}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
             placeholder="Search countries…"
             aria-label="Search countries"
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-8 text-sm text-slate-900 placeholder:text-slate-500 focus:border-teal-600/60 focus:outline-none"
+            className="w-full rounded-md border border-ink bg-canvas py-2 pl-9 pr-8 text-sm text-ink placeholder:text-mute focus:outline-none focus:ring-2 focus:ring-primary"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-mute hover:text-ink"
             >
               <X className="h-4 w-4" />
             </button>
@@ -203,10 +203,10 @@ export function CountryList() {
                 onClick={() => toggleFilter(filter.value)}
                 aria-pressed={active}
                 className={[
-                  "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
+                  "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
                   active
-                    ? "border-teal-600/60 bg-teal-50 text-teal-700"
-                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300",
+                    ? "bg-primary-pale text-positive-deep"
+                    : "bg-canvas-soft text-body hover:bg-primary-pale",
                 ].join(" ")}
               >
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: STATE_COLORS[filter.value] }} />
@@ -219,7 +219,7 @@ export function CountryList() {
 
       <div ref={listRef} className="relative mt-3">
         {items.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-slate-500">
+          <p className="px-6 py-8 text-center text-sm text-body">
             {searchResults
               ? `No countries match “${query.trim()}”.`
               : "No countries match the selected filters."}
@@ -246,8 +246,8 @@ export function CountryList() {
                   }}
                 >
                   {item.type === "header" ? (
-                    <div className="flex h-full items-center border-y border-slate-100 bg-white/95 px-4 text-xs font-semibold uppercase tracking-wide text-slate-600 backdrop-blur-md">
-                      {item.continent} <span className="ml-1 text-slate-500">{item.count}</span>
+                    <div className="flex h-full items-center bg-canvas-soft/95 px-4 text-xs font-semibold uppercase tracking-wide text-body backdrop-blur-md">
+                      {item.continent} <span className="ml-1 text-mute">{item.count}</span>
                     </div>
                   ) : (
                     <CountryRow country={item.country} />
@@ -264,13 +264,13 @@ export function CountryList() {
 
 const CountryRow = memo(function CountryRow({ country }: { country: Country }) {
   return (
-    <div className="flex h-full items-center gap-3 border-b border-slate-100 bg-white px-4">
+    <div className="flex h-full items-center gap-3 border-b border-canvas-soft bg-canvas px-4">
       <span className="text-xl leading-none">{country.flag}</span>
-      <span className="min-w-0 flex-1 truncate text-sm text-slate-900">{country.name}</span>
+      <span className="min-w-0 flex-1 truncate text-sm text-ink">{country.name}</span>
       {!country.counted && (
         <span
           title="Territory — not counted toward the 195 headline"
-          className="shrink-0 rounded border border-slate-300 px-1 py-0.5 text-[9px] uppercase leading-none tracking-wide text-slate-600"
+          className="shrink-0 rounded border border-mute px-1 py-0.5 text-[9px] uppercase leading-none tracking-wide text-body"
         >
           Territory
         </span>

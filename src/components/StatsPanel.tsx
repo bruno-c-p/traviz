@@ -31,29 +31,29 @@ export function StatsPanel() {
 
   return (
     <>
-      <h1 className="px-6 pt-6 text-lg font-semibold text-slate-900">Stats</h1>
+      <h1 className="px-6 pt-6 text-lg font-semibold text-ink">Stats</h1>
 
       <div className="flex flex-col gap-8 px-6 py-6">
         <section className="text-center">
           <div className="text-5xl font-bold tabular-nums" style={{ color: STATE_TEXT_COLORS.visited }}>
             {stats.headline.visited}
-            <span className="text-2xl text-slate-500"> / {stats.headline.total}</span>
+            <span className="text-2xl text-mute"> / {stats.headline.total}</span>
           </div>
-          <p className="mt-1 text-sm text-slate-600">countries visited</p>
-          <div className="mx-auto mt-4 h-2 max-w-xs overflow-hidden rounded-full bg-slate-200">
+          <p className="mt-1 text-sm text-body">countries visited</p>
+          <div className="mx-auto mt-4 h-2 max-w-xs overflow-hidden rounded-full bg-canvas-soft">
             <div className="h-full rounded-full" style={{ width: `${headlinePct}%`, backgroundColor: STATE_COLORS.visited }} />
           </div>
         </section>
 
         <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-body">
             Totals (incl. territories)
           </h2>
           <div className="grid grid-cols-3 gap-2">
             {COUNTRY_STATES.map((key) => (
-              <div key={key} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-center">
-                <div className="text-2xl font-semibold tabular-nums text-slate-900">{stats.totals[key]}</div>
-                <div className="mt-1 flex items-center justify-center gap-1.5 text-xs text-slate-600">
+              <div key={key} className="rounded-lg bg-canvas-soft px-3 py-3 text-center">
+                <div className="text-2xl font-semibold tabular-nums text-ink">{stats.totals[key]}</div>
+                <div className="mt-1 flex items-center justify-center gap-1.5 text-xs text-body">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: STATE_COLORS[key] }} />
                   {STATE_LABELS[key]}
                 </div>
@@ -63,7 +63,7 @@ export function StatsPanel() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">By continent</h2>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-body">By continent</h2>
           <div className="flex flex-col gap-4">
             {CONTINENT_ORDER.map((continent) => (
               <ContinentRow key={continent} continent={continent} stats={stats.byContinent[continent]} />
@@ -90,8 +90,8 @@ function ContinentRow({ continent, stats }: { continent: Continent; stats: Conti
   return (
     <div>
       <div className="mb-1.5 flex items-baseline justify-between text-sm">
-        <span className="text-slate-900">{continent}</span>
-        <span className="text-xs tabular-nums text-slate-500">
+        <span className="text-ink">{continent}</span>
+        <span className="text-xs tabular-nums text-mute">
           {countedVisited} / {countedTotal} visited
         </span>
       </div>
@@ -118,10 +118,10 @@ function TerritoriesOnlyRow({ continent, stats }: { continent: Continent; stats:
   return (
     <div>
       <div className="mb-1.5 flex items-baseline justify-between text-sm">
-        <span className="text-slate-900">{continent}</span>
-        <span className="text-xs tabular-nums text-slate-500">{stats.total} territories</span>
+        <span className="text-ink">{continent}</span>
+        <span className="text-xs tabular-nums text-mute">{stats.total} territories</span>
       </div>
-      <div className="flex items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+      <div className="flex items-center gap-2 rounded-lg border border-dashed border-mute bg-canvas-soft px-3 py-2 text-xs text-body">
         <span>Territories only — not part of the 195 headline.</span>
         {marked > 0 && (
           <span className="ml-auto flex shrink-0 items-center gap-2 tabular-nums">

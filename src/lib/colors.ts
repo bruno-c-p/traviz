@@ -9,21 +9,20 @@ export const COUNTRY_STATES: readonly CountryState[] = ["visited", "want", "not_
 export type StateColorKey = CountryState | "unmarked";
 
 export const STATE_COLORS: Record<StateColorKey, string> = {
-  visited: "#0D9488",
-  want: "#D97706",
-  not_interested: "#94A3B8",
-  unmarked: "#E2E8F0",
+  visited: "#2ead4b",
+  want: "#ffd11a",
+  not_interested: "#868685",
+  unmarked: "#e8ebe6",
 };
 
 // Text-safe variants of STATE_COLORS for use as `color` (not background/fill).
-// The raw STATE_COLORS values are tuned to read well as fills/borders on a
-// light UI, but several fall short of WCAG AA (4.5:1) as text on a white
-// surface — `want` in particular is only ~3.2:1. These are darkened so any
-// state-colored text stays AA-compliant while fills/borders keep using the
-// true state color.
+// The raw STATE_COLORS values are tuned to read well as fills/borders on the
+// light UI, but `want` (yellow) falls short of WCAG AA (4.5:1) as text on
+// white — these are deepened so any state-colored text stays AA-compliant
+// while fills/borders keep using the true state color.
 export const STATE_TEXT_COLORS: Record<StateColorKey, string> = {
-  visited: "#0F766E",
-  want: "#B45309",
-  not_interested: "#475569",
-  unmarked: "#334155",
+  visited: "#054d28",
+  want: "#b86700",
+  not_interested: "#454745",
+  unmarked: "#868685",
 };
