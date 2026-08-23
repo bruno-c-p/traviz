@@ -2,13 +2,14 @@
 
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import type { MotionValue, SpringOptions } from "motion/react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export type DockItemData = {
   icon: ReactNode;
   label: string;
-  onClick: () => void;
+  href: string;
   className?: string;
 };
 
@@ -68,7 +69,7 @@ function DockLabel({ isHovered, children }: { isHovered: MotionValue<number>; ch
 function DockItem({
   icon,
   label,
-  onClick,
+  href,
   className,
   mouseX,
   spring,
@@ -79,7 +80,7 @@ function DockItem({
 }: {
   icon: ReactNode;
   label: string;
-  onClick: () => void;
+  href: string;
   className?: string;
   mouseX: MotionValue<number>;
   spring: SpringOptions;
@@ -99,13 +100,6 @@ function DockItem({
   const targetSize = useTransform(mouseDistance, [-distance, 0, distance], [baseItemSize, magnification, baseItemSize]);
   const size = useSpring(targetSize, spring);
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onClick();
-    }
-  };
-
   return (
     <div className="flex flex-col items-center gap-1.5">
       <motion.div
@@ -113,22 +107,22 @@ function DockItem({
         style={showPersistentLabel ? { width: baseItemSize, height: baseItemSize } : { width: size, height: size }}
         onHoverStart={() => isHovered.set(1)}
         onHoverEnd={() => isHovered.set(0)}
-        onFocus={() => isHovered.set(1)}
-        onBlur={() => isHovered.set(0)}
-        onClick={onClick}
-        onKeyDown={handleKeyDown}
-        tabIndex={0}
-        role="button"
-        aria-label={label}
         className={[
-          "relative inline-flex cursor-pointer items-center justify-center rounded-xl bg-canvas text-mute outline-none",
-          "focus-visible:ring-2 focus-visible:ring-primary",
+          "relative inline-flex cursor-pointer items-center justify-center rounded-xl bg-canvas text-mute",
           className,
         ]
           .filter(Boolean)
           .join(" ")}
       >
-        {icon}
+        <Link
+          href={href}
+          aria-label={label}
+          onFocus={() => isHovered.set(1)}
+          onBlur={() => isHovered.set(0)}
+          className="flex h-full w-full items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          {icon}
+        </Link>
         {!showPersistentLabel && <DockLabel isHovered={isHovered}>{label}</DockLabel>}
       </motion.div>
       {showPersistentLabel && <span className="text-[10px] leading-none text-mute">{label}</span>}
@@ -185,7 +179,7 @@ export function Dock({
             key={item.label}
             icon={item.icon}
             label={item.label}
-            onClick={item.onClick}
+            href={item.href}
             className={item.className}
             mouseX={mouseX}
             spring={spring}

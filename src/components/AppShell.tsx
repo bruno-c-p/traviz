@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart3, Database, Globe, List as ListIcon } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { useAuthSession } from "../lib/authClient";
 import { useCountriesStore } from "../store/countries";
@@ -22,13 +22,12 @@ const ACTIVE_DOT_CLASS =
 
 function SignedInLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const isMapRoute = pathname === "/";
 
   const dockItems: DockItemData[] = NAV_ITEMS.map(({ to, label, Icon }) => ({
     icon: <Icon size={20} strokeWidth={1.75} />,
     label,
-    onClick: () => router.push(to),
+    href: to,
     className: pathname === to ? ACTIVE_DOT_CLASS : undefined,
   }));
 
