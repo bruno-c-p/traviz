@@ -5,6 +5,7 @@ import type { MotionValue, SpringOptions } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 export type DockItemData = {
   icon: ReactNode;
@@ -121,12 +122,10 @@ function DockItem({
         }
         onHoverStart={() => isHovered.set(1)}
         onHoverEnd={() => isHovered.set(0)}
-        className={[
+        className={cn(
           "relative inline-flex cursor-pointer items-center justify-center rounded-xl bg-canvas text-mute",
           className,
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        )}
       >
         <Link
           href={href}
@@ -180,13 +179,11 @@ export function Dock({
         style={{ height: showPersistentLabel ? undefined : panelHeight }}
         role="toolbar"
         aria-label="Application dock"
-        className={[
+        className={cn(
           "pointer-events-auto flex w-fit items-end gap-4 rounded-2xl bg-canvas/90 px-2 pb-2 shadow-lg backdrop-blur-md",
           showPersistentLabel ? "items-center py-2" : "",
           className,
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        )}
       >
         {items.map((item) => (
           <DockItem

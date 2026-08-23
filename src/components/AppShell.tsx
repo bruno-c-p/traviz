@@ -6,6 +6,7 @@ import type { DockItemData } from "@/components/Dock";
 import { Dock } from "@/components/Dock";
 import { MapCanvas } from "@/components/MapCanvas";
 import { dataPath, homePath, listPath, statsPath } from "@/paths";
+import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { to: homePath(), label: "Map", Icon: Globe },
@@ -36,10 +37,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div
         data-panel-scroll
-        className={[
+        className={cn(
           "absolute inset-y-0 left-0 z-10 w-full overflow-y-auto border-canvas-soft bg-canvas/95 shadow-xl backdrop-blur-md transition-transform duration-300 ease-out md:w-[420px] md:border-r",
           isMapRoute ? "-translate-x-full" : "translate-x-0",
-        ].join(" ")}
+        )}
       >
         <div className="flex min-h-full flex-col pb-28">{children}</div>
       </div>

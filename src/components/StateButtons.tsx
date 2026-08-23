@@ -5,6 +5,7 @@ import type { ComponentType } from "react";
 import { COUNTRY_STATES, STATE_COLORS, STATE_TEXT_COLORS } from "@/lib/colors";
 import type { CountryState } from "@/lib/colors";
 import { useCountriesStore } from "@/store/countries";
+import { cn } from "@/lib/utils";
 
 const STATE_LABELS: Record<CountryState, string> = {
   visited: "Visited",
@@ -52,14 +53,14 @@ export function StateButtons({ code, size = "md" }: { code: string; size?: "sm" 
                 ? { backgroundColor: `${color}26`, borderColor: color, color: textColor }
                 : undefined
             }
-            className={[
+            className={cn(
               "inline-flex items-center justify-center rounded-full border font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               buttonSizeClass,
               active
                 ? "border-transparent"
                 : "border-transparent bg-canvas-soft text-mute hover:bg-primary-pale hover:text-ink",
-            ].join(" ")}
+            )}
           >
             <Icon size={iconSize} />
             {!compact && <span>{STATE_LABELS[state]}</span>}
@@ -73,11 +74,11 @@ export function StateButtons({ code, size = "md" }: { code: string; size?: "sm" 
           aria-label="Clear mark"
           title="Clear"
           onClick={() => clear(code)}
-          className={[
+          className={cn(
             "inline-flex items-center justify-center rounded-full bg-canvas-soft text-mute transition-colors hover:bg-primary-pale hover:text-ink",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             compact ? "h-7 w-7" : "h-9 w-9",
-          ].join(" ")}
+          )}
         >
           <X size={iconSize} />
         </button>

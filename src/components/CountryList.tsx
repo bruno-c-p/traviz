@@ -11,6 +11,7 @@ import { STATE_COLORS } from "@/lib/colors";
 import type { StateColorKey } from "@/lib/colors";
 import { useCountriesStore } from "@/store/countries";
 import { StateButtons } from "@/components/StateButtons";
+import { cn } from "@/lib/utils";
 
 const countries = countriesData as Country[];
 
@@ -207,12 +208,12 @@ export function CountryList() {
                 type="button"
                 onClick={() => toggleFilter(filter.value)}
                 aria-pressed={active}
-                className={[
+                className={cn(
                   "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
                   active
                     ? "bg-primary-pale text-positive-deep"
                     : "bg-canvas-soft text-body hover:bg-primary-pale",
-                ].join(" ")}
+                )}
               >
                 <span
                   className="h-2 w-2 rounded-full"

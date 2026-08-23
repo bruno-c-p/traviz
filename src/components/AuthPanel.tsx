@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { authClient } from "@/lib/authClient";
 import { BrandMark } from "@/components/BrandMark";
+import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup";
 
@@ -63,10 +64,10 @@ export function AuthPanel() {
               type="button"
               onClick={() => switchMode("signin")}
               aria-pressed={mode === "signin"}
-              className={[
+              className={cn(
                 "rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
                 mode === "signin" ? "bg-canvas text-ink shadow-sm" : "text-mute hover:text-ink",
-              ].join(" ")}
+              )}
             >
               Sign in
             </button>
@@ -74,10 +75,10 @@ export function AuthPanel() {
               type="button"
               onClick={() => switchMode("signup")}
               aria-pressed={mode === "signup"}
-              className={[
+              className={cn(
                 "rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
                 mode === "signup" ? "bg-canvas text-ink shadow-sm" : "text-mute hover:text-ink",
-              ].join(" ")}
+              )}
             >
               Create account
             </button>
