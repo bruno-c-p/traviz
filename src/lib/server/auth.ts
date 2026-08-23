@@ -7,7 +7,7 @@ export const auth = betterAuth({
     enabled: true,
   },
   baseURL: {
-    allowedHosts: ["localhost:3000", "*.vercel.app"],
+    allowedHosts: ["localhost:3000", "*.vercel.app", "traviz.brunocardozo.com.br"],
     protocol: process.env.NODE_ENV === "development" ? "http" : "https",
   },
 });
