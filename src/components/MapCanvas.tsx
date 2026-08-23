@@ -26,13 +26,16 @@ const COUNTRIES_BY_CODE = new Map<string, Country>(
 );
 const KNOWN_CODES = new Set(COUNTRIES_BY_CODE.keys());
 
-// Base style layers to suppress: anything below "city level" (roads, POIs,
+// Base style layers to strip: anything below "city level" (roads, POIs,
 // transit, buildings). Country labels (and everything else — water, place
 // labels, admin lines) are left alone. dark-v11 and light-v11 share the same
 // underlying Streets tileset, so these source-layer/id patterns hold for
-// both — but the loop below only ever calls setLayoutProperty on layers that
+// both — but the loop below only ever calls removeLayer on layers that
 // actually appear in the loaded style, so a style swap can't make it no-op
-// silently or throw on a missing layer id.
+// silently or throw on a missing layer id. Removing (rather than hiding via
+// `visibility: none`) stops the tile worker from bucketing these layers at
+// all, which is the expensive part of every pan/zoom for a Streets-tileset
+// style — hiding only skips the paint step.
 const HIDE_SOURCE_LAYERS = new Set([
   "road",
   "bridge",
@@ -199,7 +202,7 @@ export function MapCanvas() {
           (typeof sourceLayer === "string" && HIDE_SOURCE_LAYERS.has(sourceLayer)) ||
           HIDE_ID_PATTERN.test(layer.id);
         if (hide) {
-          map.setLayoutProperty(layer.id, "visibility", "none");
+          map.removeLayer(layer.id);
         }
       }
 
