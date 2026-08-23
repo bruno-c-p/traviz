@@ -2,8 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import type { Country } from "../lib/stats";
-import { StateButtons } from "./StateButtons";
+import type { Country } from "@/lib/stats";
+import { StateButtons } from "@/components/StateButtons";
 
 const MOBILE_QUERY = "(max-width: 767px)";
 const EDGE_MARGIN = 12;
@@ -32,7 +32,11 @@ interface MarkPopoverProps {
 export function MarkPopover({ country, anchor, onClose }: MarkPopoverProps) {
   const isMobile = useIsMobile();
   const cardRef = useRef<HTMLDivElement>(null);
-  const [style, setStyle] = useState<CSSProperties>({ left: anchor.x, top: anchor.y, visibility: "hidden" });
+  const [style, setStyle] = useState<CSSProperties>({
+    left: anchor.x,
+    top: anchor.y,
+    visibility: "hidden",
+  });
 
   // Outside click + Esc close the popover. Genuine map movement is handled
   // by MapCanvas itself (it owns the map instance and calls onClose there).
@@ -65,8 +69,14 @@ export function MarkPopover({ country, anchor, onClose }: MarkPopoverProps) {
     let left = flipX ? anchor.x - POINT_OFFSET - w : anchor.x + POINT_OFFSET;
     let top = flipY ? anchor.y - POINT_OFFSET - h : anchor.y + POINT_OFFSET;
 
-    left = Math.min(Math.max(left, EDGE_MARGIN), Math.max(EDGE_MARGIN, window.innerWidth - w - EDGE_MARGIN));
-    top = Math.min(Math.max(top, EDGE_MARGIN), Math.max(EDGE_MARGIN, window.innerHeight - h - EDGE_MARGIN));
+    left = Math.min(
+      Math.max(left, EDGE_MARGIN),
+      Math.max(EDGE_MARGIN, window.innerWidth - w - EDGE_MARGIN),
+    );
+    top = Math.min(
+      Math.max(top, EDGE_MARGIN),
+      Math.max(EDGE_MARGIN, window.innerHeight - h - EDGE_MARGIN),
+    );
 
     setStyle({ left, top, visibility: "visible" });
   }, [anchor.x, anchor.y, isMobile]);

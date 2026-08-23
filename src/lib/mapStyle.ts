@@ -1,6 +1,6 @@
 import type { ExpressionSpecification, FilterSpecification } from "mapbox-gl";
-import { COUNTRY_STATES, STATE_COLORS } from "./colors";
-import type { Marks } from "./colors";
+import { COUNTRY_STATES, STATE_COLORS } from "@/lib/colors";
+import type { Marks } from "@/lib/colors";
 
 export const SOURCE_ID = "country-boundaries";
 export const COUNTRY_SOURCE_LAYER = "country_boundaries";
@@ -39,5 +39,10 @@ export function buildFillColorExpression(marks: Marks): ExpressionSpecification 
 
   if (cases.length === 0) return STATE_COLORS.unmarked;
 
-  return ["match", ["get", ISO_PROPERTY], ...cases, STATE_COLORS.unmarked] as unknown as ExpressionSpecification;
+  return [
+    "match",
+    ["get", ISO_PROPERTY],
+    ...cases,
+    STATE_COLORS.unmarked,
+  ] as unknown as ExpressionSpecification;
 }

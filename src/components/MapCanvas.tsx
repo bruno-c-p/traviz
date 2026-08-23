@@ -4,8 +4,8 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import countriesData from "../data/countries.json";
-import { STATE_COLORS } from "../lib/colors";
+import countriesData from "@/data/countries.json";
+import { STATE_COLORS } from "@/lib/colors";
 import {
   BORDER_LAYER_ID,
   COUNTRY_SOURCE_LAYER,
@@ -14,13 +14,16 @@ import {
   SOURCE_ID,
   WORLDVIEW_FILTER,
   buildFillColorExpression,
-} from "../lib/mapStyle";
-import type { Country } from "../lib/stats";
-import { useCountriesStore } from "../store/countries";
-import { FirstRunHint } from "./FirstRunHint";
-import { MarkPopover } from "./MarkPopover";
+} from "@/lib/mapStyle";
+import type { Country } from "@/lib/stats";
+import { useCountriesStore } from "@/store/countries";
+import { FirstRunHint } from "@/components/FirstRunHint";
+import { MarkPopover } from "@/components/MarkPopover";
+import { homePath } from "@/paths";
 
-const COUNTRIES_BY_CODE = new Map<string, Country>((countriesData as Country[]).map((c) => [c.code, c]));
+const COUNTRIES_BY_CODE = new Map<string, Country>(
+  (countriesData as Country[]).map((c) => [c.code, c]),
+);
 const KNOWN_CODES = new Set(COUNTRIES_BY_CODE.keys());
 
 // Base style layers to suppress: anything below "city level" (roads, POIs,
@@ -72,7 +75,7 @@ export function MapCanvas() {
   // The popover is anchored to a screen point; it doesn't make sense once
   // the user has navigated away from the map route.
   useEffect(() => {
-    if (pathname !== "/") setPopover(null);
+    if (pathname !== homePath()) setPopover(null);
   }, [pathname]);
 
   useEffect(() => {
@@ -193,7 +196,8 @@ export function MapCanvas() {
       for (const layer of map.getStyle()?.layers ?? []) {
         const sourceLayer = (layer as Record<string, unknown>)["source-layer"];
         const hide =
-          (typeof sourceLayer === "string" && HIDE_SOURCE_LAYERS.has(sourceLayer)) || HIDE_ID_PATTERN.test(layer.id);
+          (typeof sourceLayer === "string" && HIDE_SOURCE_LAYERS.has(sourceLayer)) ||
+          HIDE_ID_PATTERN.test(layer.id);
         if (hide) {
           map.setLayoutProperty(layer.id, "visibility", "none");
         }
@@ -272,7 +276,11 @@ export function MapCanvas() {
 
   return (
     <>
-      <div ref={containerRef} className="h-full w-full" style={{ backgroundColor: STATE_COLORS.unmarked }} />
+      <div
+        ref={containerRef}
+        className="h-full w-full"
+        style={{ backgroundColor: STATE_COLORS.unmarked }}
+      />
       {popover && (
         <MarkPopover
           key={popover.country.code}
@@ -281,7 +289,7 @@ export function MapCanvas() {
           onClose={() => setPopover(null)}
         />
       )}
-      {pathname === "/" && <FirstRunHint />}
+      {pathname === homePath() && <FirstRunHint />}
     </>
   );
 }

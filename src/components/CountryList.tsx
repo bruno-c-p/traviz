@@ -5,12 +5,12 @@ import type { ChangeEvent } from "react";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import type { Range } from "@tanstack/react-virtual";
 import { Search, X } from "lucide-react";
-import countriesData from "../data/countries.json";
-import type { Continent, Country } from "../lib/stats";
-import { STATE_COLORS } from "../lib/colors";
-import type { StateColorKey } from "../lib/colors";
-import { useCountriesStore } from "../store/countries";
-import { StateButtons } from "./StateButtons";
+import countriesData from "@/data/countries.json";
+import type { Continent, Country } from "@/lib/stats";
+import { STATE_COLORS } from "@/lib/colors";
+import type { StateColorKey } from "@/lib/colors";
+import { useCountriesStore } from "@/store/countries";
+import { StateButtons } from "@/components/StateButtons";
 
 const countries = countriesData as Country[];
 
@@ -39,7 +39,10 @@ type ListItem =
   | { type: "row"; country: Country };
 
 function normalize(value: string): string {
-  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
 }
 
 const normalizedNames = new Map(countries.map((c) => [c.code, normalize(c.name)]));
@@ -70,7 +73,9 @@ export function CountryList() {
 
   const stateFiltered = useMemo(() => {
     if (activeFilters.size === 0) return countries;
-    return countries.filter((c) => activeFilters.has((marks[c.code] ?? "unmarked") as StateColorKey));
+    return countries.filter((c) =>
+      activeFilters.has((marks[c.code] ?? "unmarked") as StateColorKey),
+    );
   }, [marks, activeFilters]);
 
   const trimmedQuery = normalize(query.trim());
@@ -209,7 +214,10 @@ export function CountryList() {
                     : "bg-canvas-soft text-body hover:bg-primary-pale",
                 ].join(" ")}
               >
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: STATE_COLORS[filter.value] }} />
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: STATE_COLORS[filter.value] }}
+                />
                 {filter.label}
               </button>
             );

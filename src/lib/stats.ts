@@ -1,4 +1,4 @@
-import type { Marks } from "./colors";
+import type { Marks } from "@/lib/colors";
 
 export type Continent =
   | "Africa"

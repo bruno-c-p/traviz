@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { SubmitEvent } from "react";
-import { authClient } from "../lib/authClient";
-import { BrandMark } from "./BrandMark";
+import { authClient } from "@/lib/authClient";
+import { BrandMark } from "@/components/BrandMark";
 
 type Mode = "signin" | "signup";
 
@@ -52,7 +52,8 @@ export function AuthPanel() {
           <BrandMark className="text-primary" />
           <h1 className="text-2xl font-black text-ink">Traviz</h1>
           <p className="text-center text-sm text-body">
-            Mark the countries you've visited, want to visit, or don't care about — synced to your account.
+            Mark the countries you've visited, want to visit, or don't care about — synced to your
+            account.
           </p>
         </div>
 

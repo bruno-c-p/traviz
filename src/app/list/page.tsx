@@ -1,4 +1,4 @@
-import { CountryList } from "../../components/CountryList";
+import { CountryList } from "@/components/CountryList";
 
 // instant = false: kept on purpose — SessionGate (root layout) drops this
 // segment from rendering entirely when signed out, so instant-navigation

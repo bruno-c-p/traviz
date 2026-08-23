@@ -1,5 +1,5 @@
-import { loadMarks } from "../lib/server/marks";
-import { HydrateMarks } from "./HydrateMarks";
+import { loadMarks } from "@/lib/server/marks";
+import { HydrateMarks } from "@/components/HydrateMarks";
 
 export async function MarksProvider({ userId }: { userId: string }) {
   const marks = await loadMarks(userId);

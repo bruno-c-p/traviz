@@ -2,9 +2,9 @@
 
 import { Ban, Check, Star, X } from "lucide-react";
 import type { ComponentType } from "react";
-import { COUNTRY_STATES, STATE_COLORS, STATE_TEXT_COLORS } from "../lib/colors";
-import type { CountryState } from "../lib/colors";
-import { useCountriesStore } from "../store/countries";
+import { COUNTRY_STATES, STATE_COLORS, STATE_TEXT_COLORS } from "@/lib/colors";
+import type { CountryState } from "@/lib/colors";
+import { useCountriesStore } from "@/store/countries";
 
 const STATE_LABELS: Record<CountryState, string> = {
   visited: "Visited",
@@ -28,7 +28,11 @@ export function StateButtons({ code, size = "md" }: { code: string; size?: "sm" 
   const buttonSizeClass = compact ? "h-7 w-7" : "h-9 gap-1.5 px-3 text-xs";
 
   return (
-    <div role="group" aria-label="Mark country state" className="flex flex-wrap items-center gap-1.5">
+    <div
+      role="group"
+      aria-label="Mark country state"
+      className="flex flex-wrap items-center gap-1.5"
+    >
       {COUNTRY_STATES.map((state) => {
         const Icon = STATE_ICONS[state];
         const active = currentState === state;
@@ -43,7 +47,11 @@ export function StateButtons({ code, size = "md" }: { code: string; size?: "sm" 
             aria-label={STATE_LABELS[state]}
             title={STATE_LABELS[state]}
             onClick={() => toggle(code, state)}
-            style={active ? { backgroundColor: `${color}26`, borderColor: color, color: textColor } : undefined}
+            style={
+              active
+                ? { backgroundColor: `${color}26`, borderColor: color, color: textColor }
+                : undefined
+            }
             className={[
               "inline-flex items-center justify-center rounded-full border font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",

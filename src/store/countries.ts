@@ -1,6 +1,7 @@
 import { create } from "zustand";
-import type { CountryState, Marks } from "../lib/colors";
-import { clearMarksAction, saveMarksAction } from "../lib/server/marksActions";
+import type { CountryState, Marks } from "@/lib/colors";
+import { clearMarksAction } from "@/features/marks/actions/clear-marks";
+import { saveMarksAction } from "@/features/marks/actions/save-marks";
 
 export type SyncStatus = "idle" | "ready" | "error";
 
@@ -71,7 +72,8 @@ export const useCountriesStore = create<CountriesState>()((set, get) => ({
   },
 
   toggle: (code, state) => {
-    const marks = get().marks[code] === state ? omit(get().marks, code) : { ...get().marks, [code]: state };
+    const marks =
+      get().marks[code] === state ? omit(get().marks, code) : { ...get().marks, [code]: state };
     set({ marks });
     scheduleSync(marks);
   },

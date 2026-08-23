@@ -1,10 +1,10 @@
 "use client";
 
-import countriesData from "../data/countries.json";
-import type { Continent, ContinentStats, Country, StateCounts } from "../lib/stats";
-import { computeStats } from "../lib/stats";
-import { COUNTRY_STATES, STATE_COLORS, STATE_TEXT_COLORS } from "../lib/colors";
-import { useCountriesStore } from "../store/countries";
+import countriesData from "@/data/countries.json";
+import type { Continent, ContinentStats, Country, StateCounts } from "@/lib/stats";
+import { computeStats } from "@/lib/stats";
+import { COUNTRY_STATES, STATE_COLORS, STATE_TEXT_COLORS } from "@/lib/colors";
+import { useCountriesStore } from "@/store/countries";
 
 const countries = countriesData as Country[];
 
@@ -27,7 +27,8 @@ const STATE_LABELS = {
 export function StatsPanel() {
   const marks = useCountriesStore((s) => s.marks);
   const stats = computeStats(marks, countries);
-  const headlinePct = stats.headline.total > 0 ? (stats.headline.visited / stats.headline.total) * 100 : 0;
+  const headlinePct =
+    stats.headline.total > 0 ? (stats.headline.visited / stats.headline.total) * 100 : 0;
 
   return (
     <>
@@ -35,13 +36,19 @@ export function StatsPanel() {
 
       <div className="flex flex-col gap-8 px-6 py-6">
         <section className="text-center">
-          <div className="text-5xl font-bold tabular-nums" style={{ color: STATE_TEXT_COLORS.visited }}>
+          <div
+            className="text-5xl font-bold tabular-nums"
+            style={{ color: STATE_TEXT_COLORS.visited }}
+          >
             {stats.headline.visited}
             <span className="text-2xl text-mute"> / {stats.headline.total}</span>
           </div>
           <p className="mt-1 text-sm text-body">countries visited</p>
           <div className="mx-auto mt-4 h-2 max-w-xs overflow-hidden rounded-full bg-canvas-soft">
-            <div className="h-full rounded-full" style={{ width: `${headlinePct}%`, backgroundColor: STATE_COLORS.visited }} />
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${headlinePct}%`, backgroundColor: STATE_COLORS.visited }}
+            />
           </div>
         </section>
 
@@ -52,9 +59,14 @@ export function StatsPanel() {
           <div className="grid grid-cols-3 gap-2">
             {COUNTRY_STATES.map((key) => (
               <div key={key} className="rounded-lg bg-canvas-soft px-3 py-3 text-center">
-                <div className="text-2xl font-semibold tabular-nums text-ink">{stats.totals[key]}</div>
+                <div className="text-2xl font-semibold tabular-nums text-ink">
+                  {stats.totals[key]}
+                </div>
                 <div className="mt-1 flex items-center justify-center gap-1.5 text-xs text-body">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: STATE_COLORS[key] }} />
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: STATE_COLORS[key] }}
+                  />
                   {STATE_LABELS[key]}
                 </div>
               </div>
@@ -63,10 +75,16 @@ export function StatsPanel() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-body">By continent</h2>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-body">
+            By continent
+          </h2>
           <div className="flex flex-col gap-4">
             {CONTINENT_ORDER.map((continent) => (
-              <ContinentRow key={continent} continent={continent} stats={stats.byContinent[continent]} />
+              <ContinentRow
+                key={continent}
+                continent={continent}
+                stats={stats.byContinent[continent]}
+              />
             ))}
           </div>
         </section>
@@ -101,7 +119,12 @@ function ContinentRow({ continent, stats }: { continent: Continent; stats: Conti
       >
         <div style={{ width: `${pct(countedVisited)}%`, backgroundColor: STATE_COLORS.visited }} />
         <div style={{ width: `${pct(stats.want)}%`, backgroundColor: STATE_COLORS.want }} />
-        <div style={{ width: `${pct(stats.not_interested)}%`, backgroundColor: STATE_COLORS.not_interested }} />
+        <div
+          style={{
+            width: `${pct(stats.not_interested)}%`,
+            backgroundColor: STATE_COLORS.not_interested,
+          }}
+        />
       </div>
     </div>
   );
@@ -129,7 +152,10 @@ function TerritoriesOnlyRow({ continent, stats }: { continent: Continent; stats:
               .filter((chip) => chip.count > 0)
               .map((chip) => (
                 <span key={chip.key} className="flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: STATE_COLORS[chip.key] }} />
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: STATE_COLORS[chip.key] }}
+                  />
                   {chip.count}
                 </span>
               ))}

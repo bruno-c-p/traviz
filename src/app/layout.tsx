@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { SessionGate } from "../components/SessionGate";
+import { SessionGate } from "@/components/SessionGate";
 import "./globals.css";
 
 const inter = Inter({

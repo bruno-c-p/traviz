@@ -2,15 +2,16 @@
 
 import { BarChart3, Database, Globe, List as ListIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
-import type { DockItemData } from "./Dock";
-import { Dock } from "./Dock";
-import { MapCanvas } from "./MapCanvas";
+import type { DockItemData } from "@/components/Dock";
+import { Dock } from "@/components/Dock";
+import { MapCanvas } from "@/components/MapCanvas";
+import { dataPath, homePath, listPath, statsPath } from "@/paths";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Map", Icon: Globe },
-  { to: "/list", label: "List", Icon: ListIcon },
-  { to: "/stats", label: "Stats", Icon: BarChart3 },
-  { to: "/data", label: "Data", Icon: Database },
+  { to: homePath(), label: "Map", Icon: Globe },
+  { to: listPath(), label: "List", Icon: ListIcon },
+  { to: statsPath(), label: "Stats", Icon: BarChart3 },
+  { to: dataPath(), label: "Data", Icon: Database },
 ] as const;
 
 const ACTIVE_DOT_CLASS =
@@ -18,7 +19,7 @@ const ACTIVE_DOT_CLASS =
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isMapRoute = pathname === "/";
+  const isMapRoute = pathname === homePath();
 
   const dockItems: DockItemData[] = NAV_ITEMS.map(({ to, label, Icon }) => ({
     icon: <Icon size={20} strokeWidth={1.75} />,

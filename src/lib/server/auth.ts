@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { dialect } from "./db.ts";
+import { dialect } from "@/lib/server/db";
 
 export const auth = betterAuth({
   database: { dialect, type: "sqlite" },

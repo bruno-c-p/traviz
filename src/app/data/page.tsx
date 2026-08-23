@@ -1,4 +1,4 @@
-import { DataPanel } from "../../components/DataPanel";
+import { DataPanel } from "@/components/DataPanel";
 
 // instant = false: kept on purpose — SessionGate (root layout) drops this
 // segment from rendering entirely when signed out, so instant-navigation

@@ -1,4 +1,4 @@
-import { StatsPanel } from "../../components/StatsPanel";
+import { StatsPanel } from "@/components/StatsPanel";
 
 // instant = false: kept on purpose — SessionGate (root layout) drops this
 // segment from rendering entirely when signed out, so instant-navigation

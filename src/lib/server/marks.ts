@@ -1,7 +1,7 @@
-import countriesData from "../../data/countries.json";
-import { COUNTRY_STATES } from "../colors";
-import type { Marks } from "../colors";
-import { turso } from "./db";
+import countriesData from "@/data/countries.json";
+import { COUNTRY_STATES } from "@/lib/colors";
+import type { Marks } from "@/lib/colors";
+import { turso } from "@/lib/server/db";
 
 const VALID_CODES = new Set((countriesData as { code: string }[]).map((c) => c.code));
 const MAX_MARKS = VALID_CODES.size;

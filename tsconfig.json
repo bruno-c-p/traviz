@@ -1,16 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2023",
-    "lib": [
-      "ES2023",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": [
-      "node"
-    ],
+    "paths": {
+      "@/paths": ["./paths.ts"],
+      "@/*": ["./src/*"]
+    },
+    "types": ["node"],
     "allowJs": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
@@ -35,14 +33,6 @@
     ],
     "strict": false
   },
-  "include": [
-    "src",
-    "scripts",
-    "next-env.d.ts",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src", "scripts", "next-env.d.ts", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],
+  "exclude": ["node_modules"]
 }

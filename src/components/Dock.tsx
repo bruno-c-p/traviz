@@ -42,7 +42,13 @@ function useShowPersistentLabels() {
   return matches;
 }
 
-function DockLabel({ isHovered, children }: { isHovered: MotionValue<number>; children: ReactNode }) {
+function DockLabel({
+  isHovered,
+  children,
+}: {
+  isHovered: MotionValue<number>;
+  children: ReactNode;
+}) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => isHovered.on("change", (latest) => setIsVisible(latest === 1)), [isHovered]);
@@ -97,14 +103,22 @@ function DockItem({
     return val - rect.x - baseItemSize / 2;
   });
 
-  const targetSize = useTransform(mouseDistance, [-distance, 0, distance], [baseItemSize, magnification, baseItemSize]);
+  const targetSize = useTransform(
+    mouseDistance,
+    [-distance, 0, distance],
+    [baseItemSize, magnification, baseItemSize],
+  );
   const size = useSpring(targetSize, spring);
 
   return (
     <div className="flex flex-col items-center gap-1.5">
       <motion.div
         ref={ref}
-        style={showPersistentLabel ? { width: baseItemSize, height: baseItemSize } : { width: size, height: size }}
+        style={
+          showPersistentLabel
+            ? { width: baseItemSize, height: baseItemSize }
+            : { width: size, height: size }
+        }
         onHoverStart={() => isHovered.set(1)}
         onHoverEnd={() => isHovered.set(0)}
         className={[
