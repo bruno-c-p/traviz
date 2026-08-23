@@ -1,8 +1,8 @@
 import { CountryList } from "../../components/CountryList";
 
-// instant = false: kept on purpose — AppShell (root layout) client auth gate
-// decides what renders (loading/sign-in vs. page content), dropping this
-// segment from SSR.
+// instant = false: kept on purpose — SessionGate (root layout) drops this
+// segment from rendering entirely when signed out, so instant-navigation
+// can't be validated for it.
 export const instant = false;
 
 export default function ListPage() {

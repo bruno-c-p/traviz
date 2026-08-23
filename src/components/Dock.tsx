@@ -29,7 +29,7 @@ type DockProps = {
 // size with the label always visible instead of hidden in a tooltip.
 function useShowPersistentLabels() {
   const query = "(hover: none), (max-width: 767px)";
-  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  const [matches, setMatches] = useState(false);
 
   useEffect(() => {
     const mql = window.matchMedia(query);

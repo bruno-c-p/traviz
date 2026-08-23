@@ -1,11 +1,13 @@
 "use client";
 
 import { AlertTriangle, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient, useAuthSession } from "../lib/authClient";
 import { useCountriesStore } from "../store/countries";
 
 export function DataPanel() {
+  const router = useRouter();
   const { data: session } = useAuthSession();
   const syncError = useCountriesStore((s) => s.syncError);
   const [confirmingReset, setConfirmingReset] = useState(false);
@@ -23,6 +25,7 @@ export function DataPanel() {
     setSigningOut(true);
     await authClient.signOut();
     setSigningOut(false);
+    router.refresh();
   }
 
   return (

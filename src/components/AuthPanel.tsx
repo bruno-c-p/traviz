@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { authClient } from "../lib/authClient";
@@ -11,6 +12,7 @@ const inputClass =
   "w-full rounded-md border border-ink bg-canvas px-4 py-3 text-sm text-ink placeholder:text-mute focus:outline-none focus:ring-2 focus:ring-primary";
 
 export function AuthPanel() {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -38,7 +40,9 @@ export function AuthPanel() {
     setBusy(false);
     if (result.error) {
       setError(result.error.message ?? "Something went wrong. Please try again.");
+      return;
     }
+    router.refresh();
   }
 
   return (

@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import type { CountryState, Marks } from "../lib/colors";
-import { clearMarks, fetchMarks, saveMarks } from "../lib/marksApi";
+import { clearMarksAction, saveMarksAction } from "../lib/server/marksActions";
 
-export type SyncStatus = "idle" | "loading" | "ready" | "error";
+export type SyncStatus = "idle" | "ready" | "error";
 
 export interface CountriesState {
   marks: Marks;
@@ -12,7 +12,6 @@ export interface CountriesState {
   clear: (code: string) => void;
   toggle: (code: string, state: CountryState) => void;
   resetAll: () => void;
-  load: () => Promise<void>;
   clearLocal: () => void;
 }
 
@@ -40,7 +39,7 @@ function scheduleSync(payload: Marks): void {
 async function runSync(payload: Marks): Promise<void> {
   syncInFlight = true;
   try {
-    await saveMarks(payload);
+    await saveMarksAction(payload);
     useCountriesStore.setState({ syncError: null });
   } catch (error) {
     useCountriesStore.setState({ syncError: errorMessage(error) });
@@ -79,19 +78,9 @@ export const useCountriesStore = create<CountriesState>()((set, get) => ({
 
   resetAll: () => {
     set({ marks: {} });
-    clearMarks().catch((error: unknown) => {
+    clearMarksAction().catch((error: unknown) => {
       set({ syncError: errorMessage(error) });
     });
-  },
-
-  load: async () => {
-    set({ status: "loading", syncError: null });
-    try {
-      const marks = await fetchMarks();
-      set({ marks, status: "ready" });
-    } catch (error) {
-      set({ status: "error", syncError: errorMessage(error) });
-    }
   },
 
   clearLocal: () => {

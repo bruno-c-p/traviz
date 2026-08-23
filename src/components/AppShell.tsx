@@ -2,11 +2,7 @@
 
 import { BarChart3, Database, Globe, List as ListIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
-import { useAuthSession } from "../lib/authClient";
-import { useCountriesStore } from "../store/countries";
 import type { DockItemData } from "./Dock";
-import { AuthPanel } from "./AuthPanel";
 import { Dock } from "./Dock";
 import { MapCanvas } from "./MapCanvas";
 
@@ -20,7 +16,7 @@ const NAV_ITEMS = [
 const ACTIVE_DOT_CLASS =
   "after:absolute after:-bottom-1.5 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-primary after:content-['']";
 
-function SignedInLayout({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isMapRoute = pathname === "/";
 
@@ -50,31 +46,4 @@ function SignedInLayout({ children }: { children: React.ReactNode }) {
       <Dock items={dockItems} />
     </div>
   );
-}
-
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const { data: session, isPending } = useAuthSession();
-  const userId = session?.user.id;
-
-  useEffect(() => {
-    if (!userId) return;
-    void useCountriesStore.getState().load();
-    return () => {
-      useCountriesStore.getState().clearLocal();
-    };
-  }, [userId]);
-
-  if (isPending) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-canvas-soft">
-        <p className="text-sm text-mute">Loading…</p>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <AuthPanel />;
-  }
-
-  return <SignedInLayout>{children}</SignedInLayout>;
 }
