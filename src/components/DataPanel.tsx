@@ -23,7 +23,7 @@ export function DataPanel() {
   async function handleSignOut() {
     if (signingOut) return;
     setSigningOut(true);
-    await authClient.signOut();
+    await authClient.signOut({});
     setSigningOut(false);
     router.refresh();
   }

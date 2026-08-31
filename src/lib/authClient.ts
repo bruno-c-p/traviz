@@ -1,7 +1,10 @@
 import { createAuthClient } from "better-auth/react";
+import { magicLinkClient } from "better-auth/client/plugins";
 import type { Session, User } from "better-auth/types";
 
-export const authClient = createAuthClient();
+export const authClient = createAuthClient({
+  plugins: [magicLinkClient()],
+});
 
 export interface AuthSession {
   session: Session;

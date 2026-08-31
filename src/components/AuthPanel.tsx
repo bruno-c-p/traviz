@@ -1,31 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { authClient } from "@/lib/authClient";
 import { BrandMark } from "@/components/BrandMark";
-import { cn } from "@/lib/utils";
-
-type Mode = "signin" | "signup";
 
 const inputClass =
   "w-full rounded-md border border-ink bg-canvas px-4 py-3 text-sm text-ink placeholder:text-mute focus:outline-none focus:ring-2 focus:ring-primary";
 
 export function AuthPanel() {
-  const router = useRouter();
-  const [mode, setMode] = useState<Mode>("signin");
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  function switchMode(next: Mode) {
-    if (next === mode || busy) return;
-    setMode(next);
-    setError(null);
-  }
+  const [sent, setSent] = useState(false);
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,17 +20,14 @@ export function AuthPanel() {
     setBusy(true);
     setError(null);
 
-    const result =
-      mode === "signup"
-        ? await authClient.signUp.email({ name, email, password })
-        : await authClient.signIn.email({ email, password });
+    const result = await authClient.signIn.magicLink({ email, callbackURL: "/" });
 
     setBusy(false);
     if (result.error) {
       setError(result.error.message ?? "Something went wrong. Please try again.");
       return;
     }
-    router.refresh();
+    setSent(true);
   }
 
   return (
@@ -59,88 +43,40 @@ export function AuthPanel() {
         </div>
 
         <div className="rounded-xl bg-canvas p-6 shadow-sm">
-          <div className="mb-4 grid grid-cols-2 gap-1 rounded-md bg-canvas-soft p-1">
-            <button
-              type="button"
-              onClick={() => switchMode("signin")}
-              aria-pressed={mode === "signin"}
-              className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
-                mode === "signin" ? "bg-canvas text-ink shadow-sm" : "text-mute hover:text-ink",
-              )}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode("signup")}
-              aria-pressed={mode === "signup"}
-              className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
-                mode === "signup" ? "bg-canvas text-ink shadow-sm" : "text-mute hover:text-ink",
-              )}
-            >
-              Create account
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            {mode === "signup" && (
+          {sent ? (
+            <p className="text-center text-sm text-body">
+              Check <span className="font-semibold text-ink">{email}</span> for a link to sign in.
+            </p>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               <label className="flex flex-col gap-1 text-xs font-semibold text-body">
-                Name
+                Email
                 <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
-                  autoComplete="name"
-                  placeholder="Your name"
+                  autoComplete="email"
+                  placeholder="you@example.com"
                   className={inputClass}
                 />
               </label>
-            )}
 
-            <label className="flex flex-col gap-1 text-xs font-semibold text-body">
-              Email
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                placeholder="you@example.com"
-                className={inputClass}
-              />
-            </label>
+              {error && (
+                <p role="alert" className="rounded-md bg-negative-bg px-3 py-2 text-sm text-canvas">
+                  {error}
+                </p>
+              )}
 
-            <label className="flex flex-col gap-1 text-xs font-semibold text-body">
-              Password
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                placeholder="At least 8 characters"
-                className={inputClass}
-              />
-            </label>
-
-            {error && (
-              <p role="alert" className="rounded-md bg-negative-bg px-3 py-2 text-sm text-canvas">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={busy}
-              className="mt-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-active disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={busy}
+                className="mt-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-active disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {busy ? "Sending…" : "Send magic link"}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>
