@@ -1,5 +1,3 @@
-Before writing any UI code, read DESIGN.md for design reference.
-
 After any UI change:
 
 1. Start dev server and open every affected page.
