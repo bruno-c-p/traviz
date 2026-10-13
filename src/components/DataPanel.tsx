@@ -1,14 +1,15 @@
 "use client";
 
+import { useClerk, useUser } from "@clerk/nextjs";
 import { AlertTriangle, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { authClient, useAuthSession } from "@/lib/authClient";
 import { useCountriesStore } from "@/store/countries";
 
 export function DataPanel() {
   const router = useRouter();
-  const { data: session } = useAuthSession();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const syncError = useCountriesStore((s) => s.syncError);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [resetDone, setResetDone] = useState(false);
@@ -23,7 +24,7 @@ export function DataPanel() {
   async function handleSignOut() {
     if (signingOut) return;
     setSigningOut(true);
-    await authClient.signOut({});
+    await signOut();
     setSigningOut(false);
     router.refresh();
   }
@@ -40,7 +41,9 @@ export function DataPanel() {
             off.
           </p>
           <div className="flex items-center justify-between gap-3 rounded-lg bg-canvas-soft px-3 py-2 shadow-sm">
-            <span className="min-w-0 truncate text-sm text-ink">{session?.user.email ?? ""}</span>
+            <span className="min-w-0 truncate text-sm text-ink">
+              {user?.primaryEmailAddress?.emailAddress ?? ""}
+            </span>
             <button
               type="button"
               onClick={handleSignOut}

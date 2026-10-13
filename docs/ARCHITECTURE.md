@@ -899,7 +899,7 @@ export async function createMeal(_: MealFormState, formData: FormData) {
 
 Mandatory for every Server Action:
 
-1. **Verify authentication** — confirm the caller is signed in. This project uses Better Auth; call `getSession()` (or `requireUserId()`) from `@/lib/server/session` — see `src/features/marks/actions/save-marks.ts` for the pattern. Examples in this guide omit the auth check for brevity — do not ship without it.
+1. **Verify authentication** — confirm the caller is signed in. This project uses Clerk; call `requireUserId()` from `@/lib/server/session` — see `src/features/marks/actions/save-marks.ts` for the pattern. Examples in this guide omit the auth check for brevity — do not ship without it.
 2. **Verify authorization** — confirm the caller owns or can access the resource being mutated. Never trust a `formData.get("userId")` to identify the actor — read it from the verified session.
 3. **Validate input** — `zod` `safeParse` on every field. Never pass raw `formData` directly to the database.
 4. **Keep secrets server-side** — secrets, env vars, and server-only imports (`@/lib/db`) must never appear in a file without `"use server"`.

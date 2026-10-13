@@ -14,19 +14,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.9.14",
     "@libsql/client": "^0.17.4",
-    "@libsql/kysely-libsql": "^0.4.1",
     "@tanstack/react-virtual": "^3.14.9",
-    "better-auth": "^1.7.1",
     "clsx": "^2.1.1",
-    "kysely": "^0.29.5",
     "lucide-react": "^1.31.0",
     "mapbox-gl": "^3.28.1",
     "motion": "^13.1.0",
     "next": "16.3.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "resend": "^6.25.0",
     "tailwind-merge": "^3.6.0",
     "zustand": "^5.0.15"
   },

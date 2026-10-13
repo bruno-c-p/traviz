@@ -1,13 +1,13 @@
 import { cache } from "react";
-import { headers } from "next/headers";
-import { auth } from "@/lib/server/auth";
+import { auth } from "@clerk/nextjs/server";
 
-export const getSession = cache(async () => {
-  return auth.api.getSession({ headers: await headers() });
+export const getUserId = cache(async () => {
+  const { userId } = await auth();
+  return userId;
 });
 
 export async function requireUserId(): Promise<string> {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
-  return session.user.id;
+  const userId = await getUserId();
+  if (!userId) throw new Error("Unauthorized");
+  return userId;
 }
