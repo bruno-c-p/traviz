@@ -842,7 +842,7 @@ All submitted-form rules live in [docs/FORM_HANDLING.md](FORM_HANDLING.md). Read
 
 ### File Organization
 
-Every Server Action lives in `features/<name>/actions/<verb>.ts` — **one verb per file**, with `"use server"` at the top of the file (file-level directive). See the [feature-folders skill](../.agents/skills/feature-folders/SKILL.md) for the full layout.
+Every Server Action lives in `features/<name>/actions/<verb>.ts` — **one verb per file**, with `"use server"` at the top of the file (file-level directive).
 
 ```
 features/meal-log/
@@ -946,7 +946,7 @@ Route handlers are only for webhooks, OAuth callbacks, and external integrations
 #### ❌ Don't: Inline `"use server"` inside a route file
 
 ```tsx
-// ❌ Wrong — inline server action in a page component (forbidden by feature-folders)
+// ❌ Wrong — inline server action in a page component (forbidden by File Organization)
 // app/(app)/log/new/page.tsx
 export default function Page() {
   async function createMeal(formData: FormData) {
