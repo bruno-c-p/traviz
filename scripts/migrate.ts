@@ -1,19 +1,6 @@
-import { getMigrations } from "better-auth/db/migration";
-import { auth } from "../src/lib/server/auth.ts";
 import { turso } from "../src/lib/server/db.ts";
 
 async function main(): Promise<void> {
-  const { toBeCreated, toBeAdded, runMigrations } = await getMigrations(auth.options);
-
-  if (toBeCreated.length === 0 && toBeAdded.length === 0) {
-    console.log("better-auth schema is up to date");
-  } else {
-    await runMigrations();
-    console.log(
-      `better-auth migrations applied — created: [${toBeCreated.map((t) => t.table).join(", ")}], altered: [${toBeAdded.map((t) => t.table).join(", ")}]`,
-    );
-  }
-
   await turso.execute(`
     CREATE TABLE IF NOT EXISTS marks (
       user_id TEXT NOT NULL,

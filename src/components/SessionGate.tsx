@@ -2,17 +2,17 @@ import { Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthPanel } from "@/components/AuthPanel";
 import { MarksProvider } from "@/features/marks/components/MarksProvider";
-import { getSession } from "@/lib/server/session";
+import { getUserId } from "@/lib/server/session";
 
 async function AuthedContent({ children }: { children: React.ReactNode }) {
-  const session = await getSession();
+  const userId = await getUserId();
 
-  if (!session) return <AuthPanel />;
+  if (!userId) return <AuthPanel />;
 
   return (
     <AppShell>
       <Suspense fallback={null}>
-        <MarksProvider userId={session.user.id} />
+        <MarksProvider userId={userId} />
       </Suspense>
       {children}
     </AppShell>

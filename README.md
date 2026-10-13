@@ -43,7 +43,7 @@ Screenshots show a demo account with sample marks, captured from a local product
 - pnpm 11, the version pinned in `package.json`. pnpm 10 can't read the lockfile.
 - A Mapbox public access token
 - A Turso database
-- A Resend API key, plus a sender address on a domain you've verified
+- A Clerk application set up for email link sign-in only
 
 ### Install
 
@@ -57,21 +57,23 @@ Create a `.env.local` file in the project root:
 
 ```env
 NEXT_PUBLIC_MAPBOX_TOKEN=pk.your_mapbox_public_token
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key
+CLERK_SECRET_KEY=sk_test_your_clerk_secret_key
 TURSO_DATABASE_URL=libsql://your-database.turso.io
 TURSO_AUTH_TOKEN=your_turso_auth_token
-BETTER_AUTH_SECRET=your_random_secret
-RESEND_API_KEY=re_your_resend_api_key
-RESEND_FROM_EMAIL=Traviz <noreply@your-domain.com>
 ```
 
-| Variable                   | Purpose                                                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `NEXT_PUBLIC_MAPBOX_TOKEN` | Public Mapbox token that renders the globe. Restrict it to your domains in the Mapbox dashboard before going live. |
-| `TURSO_DATABASE_URL`       | libSQL URL of the database that stores accounts, sessions, and marks.                                              |
-| `TURSO_AUTH_TOKEN`         | Auth token for that database.                                                                                      |
-| `BETTER_AUTH_SECRET`       | Secret that signs sessions. Generate one with `openssl rand -hex 32`.                                              |
-| `RESEND_API_KEY`           | Resend API key used to send sign-in emails.                                                                        |
-| `RESEND_FROM_EMAIL`        | Sender for sign-in emails. Sign-in fails without it.                                                               |
+| Variable                            | Purpose                                                                                                            |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_MAPBOX_TOKEN`          | Public Mapbox token that renders the globe. Restrict it to your domains in the Mapbox dashboard before going live. |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Public Clerk key used to render sign-in and load the session in the browser.                                       |
+| `CLERK_SECRET_KEY`                  | Secret Clerk key used on the server to verify sessions. Never expose it to the client.                             |
+| `TURSO_DATABASE_URL`                | libSQL URL of the database that stores marks.                                                                      |
+| `TURSO_AUTH_TOKEN`                  | Auth token for that database.                                                                                      |
+
+Both Clerk keys are on the API Keys page of your Clerk dashboard.
+
+The Clerk instance must use email link (magic link) sign-in only: no password or social providers.
 
 ### Set up the database
 
@@ -79,7 +81,7 @@ RESEND_FROM_EMAIL=Traviz <noreply@your-domain.com>
 pnpm db:migrate
 ```
 
-This creates the better-auth tables and the `marks` table, which holds one row per user and country.
+This creates the `marks` table, which holds one row per user and country.
 
 ### Run locally
 
@@ -96,7 +98,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 | `pnpm dev`           | Start the Next.js dev server                                            |
 | `pnpm build`         | Build for production                                                    |
 | `pnpm start`         | Serve the production build                                              |
-| `pnpm db:migrate`    | Create the auth tables and the `marks` table                            |
+| `pnpm db:migrate`    | Create the `marks` table                                                |
 | `pnpm gen:countries` | Regenerate `src/data/countries.json` from the `world-countries` package |
 | `pnpm lint`          | Lint with Oxlint                                                        |
 | `pnpm format`        | Format with Oxfmt                                                       |
@@ -113,10 +115,10 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 ├── docs/    Engineering guidelines and screenshots
 ├── scripts/ Database migration and country generation
 └── src/
-    ├── app/             Routes: / (globe), /list, /stats, /data, and the auth API
+    ├── app/             Routes: / (globe), /list, /stats, and /data
     ├── components/      Shell, globe, list, stats, data, and sign-in components
     ├── features/marks/  Server Actions and services that save and load marks
-    ├── lib/             Shared helpers, plus server-only auth, database, and email code
+    ├── lib/             Shared helpers, plus server-only auth and database code
     ├── store/           Zustand store for marks: updates instantly, then syncs
     └── data/            Generated country list
 ```
@@ -125,8 +127,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 
 - The project is deployed on Vercel. Any host that runs Next.js works too.
 - Set the same environment variables on your host.
-- `allowedHosts` in `src/lib/server/auth.ts` lists the hosts that auth trusts when it builds sign-in links: `localhost:3000`, `*.vercel.app`, and one production domain. Add your own domain there.
-- Use a sender address on a domain you've verified in Resend.
+- Add your production domain to the Clerk instance in the Clerk dashboard.
 
 ## Contributing
 

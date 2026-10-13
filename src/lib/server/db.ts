@@ -1,5 +1,4 @@
 import { createClient } from "@libsql/client";
-import { LibsqlDialect } from "@libsql/kysely-libsql";
 
 const config = {
   url: process.env.TURSO_DATABASE_URL as string,
@@ -7,5 +6,3 @@ const config = {
 };
 
 export const turso = createClient(config);
-
-export const dialect = new LibsqlDialect(config);
