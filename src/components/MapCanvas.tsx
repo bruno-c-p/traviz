@@ -7,13 +7,11 @@ import { useEffect, useRef, useState } from "react";
 import countriesData from "@/data/countries.json";
 import { STATE_COLORS } from "@/lib/colors";
 import {
-  BORDER_LAYER_ID,
-  COUNTRY_SOURCE_LAYER,
   FILL_LAYER_ID,
   ISO_PROPERTY,
   SOURCE_ID,
-  WORLDVIEW_FILTER,
   buildFillColorExpression,
+  buildMapStyle,
 } from "@/lib/mapStyle";
 import type { Country } from "@/lib/stats";
 import { useCountriesStore } from "@/store/countries";
@@ -25,28 +23,6 @@ const COUNTRIES_BY_CODE = new Map<string, Country>(
   (countriesData as Country[]).map((c) => [c.code, c]),
 );
 const KNOWN_CODES = new Set(COUNTRIES_BY_CODE.keys());
-
-// Base style layers to strip: anything below "city level" (roads, POIs,
-// transit, buildings). Country labels (and everything else — water, place
-// labels, admin lines) are left alone. dark-v11 and light-v11 share the same
-// underlying Streets tileset, so these source-layer/id patterns hold for
-// both — but the loop below only ever calls removeLayer on layers that
-// actually appear in the loaded style, so a style swap can't make it no-op
-// silently or throw on a missing layer id. Removing (rather than hiding via
-// `visibility: none`) stops the tile worker from bucketing these layers at
-// all, which is the expensive part of every pan/zoom for a Streets-tileset
-// style — hiding only skips the paint step.
-const HIDE_SOURCE_LAYERS = new Set([
-  "road",
-  "bridge",
-  "tunnel",
-  "building",
-  "poi_label",
-  "transit_stop_label",
-  "airport_label",
-  "housenum_label",
-]);
-const HIDE_ID_PATTERN = /road|bridge|tunnel|building|poi|transit|airport/i;
 
 const SPIN_DEGREES_PER_SECOND = 1.5;
 const MAX_SPIN_FRAME_SECONDS = 0.1;
@@ -88,10 +64,12 @@ export function MapCanvas() {
     const container = containerRef.current;
     if (!container) return;
 
+    const initialMarks = useCountriesStore.getState().marks;
     const map = new mapboxgl.Map({
       container,
       accessToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
-      style: "mapbox://styles/mapbox/light-v11",
+      style: buildMapStyle(initialMarks),
+      localFontFamily: getComputedStyle(container).fontFamily,
       projection: "globe",
       center: [0, 20],
       zoom: 1.4,
@@ -143,54 +121,6 @@ export function MapCanvas() {
     });
 
     map.on("style.load", () => {
-      map.addSource(SOURCE_ID, {
-        type: "vector",
-        url: "mapbox://mapbox.country-boundaries-v1",
-      });
-
-      const firstSymbolId = map.getStyle()?.layers.find((l) => l.type === "symbol")?.id;
-
-      map.addLayer(
-        {
-          id: FILL_LAYER_ID,
-          type: "fill",
-          source: SOURCE_ID,
-          "source-layer": COUNTRY_SOURCE_LAYER,
-          filter: WORLDVIEW_FILTER,
-          paint: {
-            "fill-color": buildFillColorExpression(useCountriesStore.getState().marks),
-            "fill-opacity": 1,
-          },
-        },
-        firstSymbolId,
-      );
-
-      map.addLayer(
-        {
-          id: BORDER_LAYER_ID,
-          type: "line",
-          source: SOURCE_ID,
-          "source-layer": COUNTRY_SOURCE_LAYER,
-          filter: WORLDVIEW_FILTER,
-          paint: {
-            "line-color": "#868685",
-            "line-width": ["interpolate", ["linear"], ["zoom"], 0, 0.4, 6, 1.2],
-            "line-opacity": 0.6,
-          },
-        },
-        firstSymbolId,
-      );
-
-      for (const layer of map.getStyle()?.layers ?? []) {
-        const sourceLayer = (layer as Record<string, unknown>)["source-layer"];
-        const hide =
-          (typeof sourceLayer === "string" && HIDE_SOURCE_LAYERS.has(sourceLayer)) ||
-          HIDE_ID_PATTERN.test(layer.id);
-        if (hide) {
-          map.removeLayer(layer.id);
-        }
-      }
-
       map.on("mouseenter", FILL_LAYER_ID, () => {
         map.getCanvas().style.cursor = "pointer";
       });
@@ -249,6 +179,11 @@ export function MapCanvas() {
       });
 
       if (!stopped) spinFrameId = requestAnimationFrame(spinFrame);
+
+      const currentMarks = useCountriesStore.getState().marks;
+      if (currentMarks !== initialMarks) {
+        map.setPaintProperty(FILL_LAYER_ID, "fill-color", buildFillColorExpression(currentMarks));
+      }
 
       unsubscribeMarks = useCountriesStore.subscribe((state) => {
         map.setPaintProperty(FILL_LAYER_ID, "fill-color", buildFillColorExpression(state.marks));
