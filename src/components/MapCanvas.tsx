@@ -49,6 +49,7 @@ const HIDE_SOURCE_LAYERS = new Set([
 const HIDE_ID_PATTERN = /road|bridge|tunnel|building|poi|transit|airport/i;
 
 const SPIN_DEGREES_PER_SECOND = 1.5;
+const MAX_SPIN_FRAME_SECONDS = 0.1;
 
 function tilesetFeatureName(properties: Record<string, unknown> | null | undefined): string {
   if (!properties) return "unknown";
@@ -74,10 +75,12 @@ export function MapCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [popover, setPopover] = useState<PopoverState | null>(null);
   const pathname = usePathname();
+  const isMapRouteRef = useRef(pathname === homePath());
 
   // The popover is anchored to a screen point; it doesn't make sense once
   // the user has navigated away from the map route.
   useEffect(() => {
+    isMapRouteRef.current = pathname === homePath();
     if (pathname !== homePath()) setPopover(null);
   }, [pathname]);
 
@@ -100,50 +103,29 @@ export function MapCanvas() {
     let sweepDone = false;
     let unsubscribeMarks: (() => void) | undefined;
 
-    // Driven by our own timer loop rather than chaining off Mapbox's
-    // move/moveend events (that self-chaining `easeTo` pattern is what
-    // wedged the map previously). `jumpTo` (unlike `easeTo`/`flyTo`)
-    // applies the camera change synchronously and doesn't set the map's
-    // internal "moving" transition state — it fires movestart/moveend
-    // back-to-back in the same call, so `map.isMoving()` is false again as
-    // soon as it returns. That means the spin can never leave Mapbox
-    // wedged in a permanent moving state, and it never competes with
-    // Mapbox's own gesture/animation state.
-    //
-    // A `requestAnimationFrame` loop would also work (and doesn't drive
-    // the camera through a transition, same as here), but rAF is fully
-    // suspended by browsers while a tab is backgrounded/not visible; a
-    // plain `setTimeout` chain keeps ticking regardless, which is more
-    // predictable and doesn't depend on tab focus.
-    const SPIN_TICK_MS = 50;
-    let spinTimerId: number | null = null;
-    let lastTickTime: number | null = null;
+    let spinFrameId: number | null = null;
+    let lastFrameTime: number | null = null;
     let stopped = false;
 
-    function spinTick() {
-      if (stopped) return;
-      const now = performance.now();
-      if (lastTickTime !== null) {
-        const elapsedSeconds = (now - lastTickTime) / 1000;
+    function spinFrame(now: number) {
+      const elapsedSeconds =
+        lastFrameTime === null ? 0 : Math.min((now - lastFrameTime) / 1000, MAX_SPIN_FRAME_SECONDS);
+      lastFrameTime = now;
+      if (isMapRouteRef.current && elapsedSeconds > 0) {
         const center = map.getCenter();
         center.lng -= SPIN_DEGREES_PER_SECOND * elapsedSeconds;
         map.jumpTo({ center });
       }
-      lastTickTime = now;
-      spinTimerId = window.setTimeout(spinTick, SPIN_TICK_MS);
+      spinFrameId = requestAnimationFrame(spinFrame);
     }
 
     function stopSpin() {
       if (stopped) return;
       stopped = true;
-      if (spinTimerId !== null) {
-        clearTimeout(spinTimerId);
-        spinTimerId = null;
+      if (spinFrameId !== null) {
+        cancelAnimationFrame(spinFrameId);
+        spinFrameId = null;
       }
-      // Defensively cancel any in-flight Mapbox-driven animation (e.g. the
-      // momentum ease after a drag release) so nothing keeps the map
-      // "moving" past this point.
-      map.stop();
     }
 
     // Any click, drag, or zoom stops the spin permanently. `movestart`'s
@@ -151,13 +133,16 @@ export function MapCanvas() {
     // never for our own programmatic `jumpTo` spin ticks, so this can't
     // confuse the two.
     map.on("click", stopSpin);
+    map.on("mousedown", stopSpin);
+    map.on("touchstart", stopSpin);
+    map.on("wheel", stopSpin);
     map.on("movestart", (e) => {
       if (!e.originalEvent) return;
       stopSpin();
       setPopover(null);
     });
 
-    map.on("load", () => {
+    map.on("style.load", () => {
       map.addSource(SOURCE_ID, {
         type: "vector",
         url: "mapbox://mapbox.country-boundaries-v1",
@@ -263,7 +248,7 @@ export function MapCanvas() {
         );
       });
 
-      spinTimerId = window.setTimeout(spinTick, SPIN_TICK_MS);
+      if (!stopped) spinFrameId = requestAnimationFrame(spinFrame);
 
       unsubscribeMarks = useCountriesStore.subscribe((state) => {
         map.setPaintProperty(FILL_LAYER_ID, "fill-color", buildFillColorExpression(state.marks));
