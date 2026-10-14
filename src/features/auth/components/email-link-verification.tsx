@@ -31,10 +31,13 @@ const MESSAGES = {
 
 type Status = keyof typeof MESSAGES;
 
-function toFailureStatus(error: unknown): Status {
+function toFailureStatus(error: Partial<Error>): Status {
   if (!(error instanceof Error) || !isEmailLinkError(error)) return "failed";
+
   if (error.code === EmailLinkErrorCodeStatus.Expired) return "expired";
+
   if (error.code === EmailLinkErrorCodeStatus.ClientMismatch) return "client_mismatch";
+
   return "failed";
 }
 
@@ -49,7 +52,7 @@ export function EmailLinkVerification() {
       onVerifiedOnOtherDevice: () => setStatus("verified"),
     })
       .then(() => setStatus("verified"))
-      .catch((error: unknown) => setStatus(toFailureStatus(error)));
+      .catch((error) => setStatus(toFailureStatus(error)));
   }, [loaded, handleEmailLinkVerification]);
 
   const message = MESSAGES[status];

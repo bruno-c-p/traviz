@@ -9,6 +9,7 @@ export default clerkMiddleware(async (auth, request) => {
   if (!isAuthenticated && !isSignInRoute) {
     return NextResponse.redirect(new URL(signInPath(), request.url));
   }
+
   if (isAuthenticated && isSignInRoute) {
     return NextResponse.redirect(new URL(homePath(), request.url));
   }

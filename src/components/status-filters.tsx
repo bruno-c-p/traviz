@@ -20,6 +20,7 @@ export function StatusFilters({ activeFilters, counts, onToggle }: StatusFilters
     <div role="group" aria-label="Filter by status" className="flex flex-wrap gap-2">
       {FILTERS.map((filter) => {
         const isActive = activeFilters.has(filter.value);
+
         return (
           <button
             key={filter.value}

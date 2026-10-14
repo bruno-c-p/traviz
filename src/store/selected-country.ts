@@ -1,11 +1,11 @@
 import { create } from "zustand";
 
-export type FlyRequest = {
+type FlyRequest = {
   code: string;
   requestId: number;
 };
 
-export interface SelectedCountryState {
+interface SelectedCountryState {
   selectedCode: string | null;
   flyRequest: FlyRequest | null;
   select: (code: string) => void;

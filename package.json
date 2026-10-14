@@ -4,13 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "gen:countries": "node --experimental-strip-types scripts/build-countries.ts",
-    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.ts",
+    "gen:countries": "bun scripts/build-countries.ts",
+    "db:migrate": "bun --env-file=.env.local scripts/migrate.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "oxlint",
     "format": "oxfmt .",
+    "fallow": "fallow",
+    "react-doctor": "react-doctor",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -28,20 +30,23 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@oxlint/plugins": "1.75.0",
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/geojson": "^7946.0.16",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "fallow": "^3.33.1",
     "oxfmt": "0.63.0",
     "oxlint": "^1.75.0",
+    "react-doctor": "^0.9.18",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "world-countries": "^5.1.0"
   },
   "devEngines": {
     "packageManager": {
-      "name": "pnpm",
-      "version": "11.22.0",
+      "name": "bun",
       "onFail": "download"
     }
   }

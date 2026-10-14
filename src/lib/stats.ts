@@ -51,6 +51,7 @@ function emptyStateCounts(): StateCounts {
 
 export function computeStats(marks: Marks, countries: readonly Country[]): Stats {
   const totals = emptyStateCounts();
+
   const byContinent = Object.fromEntries(
     CONTINENTS.map((continent) => [
       continent,
@@ -74,6 +75,7 @@ export function computeStats(marks: Marks, countries: readonly Country[]): Stats
     if (state) {
       totals[state] += 1;
       continentStats[state] += 1;
+
       if (state === "visited" && country.counted) {
         headlineVisited += 1;
         continentStats.countedVisited += 1;

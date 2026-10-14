@@ -6,10 +6,13 @@ export async function loadMarks(userId: string): Promise<Marks> {
     sql: "SELECT code, state FROM marks WHERE user_id = ?",
     args: [userId],
   });
+
   const marks: Marks = {};
+
   for (const row of result.rows) {
     marks[String(row.code)] = String(row.state) as Marks[string];
   }
+
   return marks;
 }
 

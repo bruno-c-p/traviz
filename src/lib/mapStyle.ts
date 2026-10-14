@@ -1,12 +1,18 @@
-import type { ExpressionSpecification, FilterSpecification, StyleSpecification } from "mapbox-gl";
+import type {
+  ExpressionSpecification,
+  FilterSpecification,
+  LayerSpecification,
+  SourceSpecification,
+  StyleSpecification,
+} from "mapbox-gl";
 import countryLabels from "@/data/country-labels.json";
 import { COUNTRY_STATES, STATE_COLORS } from "@/lib/colors";
 import type { Marks } from "@/lib/colors";
 
 export const SOURCE_ID = "country-boundaries";
-export const COUNTRY_SOURCE_LAYER = "country_boundaries";
+const COUNTRY_SOURCE_LAYER = "country_boundaries";
 export const FILL_LAYER_ID = "country-fill";
-export const BORDER_LAYER_ID = "country-border";
+const BORDER_LAYER_ID = "country-border";
 export const SELECTED_LAYER_ID = "country-selected";
 export const ISO_PROPERTY = "iso_3166_1_alpha_3";
 
@@ -17,6 +23,7 @@ const BORDER_COLOR = "#ffffff";
 const SPACE_COLOR = "#f4f6f1";
 const SELECTED_COLOR = "#0e0f0c";
 const LABEL_FONT = ["DIN Pro Medium"];
+
 const ATTRIBUTION = [
   '<a href="https://www.mapbox.com/about/maps" target="_blank" title="Mapbox" aria-label="Mapbox">&copy; Mapbox</a>',
   '<a href="https://www.openstreetmap.org/copyright/" target="_blank" title="OpenStreetMap" aria-label="OpenStreetMap">&copy; OpenStreetMap</a>',
@@ -45,7 +52,7 @@ function pointCollection(points: { name: string; coordinates: number[]; area?: n
 
 // Mapbox's documented worldview filter, US perspective: keep non-disputed
 // boundaries, plus disputed ones whose worldview list includes "US".
-export const WORLDVIEW_FILTER: FilterSpecification = [
+const WORLDVIEW_FILTER: FilterSpecification = [
   "all",
   ["==", ["get", "disputed"], "false"],
   ["any", ["==", "all", ["get", "worldview"]], ["in", "US", ["get", "worldview"]]],
@@ -55,12 +62,12 @@ export function buildSelectedFilter(selectedCode: string | null): FilterSpecific
   return ["all", WORLDVIEW_FILTER, ["==", ["get", ISO_PROPERTY], selectedCode ?? ""]];
 }
 
-// Builds a `match` expression grouping codes by state so each state is a
-// single case, falling back to STATE_COLORS.unmarked for everything else.
-export function buildFillColorExpression(marks: Marks): ExpressionSpecification | string {
+function groupCodesByState(marks: Marks): Map<string, string[]> {
   const groups = new Map<string, string[]>();
+
   for (const [code, state] of Object.entries(marks)) {
     const group = groups.get(state);
+
     if (group) {
       group.push(code);
     } else {
@@ -68,9 +75,18 @@ export function buildFillColorExpression(marks: Marks): ExpressionSpecification 
     }
   }
 
+  return groups;
+}
+
+// Builds a `match` expression grouping codes by state so each state is a
+// single case, falling back to STATE_COLORS.unmarked for everything else.
+export function buildFillColorExpression(marks: Marks): ExpressionSpecification | string {
+  const groups = groupCodesByState(marks);
   const cases: (string | string[])[] = [];
+
   for (const state of COUNTRY_STATES) {
     const codes = groups.get(state);
+
     if (codes && codes.length > 0) {
       cases.push(codes, STATE_COLORS[state]);
     }
@@ -78,118 +94,127 @@ export function buildFillColorExpression(marks: Marks): ExpressionSpecification 
 
   if (cases.length === 0) return STATE_COLORS.unmarked;
 
-  return [
-    "match",
-    ["get", ISO_PROPERTY],
-    ...cases,
-    STATE_COLORS.unmarked,
-  ] as unknown as ExpressionSpecification;
+  return ["match", ["get", ISO_PROPERTY], ...cases, STATE_COLORS.unmarked];
 }
+
+const MAP_FOG: StyleSpecification["fog"] = {
+  range: [-1, 10],
+  color: "hsla(0, 0%, 100%, 0.2)",
+  "high-color": SPACE_COLOR,
+  "space-color": SPACE_COLOR,
+  "horizon-blend": 0.1,
+  "star-intensity": 0,
+};
+
+const MAP_SOURCES = {
+  [SOURCE_ID]: {
+    type: "vector",
+    url: "mapbox://mapbox.country-boundaries-v1",
+    attribution: ATTRIBUTION,
+  },
+  "country-labels": { type: "geojson", data: pointCollection(countryLabels) },
+  "continent-labels": { type: "geojson", data: pointCollection(CONTINENT_LABELS) },
+} satisfies Record<string, SourceSpecification>;
+
+function buildCountryLayers(marks: Marks, selectedCode: string | null): LayerSpecification[] {
+  return [
+    {
+      id: FILL_LAYER_ID,
+      type: "fill",
+      source: SOURCE_ID,
+      "source-layer": COUNTRY_SOURCE_LAYER,
+      filter: WORLDVIEW_FILTER,
+      paint: { "fill-color": buildFillColorExpression(marks), "fill-opacity": 1 },
+    },
+    {
+      id: BORDER_LAYER_ID,
+      type: "line",
+      source: SOURCE_ID,
+      "source-layer": COUNTRY_SOURCE_LAYER,
+      filter: WORLDVIEW_FILTER,
+      paint: {
+        "line-color": BORDER_COLOR,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 0, 0.6, 6, 1.6],
+        "line-opacity": 0.9,
+      },
+    },
+    {
+      id: SELECTED_LAYER_ID,
+      type: "line",
+      source: SOURCE_ID,
+      "source-layer": COUNTRY_SOURCE_LAYER,
+      filter: buildSelectedFilter(selectedCode),
+      paint: {
+        "line-color": SELECTED_COLOR,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 0, 1.5, 6, 3],
+      },
+    },
+  ];
+}
+
+const LABEL_LAYERS: LayerSpecification[] = [
+  {
+    id: "country-label",
+    type: "symbol",
+    source: "country-labels",
+    minzoom: 1,
+    layout: {
+      "text-field": ["get", "name"],
+      "text-font": LABEL_FONT,
+      "text-size": [
+        "interpolate",
+        ["cubic-bezier", 0.2, 0, 0.7, 1],
+        ["zoom"],
+        1,
+        ["step", ["get", "area"], 8, 200000, 9, 1000000, 11],
+        9,
+        ["step", ["get", "area"], 17, 200000, 19, 1000000, 22],
+      ],
+      "text-line-height": 1.1,
+      "text-max-width": 6,
+      "symbol-sort-key": ["-", ["get", "area"]],
+    },
+    paint: {
+      "text-color": LABEL_COLOR,
+      "text-halo-color": LABEL_HALO_COLOR,
+      "text-halo-width": 1.25,
+    },
+  },
+  {
+    id: "continent-label",
+    type: "symbol",
+    source: "continent-labels",
+    minzoom: 0.75,
+    maxzoom: 3,
+    layout: {
+      "text-field": ["get", "name"],
+      "text-font": LABEL_FONT,
+      "text-size": ["interpolate", ["exponential", 0.5], ["zoom"], 0, 10, 2.5, 15],
+      "text-transform": "uppercase",
+      "text-letter-spacing": 0.05,
+      "text-line-height": 1.1,
+      "text-max-width": 6,
+    },
+    paint: {
+      "text-color": LABEL_COLOR,
+      "text-halo-color": LABEL_HALO_COLOR,
+      "text-halo-width": 1.5,
+      "text-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.8, 1.5, 0.5, 2.5, 0],
+    },
+  },
+];
 
 export function buildMapStyle(marks: Marks, selectedCode: string | null): StyleSpecification {
   return {
     version: 8,
     glyphs: "mapbox://fonts/mapbox/{fontstack}/{range}.pbf",
     projection: { name: "globe" },
-    fog: {
-      range: [-1, 10],
-      color: "hsla(0, 0%, 100%, 0.2)",
-      "high-color": SPACE_COLOR,
-      "space-color": SPACE_COLOR,
-      "horizon-blend": 0.1,
-      "star-intensity": 0,
-    },
-    sources: {
-      [SOURCE_ID]: {
-        type: "vector",
-        url: "mapbox://mapbox.country-boundaries-v1",
-        attribution: ATTRIBUTION,
-      },
-      "country-labels": { type: "geojson", data: pointCollection(countryLabels) },
-      "continent-labels": { type: "geojson", data: pointCollection(CONTINENT_LABELS) },
-    },
+    fog: MAP_FOG,
+    sources: MAP_SOURCES,
     layers: [
       { id: "water", type: "background", paint: { "background-color": WATER_COLOR } },
-      {
-        id: FILL_LAYER_ID,
-        type: "fill",
-        source: SOURCE_ID,
-        "source-layer": COUNTRY_SOURCE_LAYER,
-        filter: WORLDVIEW_FILTER,
-        paint: { "fill-color": buildFillColorExpression(marks), "fill-opacity": 1 },
-      },
-      {
-        id: BORDER_LAYER_ID,
-        type: "line",
-        source: SOURCE_ID,
-        "source-layer": COUNTRY_SOURCE_LAYER,
-        filter: WORLDVIEW_FILTER,
-        paint: {
-          "line-color": BORDER_COLOR,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 0, 0.6, 6, 1.6],
-          "line-opacity": 0.9,
-        },
-      },
-      {
-        id: SELECTED_LAYER_ID,
-        type: "line",
-        source: SOURCE_ID,
-        "source-layer": COUNTRY_SOURCE_LAYER,
-        filter: buildSelectedFilter(selectedCode),
-        paint: {
-          "line-color": SELECTED_COLOR,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 0, 1.5, 6, 3],
-        },
-      },
-      {
-        id: "country-label",
-        type: "symbol",
-        source: "country-labels",
-        minzoom: 1,
-        layout: {
-          "text-field": ["get", "name"],
-          "text-font": LABEL_FONT,
-          "text-size": [
-            "interpolate",
-            ["cubic-bezier", 0.2, 0, 0.7, 1],
-            ["zoom"],
-            1,
-            ["step", ["get", "area"], 8, 200000, 9, 1000000, 11],
-            9,
-            ["step", ["get", "area"], 17, 200000, 19, 1000000, 22],
-          ],
-          "text-line-height": 1.1,
-          "text-max-width": 6,
-          "symbol-sort-key": ["-", ["get", "area"]],
-        },
-        paint: {
-          "text-color": LABEL_COLOR,
-          "text-halo-color": LABEL_HALO_COLOR,
-          "text-halo-width": 1.25,
-        },
-      },
-      {
-        id: "continent-label",
-        type: "symbol",
-        source: "continent-labels",
-        minzoom: 0.75,
-        maxzoom: 3,
-        layout: {
-          "text-field": ["get", "name"],
-          "text-font": LABEL_FONT,
-          "text-size": ["interpolate", ["exponential", 0.5], ["zoom"], 0, 10, 2.5, 15],
-          "text-transform": "uppercase",
-          "text-letter-spacing": 0.05,
-          "text-line-height": 1.1,
-          "text-max-width": 6,
-        },
-        paint: {
-          "text-color": LABEL_COLOR,
-          "text-halo-color": LABEL_HALO_COLOR,
-          "text-halo-width": 1.5,
-          "text-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.8, 1.5, 0.5, 2.5, 0],
-        },
-      },
+      ...buildCountryLayers(marks, selectedCode),
+      ...LABEL_LAYERS,
     ],
   };
 }

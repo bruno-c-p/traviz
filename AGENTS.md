@@ -9,9 +9,9 @@ After any UI change:
 
 <!-- BEGIN:package-manager -->
 
-# Package Manager: pnpm
+# Package Manager: bun
 
-This project uses **pnpm**. Always use `pnpm` instead of `npm` for all package management commands (install, add, remove, etc.).
+This project uses **bun**. Always use `bun` instead of `npm` for all package management commands (install, add, remove, etc.).
 <!-- END:package-manager -->
 
 <!-- BEGIN:absolute-imports -->
@@ -291,11 +291,11 @@ Use `T` for a single generic type parameter. Use descriptive generic names only 
 Always run lint and format after finishing task, before reporting completion:
 
 ```sh
-pnpm lint
-pnpm format
+bun run lint
+bun run format
 ```
 
-Fix any issues they surface (use `pnpm lint:fix` for auto-fixable lint errors). If task changed TypeScript code, also run `pnpm typecheck`.
+Fix any issues they surface (use `bun run lint:fix` for auto-fixable lint errors). If task changed TypeScript code, also run `bun run typecheck`.
 <!-- END:post-task-checks -->
 
 <!-- BEGIN:form-submission -->
