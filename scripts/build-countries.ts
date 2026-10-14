@@ -15,6 +15,7 @@ import countries from "world-countries";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outputPath = path.join(__dirname, "../src/data/countries.json");
+const labelsOutputPath = path.join(__dirname, "../src/data/country-labels.json");
 
 interface CountryData {
   code: string;
@@ -125,6 +126,18 @@ if (!pse.counted) {
 }
 
 fs.writeFileSync(outputPath, JSON.stringify(processed, null, 2) + "\n");
+
+const LABEL_MIN_TERRITORY_AREA = 100000;
+
+const labels = countries
+  .filter((country) => country.independent || country.area >= LABEL_MIN_TERRITORY_AREA)
+  .map((country) => ({
+    name: country.name.common,
+    coordinates: [country.latlng[1], country.latlng[0]],
+    area: country.area,
+  }))
+  .sort((a, b) => b.area - a.area);
+fs.writeFileSync(labelsOutputPath, JSON.stringify(labels) + "\n");
 
 const totalRows = processed.length;
 const fileSize = fs.statSync(outputPath).size;
