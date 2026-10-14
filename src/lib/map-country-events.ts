@@ -26,7 +26,7 @@ function bindCountryClick(map: MapboxMap) {
 
     if (!code || !country) {
       console.warn(
-        `[MapCanvas] Unmatched country code "${code ?? "?"}" (tileset name: "${name}") has no entry in countries.json — ignoring the click.`,
+        `[MapCanvas] Unmatched country code "${code || "?"}" (tileset name: "${name}") has no entry in countries.json — ignoring the click.`,
       );
 
       return;
