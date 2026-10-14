@@ -1,10 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Instrument_Sans } from "next/font/google";
-import { Suspense } from "react";
 import { preconnect } from "react-dom";
-import { AppShell } from "@/components/AppShell";
-import { SessionLayer } from "@/components/SessionLayer";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -40,12 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={cn(instrumentSans.variable, geistMono.variable)}>
       <body className="bg-canvas-soft font-sans text-ink">
-        <ClerkProvider>
-          <AppShell>{children}</AppShell>
-          <Suspense fallback={null}>
-            <SessionLayer />
-          </Suspense>
-        </ClerkProvider>
+        <ClerkProvider>{children}</ClerkProvider>
       </body>
     </html>
   );

@@ -1,6 +1,18 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { homePath, signInPath } from "@/paths";
 
-export default clerkMiddleware();
+export default clerkMiddleware(async (auth, request) => {
+  const { isAuthenticated } = await auth();
+  const isSignInRoute = request.nextUrl.pathname === signInPath();
+
+  if (!isAuthenticated && !isSignInRoute) {
+    return NextResponse.redirect(new URL(signInPath(), request.url));
+  }
+  if (isAuthenticated && isSignInRoute) {
+    return NextResponse.redirect(new URL(homePath(), request.url));
+  }
+});
 
 export const config = {
   matcher: [
