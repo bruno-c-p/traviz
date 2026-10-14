@@ -1,28 +1,22 @@
 import { Suspense } from "react";
-import { AppShell } from "@/components/AppShell";
+import { AppNav } from "@/components/AppNav";
 import { AuthPanel } from "@/components/AuthPanel";
+import { FirstRunHint } from "@/components/FirstRunHint";
 import { MarksProvider } from "@/features/marks/components/MarksProvider";
 import { getUserId } from "@/lib/server/session";
 
-async function AuthedContent({ children }: { children: React.ReactNode }) {
+export async function SessionLayer() {
   const userId = await getUserId();
 
   if (!userId) return <AuthPanel />;
 
   return (
-    <AppShell>
+    <>
+      <AppNav />
+      <FirstRunHint />
       <Suspense fallback={null}>
         <MarksProvider userId={userId} />
       </Suspense>
-      {children}
-    </AppShell>
-  );
-}
-
-export function SessionGate({ children }: { children: React.ReactNode }) {
-  return (
-    <Suspense fallback={null}>
-      <AuthedContent>{children}</AuthedContent>
-    </Suspense>
+    </>
   );
 }

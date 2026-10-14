@@ -1,7 +1,10 @@
 "use client";
 
 import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
+
+import { homePath } from "@/paths";
 
 const HINT_STORAGE_KEY = "traviz-first-run-hint-dismissed";
 
@@ -14,9 +17,10 @@ function readDismissed(): boolean {
 }
 
 export function FirstRunHint() {
+  const pathname = usePathname();
   const [dismissed, setDismissed] = useState(readDismissed);
 
-  if (dismissed) return null;
+  if (dismissed || pathname !== homePath()) return null;
 
   function dismiss() {
     try {
