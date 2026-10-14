@@ -7,6 +7,7 @@ export const SOURCE_ID = "country-boundaries";
 export const COUNTRY_SOURCE_LAYER = "country_boundaries";
 export const FILL_LAYER_ID = "country-fill";
 export const BORDER_LAYER_ID = "country-border";
+export const SELECTED_LAYER_ID = "country-selected";
 export const ISO_PROPERTY = "iso_3166_1_alpha_3";
 
 const WATER_COLOR = "#d3d9cd";
@@ -14,6 +15,7 @@ const LABEL_COLOR = "#5e615c";
 const LABEL_HALO_COLOR = "#ffffff";
 const BORDER_COLOR = "#ffffff";
 const SPACE_COLOR = "#f4f6f1";
+const SELECTED_COLOR = "#0e0f0c";
 const LABEL_FONT = ["DIN Pro Medium"];
 const ATTRIBUTION = [
   '<a href="https://www.mapbox.com/about/maps" target="_blank" title="Mapbox" aria-label="Mapbox">&copy; Mapbox</a>',
@@ -49,6 +51,10 @@ export const WORLDVIEW_FILTER: FilterSpecification = [
   ["any", ["==", "all", ["get", "worldview"]], ["in", "US", ["get", "worldview"]]],
 ];
 
+export function buildSelectedFilter(selectedCode: string | null): FilterSpecification {
+  return ["all", WORLDVIEW_FILTER, ["==", ["get", ISO_PROPERTY], selectedCode ?? ""]];
+}
+
 // Builds a `match` expression grouping codes by state so each state is a
 // single case, falling back to STATE_COLORS.unmarked for everything else.
 export function buildFillColorExpression(marks: Marks): ExpressionSpecification | string {
@@ -80,7 +86,7 @@ export function buildFillColorExpression(marks: Marks): ExpressionSpecification 
   ] as unknown as ExpressionSpecification;
 }
 
-export function buildMapStyle(marks: Marks): StyleSpecification {
+export function buildMapStyle(marks: Marks, selectedCode: string | null): StyleSpecification {
   return {
     version: 8,
     glyphs: "mapbox://fonts/mapbox/{fontstack}/{range}.pbf",
@@ -122,6 +128,17 @@ export function buildMapStyle(marks: Marks): StyleSpecification {
           "line-color": BORDER_COLOR,
           "line-width": ["interpolate", ["linear"], ["zoom"], 0, 0.6, 6, 1.6],
           "line-opacity": 0.9,
+        },
+      },
+      {
+        id: SELECTED_LAYER_ID,
+        type: "line",
+        source: SOURCE_ID,
+        "source-layer": COUNTRY_SOURCE_LAYER,
+        filter: buildSelectedFilter(selectedCode),
+        paint: {
+          "line-color": SELECTED_COLOR,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 0, 1.5, 6, 3],
         },
       },
       {

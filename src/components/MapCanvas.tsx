@@ -2,24 +2,25 @@
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import countriesData from "@/data/countries.json";
+import type { Map as MapboxMap } from "mapbox-gl";
+import { useEffect, useRef } from "react";
+import { ZoomControls } from "@/components/zoom-controls";
 import { STATE_COLORS } from "@/lib/colors";
+import { COUNTRIES_BY_CODE, countryCenter } from "@/lib/countries";
 import {
   FILL_LAYER_ID,
   ISO_PROPERTY,
+  SELECTED_LAYER_ID,
   SOURCE_ID,
   buildFillColorExpression,
   buildMapStyle,
+  buildSelectedFilter,
 } from "@/lib/mapStyle";
-import type { Country } from "@/lib/stats";
 import { useCountriesStore } from "@/store/countries";
-import { MarkPopover } from "@/components/MarkPopover";
+import { useSelectedCountryStore } from "@/store/selected-country";
 import { homePath } from "@/paths";
 
-const COUNTRIES_BY_CODE = new Map<string, Country>(
-  (countriesData as Country[]).map((c) => [c.code, c]),
-);
+const FLY_TO_ZOOM = 3;
 const KNOWN_CODES = new Set(COUNTRIES_BY_CODE.keys());
 
 const mapboxModulePromise = typeof window === "undefined" ? null : import("mapbox-gl");
@@ -41,24 +42,16 @@ function featureProperties(feature: unknown): Record<string, unknown> | null {
   return (properties as Record<string, unknown> | null | undefined) ?? null;
 }
 
-interface PopoverState {
-  x: number;
-  y: number;
-  country: Country;
-}
-
 export function MapCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [popover, setPopover] = useState<PopoverState | null>(null);
+  const mapRef = useRef<MapboxMap | null>(null);
   const pathname = usePathname();
-  const isMapRouteRef = useRef(pathname === homePath());
+  const isMapRoute = pathname === homePath();
+  const isMapRouteRef = useRef(isMapRoute);
 
-  // The popover is anchored to a screen point; it doesn't make sense once
-  // the user has navigated away from the map route.
   useEffect(() => {
-    isMapRouteRef.current = pathname === homePath();
-    if (pathname !== homePath()) setPopover(null);
-  }, [pathname]);
+    isMapRouteRef.current = isMapRoute;
+  }, [isMapRoute]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -71,10 +64,11 @@ export function MapCanvas() {
       if (isCancelled) return;
 
       const initialMarks = useCountriesStore.getState().marks;
+      const initialSelectedCode = useSelectedCountryStore.getState().selectedCode;
       const map = new mapboxgl.Map({
         container,
         accessToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
-        style: buildMapStyle(initialMarks),
+        style: buildMapStyle(initialMarks, initialSelectedCode),
         localFontFamily: getComputedStyle(container).fontFamily,
         projection: "globe",
         center: [0, 20],
@@ -83,9 +77,10 @@ export function MapCanvas() {
         maxZoom: 8,
       });
 
-      (window as unknown as { __map: typeof map }).__map = map;
+      mapRef.current = map;
       let sweepDone = false;
       let unsubscribeMarks: (() => void) | undefined;
+      let unsubscribeSelection: (() => void) | undefined;
 
       let spinFrameId: number | null = null;
       let lastFrameTime: number | null = null;
@@ -125,7 +120,6 @@ export function MapCanvas() {
       map.on("movestart", (e) => {
         if (!e.originalEvent) return;
         stopSpin();
-        setPopover(null);
       });
 
       map.on("style.load", () => {
@@ -147,13 +141,12 @@ export function MapCanvas() {
 
           if (!code || !country) {
             console.warn(
-              `[MapCanvas] Unmatched country code "${code ?? "?"}" (tileset name: "${tilesetFeatureName(properties)}") has no entry in countries.json — suppressing popover.`,
+              `[MapCanvas] Unmatched country code "${code ?? "?"}" (tileset name: "${tilesetFeatureName(properties)}") has no entry in countries.json — ignoring the click.`,
             );
             return;
           }
 
-          const rect = container.getBoundingClientRect();
-          setPopover({ x: rect.left + e.point.x, y: rect.top + e.point.y, country });
+          useSelectedCountryStore.getState().select(country.code);
         });
 
         // One-time reconciliation sweep. Triggered off the source's own load
@@ -196,11 +189,32 @@ export function MapCanvas() {
         unsubscribeMarks = useCountriesStore.subscribe((state) => {
           map.setPaintProperty(FILL_LAYER_ID, "fill-color", buildFillColorExpression(state.marks));
         });
+
+        map.setFilter(
+          SELECTED_LAYER_ID,
+          buildSelectedFilter(useSelectedCountryStore.getState().selectedCode),
+        );
+
+        unsubscribeSelection = useSelectedCountryStore.subscribe((state, previousState) => {
+          if (state.selectedCode !== previousState.selectedCode) {
+            map.setFilter(SELECTED_LAYER_ID, buildSelectedFilter(state.selectedCode));
+            if (state.selectedCode) stopSpin();
+          }
+          if (state.flyRequest && state.flyRequest !== previousState.flyRequest) {
+            const center = countryCenter(state.flyRequest.code);
+            if (center) {
+              stopSpin();
+              map.flyTo({ center, zoom: Math.max(map.getZoom(), FLY_TO_ZOOM) });
+            }
+          }
+        });
       });
 
       teardown = () => {
         stopSpin();
         unsubscribeMarks?.();
+        unsubscribeSelection?.();
+        mapRef.current = null;
         map.remove();
       };
     });
@@ -218,12 +232,11 @@ export function MapCanvas() {
         className="h-full w-full"
         style={{ backgroundColor: STATE_COLORS.unmarked }}
       />
-      {popover && (
-        <MarkPopover
-          key={popover.country.code}
-          anchor={{ x: popover.x, y: popover.y }}
-          country={popover.country}
-          onClose={() => setPopover(null)}
+      {isMapRoute && (
+        <ZoomControls
+          onZoomIn={() => mapRef.current?.zoomIn()}
+          onZoomOut={() => mapRef.current?.zoomOut()}
+          className="fixed bottom-24 right-6 z-30 hidden md:flex"
         />
       )}
     </>

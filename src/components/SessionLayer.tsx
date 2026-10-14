@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-import { AppNav } from "@/components/AppNav";
 import { AuthPanel } from "@/components/AuthPanel";
-import { FirstRunHint } from "@/components/FirstRunHint";
+import { TabBar } from "@/components/tab-bar";
+import { TopBar } from "@/components/top-bar";
 import { MarksProvider } from "@/features/marks/components/MarksProvider";
 import { getUserId } from "@/lib/server/session";
 
@@ -12,8 +12,8 @@ export async function SessionLayer() {
 
   return (
     <>
-      <AppNav />
-      <FirstRunHint />
+      <TopBar />
+      <TabBar />
       <Suspense fallback={null}>
         <MarksProvider userId={userId} />
       </Suspense>
