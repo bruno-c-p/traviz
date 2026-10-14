@@ -1,19 +1,11 @@
 import type { GeoJSONFeature } from "mapbox-gl";
-import { z } from "zod";
 import { ISO_PROPERTY } from "@/lib/mapStyle";
 
-const tilesetPropertiesSchema = z.object({
-  [ISO_PROPERTY]: z.string().optional(),
-  name_en: z.string().optional(),
-  name: z.string().optional(),
-});
-
 export function readTilesetFeature(feature: GeoJSONFeature) {
-  const parsed = tilesetPropertiesSchema.safeParse(feature.properties);
-  const properties = parsed.success ? parsed.data : {};
+  const properties = feature.properties ?? {};
 
   return {
-    code: properties[ISO_PROPERTY],
-    name: properties.name_en ?? properties.name ?? "unknown",
+    code: String(properties[ISO_PROPERTY] ?? ""),
+    name: String(properties.name_en ?? properties.name ?? "unknown"),
   };
 }
