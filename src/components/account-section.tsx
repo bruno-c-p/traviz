@@ -2,13 +2,12 @@
 
 import { useClerk, useUser } from "@clerk/nextjs";
 import { LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { signInPath } from "@/paths";
 import { useCountriesStore } from "@/store/countries";
 
 export function AccountSection({ className }: { className?: string }) {
-  const router = useRouter();
   const { user } = useUser();
   const { signOut } = useClerk();
   const syncError = useCountriesStore((state) => state.syncError);
@@ -17,9 +16,7 @@ export function AccountSection({ className }: { className?: string }) {
   async function handleSignOut() {
     if (isSigningOut) return;
     setIsSigningOut(true);
-    await signOut();
-    setIsSigningOut(false);
-    router.refresh();
+    await signOut({ redirectUrl: signInPath() });
   }
 
   return (

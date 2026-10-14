@@ -26,7 +26,7 @@ export function GlobeOverlay() {
   }, [selectedCode, clearSelection]);
 
   return (
-    <div className="contents signed-out:hidden">
+    <>
       <div className="pointer-events-auto fixed inset-x-4 top-4 z-40 flex items-center gap-2.5 md:hidden">
         <CountrySearch className="min-w-0 flex-1" />
         <AccountButton />
@@ -50,6 +50,6 @@ export function GlobeOverlay() {
       </div>
 
       {country && <CountrySheet country={country} />}
-    </div>
+    </>
   );
 }
