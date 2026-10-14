@@ -4,7 +4,7 @@ import { homePath, signInPath } from "@/paths";
 
 export default clerkMiddleware(async (auth, request) => {
   const { isAuthenticated } = await auth();
-  const isSignInRoute = request.nextUrl.pathname === signInPath();
+  const isSignInRoute = request.nextUrl.pathname.startsWith(signInPath());
 
   if (!isAuthenticated && !isSignInRoute) {
     return NextResponse.redirect(new URL(signInPath(), request.url));
