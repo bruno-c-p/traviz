@@ -15,6 +15,12 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "traviz",
+  applicationName: "traviz",
+  appleWebApp: {
+    capable: true,
+    title: "traviz",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
