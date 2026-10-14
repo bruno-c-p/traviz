@@ -84,18 +84,18 @@ export function MarkPopover({ country, anchor, onClose }: MarkPopoverProps) {
   if (isMobile) {
     return (
       <>
-        <div className="fixed inset-0 z-[55] bg-black/50" aria-hidden="true" />
+        <div className="fixed inset-0 z-[55] bg-ink/40" aria-hidden="true" />
         <div
           ref={cardRef}
           role="dialog"
           aria-label={`Mark ${country.name}`}
-          className="fixed inset-x-0 bottom-0 z-[60] rounded-t-2xl bg-canvas p-5 shadow-2xl"
+          className="fixed inset-x-0 bottom-0 z-[60] rounded-t-[28px] bg-canvas p-5 shadow-card"
           style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
         >
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-canvas-soft" />
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" />
           <div className="mb-4 flex items-center gap-3">
             <span className="text-3xl leading-none">{country.flag}</span>
-            <span className="text-lg font-semibold text-ink">{country.name}</span>
+            <span className="text-2xl font-bold tracking-tight text-ink">{country.name}</span>
           </div>
           <StateButtons code={country.code} size="md" />
         </div>
@@ -109,11 +109,11 @@ export function MarkPopover({ country, anchor, onClose }: MarkPopoverProps) {
       role="dialog"
       aria-label={`Mark ${country.name}`}
       style={style}
-      className="fixed z-[60] w-max max-w-[calc(100vw-1rem)] rounded-xl bg-canvas/95 p-4 shadow-2xl backdrop-blur-md"
+      className="fixed z-[60] w-max max-w-[calc(100vw-1rem)] rounded-3xl bg-canvas p-5 shadow-card"
     >
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-4 flex items-center gap-3">
         <span className="text-2xl leading-none">{country.flag}</span>
-        <span className="text-base font-semibold text-ink">{country.name}</span>
+        <span className="text-xl font-bold tracking-tight text-ink">{country.name}</span>
       </div>
       <StateButtons code={country.code} size="md" />
     </div>

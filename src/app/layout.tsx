@@ -1,16 +1,23 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Geist_Mono, Instrument_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { preconnect } from "react-dom";
 import { AppShell } from "@/components/AppShell";
 import { SessionLayer } from "@/components/SessionLayer";
+import { cn } from "@/lib/utils";
 import "./globals.css";
 
-const inter = Inter({
+const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
-  weight: ["400", "600", "900"],
-  variable: "--font-inter",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-instrument-sans",
+});
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
@@ -24,14 +31,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#e8ebe6",
+  themeColor: "#f4f6f1",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   preconnect("https://api.mapbox.com", { crossOrigin: "anonymous" });
 
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={cn(instrumentSans.variable, geistMono.variable)}>
       <body className="bg-canvas-soft font-sans text-ink">
         <ClerkProvider>
           <AppShell>{children}</AppShell>

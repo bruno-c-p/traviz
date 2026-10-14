@@ -31,24 +31,24 @@ export function DataPanel() {
 
   return (
     <>
-      <h1 className="px-6 pt-6 text-lg font-semibold text-ink">Data</h1>
+      <h1 className="px-6 pt-8 text-3xl font-bold tracking-tight text-ink">Data</h1>
 
-      <div className="flex flex-col gap-8 px-6 py-6">
-        <section>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-body">Account</h2>
-          <p className="mb-3 text-sm text-body">
+      <div className="flex flex-col gap-6 px-4 py-6">
+        <section className="rounded-3xl bg-canvas p-5 shadow-card">
+          <h2 className="mb-2 font-mono text-xs uppercase tracking-wider text-mute">Account</h2>
+          <p className="mb-4 text-[15px] leading-relaxed text-body">
             Your marks are stored in your account. Sign in on any device to pick up where you left
             off.
           </p>
-          <div className="flex items-center justify-between gap-3 rounded-lg bg-canvas-soft px-3 py-2 shadow-sm">
-            <span className="min-w-0 truncate text-sm text-ink">
+          <div className="flex items-center justify-between gap-3 rounded-2xl bg-canvas-soft py-1.5 pl-4 pr-1.5">
+            <span className="min-w-0 truncate text-sm font-medium text-ink">
               {user?.primaryEmailAddress?.emailAddress ?? ""}
             </span>
             <button
               type="button"
               onClick={handleSignOut}
               disabled={signingOut}
-              className="flex shrink-0 items-center gap-2 rounded-lg bg-canvas px-3 py-1.5 text-sm text-body hover:bg-primary-pale disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-canvas px-4 text-sm font-semibold text-ink hover:bg-land disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
             >
               <LogOut className="h-4 w-4" />
               {signingOut ? "Signing out…" : "Sign out"}
@@ -56,18 +56,18 @@ export function DataPanel() {
           </div>
 
           {syncError && (
-            <div className="mt-3 rounded-lg bg-warning px-3 py-2 text-sm text-warning-content">
+            <div className="mt-3 rounded-2xl bg-warning px-4 py-3 text-sm text-warning-content">
               Couldn't sync your latest changes: {syncError}
             </div>
           )}
         </section>
 
-        <section className="rounded-xl bg-negative-bg p-4">
-          <h2 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-negative">
+        <section className="rounded-3xl bg-canvas p-5 shadow-card ring-1 ring-negative/20">
+          <h2 className="mb-2 flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-negative-deep">
             <AlertTriangle className="h-3.5 w-3.5" />
             Danger zone
           </h2>
-          <p className="mb-3 text-sm text-canvas-soft">
+          <p className="mb-4 text-[15px] leading-relaxed text-body">
             Permanently erase every mark. This cannot be undone.
           </p>
 
@@ -75,27 +75,27 @@ export function DataPanel() {
             <button
               type="button"
               onClick={() => setConfirmingReset(true)}
-              className="rounded-xl bg-negative px-3 py-2 text-sm font-semibold text-canvas hover:bg-negative-deep"
+              className="min-h-11 rounded-full bg-negative px-5 text-sm font-semibold text-canvas hover:bg-negative-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
             >
               Reset all data
             </button>
           ) : (
-            <div className="flex flex-col gap-2 rounded-lg bg-negative-deep/40 p-3">
-              <p className="text-sm text-canvas">
+            <div className="flex flex-col gap-3 rounded-2xl bg-negative-pale p-4">
+              <p className="text-sm font-medium text-negative-darkest">
                 Are you sure? All marks will be permanently deleted.
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={handleResetConfirmed}
-                  className="rounded-lg bg-negative px-3 py-1.5 text-sm font-semibold text-canvas hover:bg-negative-deep"
+                  className="min-h-11 rounded-full bg-negative px-4 text-sm font-semibold text-canvas hover:bg-negative-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
                 >
                   Yes, erase everything
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmingReset(false)}
-                  className="rounded-lg bg-canvas-soft px-3 py-1.5 text-sm text-ink hover:bg-canvas"
+                  className="min-h-11 rounded-full bg-canvas px-4 text-sm font-semibold text-ink hover:bg-land focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
                 >
                   Cancel
                 </button>
@@ -103,7 +103,7 @@ export function DataPanel() {
             </div>
           )}
 
-          {resetDone && <p className="mt-3 text-sm text-canvas-soft">All data has been reset.</p>}
+          {resetDone && <p className="mt-3 text-sm text-body">All data has been reset.</p>}
         </section>
       </div>
     </>

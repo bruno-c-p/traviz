@@ -9,9 +9,11 @@ export const FILL_LAYER_ID = "country-fill";
 export const BORDER_LAYER_ID = "country-border";
 export const ISO_PROPERTY = "iso_3166_1_alpha_3";
 
-const WATER_COLOR = "hsl(220, 1%, 86%)";
-const LABEL_COLOR = "hsl(220, 1%, 49%)";
-const LABEL_HALO_COLOR = "hsl(220, 0%, 100%)";
+const WATER_COLOR = "#d3d9cd";
+const LABEL_COLOR = "#5e615c";
+const LABEL_HALO_COLOR = "#ffffff";
+const BORDER_COLOR = "#ffffff";
+const SPACE_COLOR = "#f4f6f1";
 const LABEL_FONT = ["DIN Pro Medium"];
 const ATTRIBUTION = [
   '<a href="https://www.mapbox.com/about/maps" target="_blank" title="Mapbox" aria-label="Mapbox">&copy; Mapbox</a>',
@@ -86,8 +88,8 @@ export function buildMapStyle(marks: Marks): StyleSpecification {
     fog: {
       range: [-1, 10],
       color: "hsla(0, 0%, 100%, 0.2)",
-      "high-color": "hsl(0, 0%, 100%)",
-      "space-color": "hsl(0, 0%, 100%)",
+      "high-color": SPACE_COLOR,
+      "space-color": SPACE_COLOR,
       "horizon-blend": 0.1,
       "star-intensity": 0,
     },
@@ -117,9 +119,9 @@ export function buildMapStyle(marks: Marks): StyleSpecification {
         "source-layer": COUNTRY_SOURCE_LAYER,
         filter: WORLDVIEW_FILTER,
         paint: {
-          "line-color": "#868685",
-          "line-width": ["interpolate", ["linear"], ["zoom"], 0, 0.4, 6, 1.2],
-          "line-opacity": 0.6,
+          "line-color": BORDER_COLOR,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 0, 0.6, 6, 1.6],
+          "line-opacity": 0.9,
         },
       },
       {

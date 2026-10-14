@@ -3,7 +3,7 @@
 import countriesData from "@/data/countries.json";
 import type { Continent, ContinentStats, Country, StateCounts } from "@/lib/stats";
 import { computeStats } from "@/lib/stats";
-import { COUNTRY_STATES, STATE_COLORS, STATE_TEXT_COLORS } from "@/lib/colors";
+import { COUNTRY_STATES, STATE_COLORS } from "@/lib/colors";
 import { useCountriesStore } from "@/store/countries";
 
 const countries = countriesData as Country[];
@@ -32,19 +32,25 @@ export function StatsPanel() {
 
   return (
     <>
-      <h1 className="px-6 pt-6 text-lg font-semibold text-ink">Stats</h1>
+      <h1 className="px-6 pt-8 text-3xl font-bold tracking-tight text-ink">Stats</h1>
 
-      <div className="flex flex-col gap-8 px-6 py-6">
-        <section className="text-center">
-          <div
-            className="text-5xl font-bold tabular-nums"
-            style={{ color: STATE_TEXT_COLORS.visited }}
-          >
-            {stats.headline.visited}
-            <span className="text-2xl text-mute"> / {stats.headline.total}</span>
+      <div className="flex flex-col gap-8 px-4 py-6">
+        <section className="rounded-3xl bg-ink-deep p-6 text-canvas">
+          <p className="font-mono text-xs uppercase tracking-wider text-primary-neutral">
+            Countries visited
+          </p>
+          <div className="mt-3 flex items-baseline gap-2 tabular-nums">
+            <span className="text-6xl font-bold leading-none tracking-tight text-primary">
+              {stats.headline.visited}
+            </span>
+            <span className="text-xl font-medium text-primary-neutral">
+              / {stats.headline.total}
+            </span>
           </div>
-          <p className="mt-1 text-sm text-body">countries visited</p>
-          <div className="mx-auto mt-4 h-2 max-w-xs overflow-hidden rounded-full bg-canvas-soft">
+          <p className="mt-2 text-sm text-primary-neutral">
+            {headlinePct.toFixed(1)}% of the world
+          </p>
+          <div className="mt-5 h-2 overflow-hidden rounded-full bg-ink-deep-soft">
             <div
               className="h-full rounded-full"
               style={{ width: `${headlinePct}%`, backgroundColor: STATE_COLORS.visited }}
@@ -53,18 +59,18 @@ export function StatsPanel() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-body">
-            Totals (incl. territories)
+          <h2 className="mb-3 px-2 font-mono text-xs uppercase tracking-wider text-mute">
+            Totals, territories included
           </h2>
           <div className="grid grid-cols-3 gap-2">
             {COUNTRY_STATES.map((key) => (
-              <div key={key} className="rounded-lg bg-canvas-soft px-3 py-3 text-center">
-                <div className="text-2xl font-semibold tabular-nums text-ink">
+              <div key={key} className="rounded-2xl bg-canvas p-4 shadow-card">
+                <div className="text-3xl font-bold tabular-nums tracking-tight text-ink">
                   {stats.totals[key]}
                 </div>
-                <div className="mt-1 flex items-center justify-center gap-1.5 text-xs text-body">
+                <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-body">
                   <span
-                    className="h-2 w-2 rounded-full"
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: STATE_COLORS[key] }}
                   />
                   {STATE_LABELS[key]}
@@ -75,10 +81,10 @@ export function StatsPanel() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-body">
+          <h2 className="mb-3 px-2 font-mono text-xs uppercase tracking-wider text-mute">
             By continent
           </h2>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-5 rounded-3xl bg-canvas p-5 shadow-card">
             {CONTINENT_ORDER.map((continent) => (
               <ContinentRow
                 key={continent}
@@ -107,14 +113,14 @@ function ContinentRow({ continent, stats }: { continent: Continent; stats: Conti
 
   return (
     <div>
-      <div className="mb-1.5 flex items-baseline justify-between text-sm">
-        <span className="text-ink">{continent}</span>
-        <span className="text-xs tabular-nums text-mute">
-          {countedVisited} / {countedTotal} visited
+      <div className="mb-2 flex items-baseline justify-between">
+        <span className="text-[15px] font-semibold text-ink">{continent}</span>
+        <span className="font-mono text-xs tabular-nums text-mute">
+          {countedVisited} / {countedTotal}
         </span>
       </div>
       <div
-        className="flex h-2 w-full overflow-hidden rounded-full"
+        className="flex h-2.5 w-full overflow-hidden rounded-full"
         style={{ backgroundColor: STATE_COLORS.unmarked }}
       >
         <div style={{ width: `${pct(countedVisited)}%`, backgroundColor: STATE_COLORS.visited }} />
@@ -140,11 +146,11 @@ function TerritoriesOnlyRow({ continent, stats }: { continent: Continent; stats:
 
   return (
     <div>
-      <div className="mb-1.5 flex items-baseline justify-between text-sm">
-        <span className="text-ink">{continent}</span>
-        <span className="text-xs tabular-nums text-mute">{stats.total} territories</span>
+      <div className="mb-2 flex items-baseline justify-between">
+        <span className="text-[15px] font-semibold text-ink">{continent}</span>
+        <span className="font-mono text-xs tabular-nums text-mute">{stats.total} territories</span>
       </div>
-      <div className="flex items-center gap-2 rounded-lg border border-dashed border-mute bg-canvas-soft px-3 py-2 text-xs text-body">
+      <div className="flex items-center gap-2 rounded-xl border border-dashed border-line bg-canvas-soft px-3 py-2.5 text-xs text-body">
         <span>Territories only — not part of the 195 headline.</span>
         {marked > 0 && (
           <span className="ml-auto flex shrink-0 items-center gap-2 tabular-nums">
@@ -153,7 +159,7 @@ function TerritoriesOnlyRow({ continent, stats }: { continent: Continent; stats:
               .map((chip) => (
                 <span key={chip.key} className="flex items-center gap-1">
                   <span
-                    className="h-1.5 w-1.5 rounded-full"
+                    className="h-2 w-2 rounded-full"
                     style={{ backgroundColor: STATE_COLORS[chip.key] }}
                   />
                   {chip.count}

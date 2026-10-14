@@ -32,8 +32,8 @@ const FILTERS: readonly { value: StateColorKey; label: string }[] = [
   { value: "unmarked", label: "Unmarked" },
 ];
 
-const ROW_HEIGHT = 45;
-const HEADER_HEIGHT = 30;
+const ROW_HEIGHT = 56;
+const HEADER_HEIGHT = 40;
 
 type ListItem =
   | { type: "header"; continent: Continent; count: number }
@@ -174,32 +174,32 @@ export function CountryList() {
 
   return (
     <>
-      <h1 className="px-6 pt-6 text-lg font-semibold text-ink">List</h1>
+      <h1 className="px-6 pt-8 text-3xl font-bold tracking-tight text-ink">List</h1>
 
-      <div ref={headerRef} className="space-y-3 px-4 pt-4">
+      <div ref={headerRef} className="space-y-3 px-4 pt-5">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-mute" />
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-mute" />
           <input
             type="text"
             value={query}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
             placeholder="Search countries…"
             aria-label="Search countries"
-            className="w-full rounded-md border border-ink bg-canvas py-2 pl-9 pr-8 text-sm text-ink placeholder:text-mute focus:outline-none focus:ring-2 focus:ring-primary"
+            className="h-12 w-full rounded-full border border-line bg-canvas pl-11 pr-12 text-[15px] text-ink placeholder:text-mute focus:border-ink focus:outline-none focus:ring-2 focus:ring-primary"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-mute hover:text-ink"
+              className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-mute hover:bg-canvas-soft hover:text-ink"
             >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {FILTERS.map((filter) => {
             const active = activeFilters.has(filter.value);
             return (
@@ -209,14 +209,15 @@ export function CountryList() {
                 onClick={() => toggleFilter(filter.value)}
                 aria-pressed={active}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                  "flex min-h-9 items-center gap-2 rounded-full px-3.5 text-sm font-medium transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
                   active
-                    ? "bg-primary-pale text-positive-deep"
-                    : "bg-canvas-soft text-body hover:bg-primary-pale",
+                    ? "bg-ink text-canvas"
+                    : "bg-canvas text-body hover:bg-land hover:text-ink",
                 )}
               >
                 <span
-                  className="h-2 w-2 rounded-full"
+                  className="h-2.5 w-2.5 rounded-full ring-1 ring-ink/10"
                   style={{ backgroundColor: STATE_COLORS[filter.value] }}
                 />
                 {filter.label}
@@ -226,9 +227,9 @@ export function CountryList() {
         </div>
       </div>
 
-      <div ref={listRef} className="relative mt-3">
+      <div ref={listRef} className="relative mt-4">
         {items.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-body">
+          <p className="px-6 py-10 text-center text-[15px] text-body">
             {searchResults
               ? `No countries match “${query.trim()}”.`
               : "No countries match the selected filters."}
@@ -255,8 +256,9 @@ export function CountryList() {
                   }}
                 >
                   {item.type === "header" ? (
-                    <div className="flex h-full items-center bg-canvas-soft/95 px-4 text-xs font-semibold uppercase tracking-wide text-body backdrop-blur-md">
-                      {item.continent} <span className="ml-1 text-mute">{item.count}</span>
+                    <div className="flex h-full items-center gap-2 bg-canvas-soft/95 px-5 font-mono text-xs uppercase tracking-wider text-mute backdrop-blur-md">
+                      <span className="text-ink">{item.continent}</span>
+                      <span>{item.count}</span>
                     </div>
                   ) : (
                     <CountryRow country={item.country} />
@@ -273,13 +275,15 @@ export function CountryList() {
 
 const CountryRow = memo(function CountryRow({ country }: { country: Country }) {
   return (
-    <div className="flex h-full items-center gap-3 border-b border-canvas-soft bg-canvas px-4">
+    <div className="flex h-full items-center gap-3 border-b border-canvas-soft bg-canvas px-5">
       <span className="text-xl leading-none">{country.flag}</span>
-      <span className="min-w-0 flex-1 truncate text-sm text-ink">{country.name}</span>
+      <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
+        {country.name}
+      </span>
       {!country.counted && (
         <span
           title="Territory — not counted toward the 195 headline"
-          className="shrink-0 rounded border border-mute px-1 py-0.5 text-[9px] uppercase leading-none tracking-wide text-body"
+          className="shrink-0 rounded-full bg-canvas-soft px-2 py-1 font-mono text-[10px] uppercase leading-none tracking-wide text-mute"
         >
           Territory
         </span>

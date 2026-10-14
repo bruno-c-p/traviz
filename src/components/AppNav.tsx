@@ -13,8 +13,7 @@ const NAV_ITEMS = [
   { to: dataPath(), label: "Data", Icon: Database },
 ] as const;
 
-const ACTIVE_DOT_CLASS =
-  "after:absolute after:-bottom-1.5 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-primary after:content-['']";
+const ACTIVE_ITEM_CLASS = "bg-ink text-primary hover:bg-ink hover:text-primary";
 
 export function AppNav() {
   const pathname = usePathname();
@@ -23,7 +22,7 @@ export function AppNav() {
     icon: <Icon size={20} strokeWidth={1.75} />,
     label,
     href: to,
-    className: pathname === to ? ACTIVE_DOT_CLASS : undefined,
+    className: pathname === to ? ACTIVE_ITEM_CLASS : undefined,
   }));
 
   return <Dock items={dockItems} />;
