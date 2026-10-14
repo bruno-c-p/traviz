@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={cn(instrumentSans.variable, geistMono.variable)}>
       <body className="bg-canvas-soft font-sans text-ink">
-        <ClerkProvider>{children}</ClerkProvider>
+        <ClerkProvider prefetchUI={false}>{children}</ClerkProvider>
       </body>
     </html>
   );
