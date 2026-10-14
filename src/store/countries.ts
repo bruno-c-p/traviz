@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import type { CountryState, Marks } from "@/lib/colors";
 import { clearMarksAction } from "@/features/marks/actions/clear-marks";
-import { saveMarksAction } from "@/features/marks/actions/save-marks";
+import { setMarkAction } from "@/features/marks/actions/set-mark";
+import { clearMarkAction } from "@/features/marks/actions/clear-mark";
 
 export type SyncStatus = "idle" | "ready" | "error";
 
@@ -26,32 +27,28 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong syncing your data.";
 }
 
-let syncInFlight = false;
-let syncQueued = false;
+const pendingWrites = new Map<string, Promise<void>>();
 
-function scheduleSync(payload: Marks): void {
-  if (syncInFlight) {
-    syncQueued = true;
-    return;
-  }
-  void runSync(payload);
+function scheduleWrite(code: string, write: () => Promise<void>): void {
+  const previous = pendingWrites.get(code) ?? Promise.resolve();
+  const next = previous
+    .then(write)
+    .then(() => {
+      useCountriesStore.setState({ syncError: null });
+    })
+    .catch((error: unknown) => {
+      useCountriesStore.setState({ syncError: errorMessage(error) });
+    })
+    .finally(() => {
+      if (pendingWrites.get(code) === next) {
+        pendingWrites.delete(code);
+      }
+    });
+  pendingWrites.set(code, next);
 }
 
-async function runSync(payload: Marks): Promise<void> {
-  syncInFlight = true;
-  try {
-    await saveMarksAction(payload);
-    useCountriesStore.setState({ syncError: null });
-  } catch (error) {
-    useCountriesStore.setState({ syncError: errorMessage(error) });
-  } finally {
-    syncInFlight = false;
-    if (syncQueued) {
-      syncQueued = false;
-      const latest = useCountriesStore.getState().marks;
-      void runSync(latest);
-    }
-  }
+function persistMark(code: string, state: CountryState | undefined): void {
+  scheduleWrite(code, () => (state ? setMarkAction(code, state) : clearMarkAction(code)));
 }
 
 export const useCountriesStore = create<CountriesState>()((set, get) => ({
@@ -60,22 +57,19 @@ export const useCountriesStore = create<CountriesState>()((set, get) => ({
   syncError: null,
 
   mark: (code, state) => {
-    const marks = { ...get().marks, [code]: state };
-    set({ marks });
-    scheduleSync(marks);
+    set({ marks: { ...get().marks, [code]: state } });
+    persistMark(code, state);
   },
 
   clear: (code) => {
-    const marks = omit(get().marks, code);
-    set({ marks });
-    scheduleSync(marks);
+    set({ marks: omit(get().marks, code) });
+    persistMark(code, undefined);
   },
 
   toggle: (code, state) => {
-    const marks =
-      get().marks[code] === state ? omit(get().marks, code) : { ...get().marks, [code]: state };
-    set({ marks });
-    scheduleSync(marks);
+    const isSame = get().marks[code] === state;
+    set({ marks: isSame ? omit(get().marks, code) : { ...get().marks, [code]: state } });
+    persistMark(code, isSame ? undefined : state);
   },
 
   resetAll: () => {
@@ -86,7 +80,7 @@ export const useCountriesStore = create<CountriesState>()((set, get) => ({
   },
 
   clearLocal: () => {
-    syncQueued = false;
+    pendingWrites.clear();
     set({ marks: {}, status: "idle", syncError: null });
   },
 }));
