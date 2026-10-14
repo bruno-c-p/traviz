@@ -42,7 +42,7 @@ export function StateSwitch({ code, countryName }: { code: string; countryName: 
                 : undefined
             }
             className={cn(
-              "flex h-9 w-10 items-center justify-center rounded-full text-[13px] font-semibold transition-colors sm:w-auto sm:px-3.5",
+              "flex h-9 w-10 items-center justify-center rounded-full text-[13px] font-semibold pressable sm:w-auto sm:px-3.5",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink",
               !isActive && "text-body hover:bg-canvas hover:text-ink",
             )}

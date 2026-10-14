@@ -21,7 +21,7 @@ export function AuthPanel() {
         <SignInButton mode="modal" forceRedirectUrl={homePath()}>
           <button
             type="button"
-            className="min-h-12 w-full rounded-full bg-primary px-5 text-[15px] font-semibold text-on-primary transition-colors hover:bg-primary-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+            className="min-h-12 w-full rounded-full bg-primary px-5 text-[15px] font-semibold text-on-primary pressable hover:bg-primary-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
           >
             Sign in
           </button>

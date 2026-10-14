@@ -84,7 +84,7 @@ export function MapCanvas() {
 
       let spinFrameId: number | null = null;
       let lastFrameTime: number | null = null;
-      let stopped = false;
+      let stopped = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
       function spinFrame(now: number) {
         const elapsedSeconds =

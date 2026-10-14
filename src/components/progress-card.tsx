@@ -75,8 +75,11 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
         className={cn("block overflow-hidden rounded-full bg-ink-deep-soft", variantClasses.bar)}
       >
         <span
-          className="block h-full rounded-full"
-          style={{ width: `${percent}%`, backgroundColor: STATE_COLORS.visited }}
+          className="block h-full rounded-full transition-transform duration-300 ease-out"
+          style={{
+            transform: `translateX(${percent - 100}%)`,
+            backgroundColor: STATE_COLORS.visited,
+          }}
         />
       </span>
       {variant === "panel" && (
@@ -115,7 +118,7 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
         aria-label={`${visited} of ${total} countries visited. See all stats`}
         className={cn(
           containerClassName,
-          "shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
+          "pressable shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
         )}
       >
         {content}

@@ -50,7 +50,7 @@ export function MarkChoices({ code, countryName, layout }: MarkChoicesProps) {
             onClick={() => toggle(code, countryState)}
             style={isActive ? { backgroundColor: fill, color: onFill } : undefined}
             className={cn(
-              "rounded-[18px] font-semibold transition-colors",
+              "rounded-[18px] font-semibold pressable",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
               !isActive && "bg-canvas-soft text-ink hover:bg-land",
               isTiles
@@ -66,7 +66,7 @@ export function MarkChoices({ code, countryName, layout }: MarkChoicesProps) {
             ) : (
               <>
                 <span
-                  className="flex size-11 shrink-0 items-center justify-center rounded-[14px]"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-[14px] transition-colors duration-[160ms] ease-out"
                   style={
                     isActive
                       ? { backgroundColor: "rgb(255 255 255 / 0.35)" }

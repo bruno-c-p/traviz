@@ -42,7 +42,7 @@ export function AccountSection({ className }: { className?: string }) {
           type="button"
           onClick={handleSignOut}
           disabled={isSigningOut}
-          className="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-canvas px-4 text-sm font-semibold text-ink hover:bg-land focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink disabled:cursor-not-allowed disabled:opacity-60"
+          className="pressable flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-canvas px-4 text-sm font-semibold text-ink hover:bg-land focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink disabled:cursor-not-allowed disabled:opacity-60"
         >
           <LogOut size={16} aria-hidden />
           {isSigningOut ? "Signing out…" : "Sign out"}

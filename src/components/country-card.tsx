@@ -14,7 +14,7 @@ export function CountryCard({ country }: { country: Country }) {
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-5 rounded-3xl bg-canvas p-5 shadow-card"
+      className="flex flex-col gap-5 rounded-3xl bg-canvas p-5 shadow-card transition-[translate,opacity] duration-200 ease-out starting:opacity-0 motion-safe:starting:translate-y-1"
     >
       <CountryHeading country={country} headingId={headingId} onClose={clearSelection} />
       <MarkChoices code={country.code} countryName={country.name} layout="tiles" />

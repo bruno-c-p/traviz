@@ -61,7 +61,7 @@ export function ContinentFilter({
               aria-pressed={isActive}
               onClick={() => onSelect(option.continent)}
               className={cn(
-                "flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors",
+                "flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium pressable",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
                 isActive ? "bg-ink-deep text-canvas" : "bg-canvas text-body hover:text-ink",
               )}
@@ -92,7 +92,7 @@ export function ContinentFilter({
             aria-pressed={isActive}
             onClick={() => onSelect(option.continent)}
             className={cn(
-              "flex flex-col gap-2 rounded-2xl px-3.5 py-3 text-left transition-colors",
+              "flex flex-col gap-2 rounded-2xl px-3.5 py-3 text-left pressable",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink",
               isActive ? "bg-canvas-soft" : "hover:bg-canvas-soft",
             )}
@@ -109,8 +109,11 @@ export function ContinentFilter({
             </span>
             <span className="block h-1.5 overflow-hidden rounded-full bg-land">
               <span
-                className="block h-full rounded-full"
-                style={{ width: `${percent}%`, backgroundColor: STATE_COLORS.visited }}
+                className="block h-full rounded-full transition-transform duration-300 ease-out"
+                style={{
+                  transform: `translateX(${percent - 100}%)`,
+                  backgroundColor: STATE_COLORS.visited,
+                }}
               />
             </span>
           </button>

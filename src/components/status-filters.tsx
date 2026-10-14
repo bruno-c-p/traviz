@@ -27,7 +27,7 @@ export function StatusFilters({ activeFilters, counts, onToggle }: StatusFilters
             aria-pressed={isActive}
             onClick={() => onToggle(filter.value)}
             className={cn(
-              "flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors",
+              "flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium pressable",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
               isActive ? "bg-ink text-canvas" : "bg-canvas text-body hover:bg-land hover:text-ink",
             )}

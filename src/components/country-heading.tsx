@@ -23,7 +23,7 @@ export function CountryHeading({ country, headingId, onClose }: CountryHeadingPr
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-canvas-soft text-body transition-colors hover:bg-land hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-canvas-soft text-body pressable hover:bg-land hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
       >
         <X size={18} aria-hidden />
       </button>

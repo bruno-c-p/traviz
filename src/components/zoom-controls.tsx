@@ -8,7 +8,7 @@ type ZoomControlsProps = {
 };
 
 const ZOOM_BUTTON_CLASS =
-  "flex size-11 items-center justify-center rounded-xl text-ink transition-colors hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink";
+  "flex size-11 items-center justify-center rounded-xl text-ink pressable hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink";
 
 export function ZoomControls({ onZoomIn, onZoomOut, className }: ZoomControlsProps) {
   return (
