@@ -3,7 +3,10 @@ import { BrandMark } from "@/components/BrandMark";
 
 export function AuthPanel() {
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-canvas-soft/40 px-4 py-8">
+    <div
+      data-auth-panel
+      className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-canvas-soft/40 px-4 py-8"
+    >
       <div className="w-full max-w-sm rounded-3xl bg-canvas/95 p-7 shadow-card backdrop-blur-md">
         <div className="mb-7 flex flex-col items-start gap-3">
           <BrandMark className="text-primary" />

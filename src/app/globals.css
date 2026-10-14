@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant signed-out (body:has([data-auth-panel]) &);
+
 :root {
   color-scheme: light;
 }

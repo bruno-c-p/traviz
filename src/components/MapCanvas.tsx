@@ -236,7 +236,7 @@ export function MapCanvas() {
         <ZoomControls
           onZoomIn={() => mapRef.current?.zoomIn()}
           onZoomOut={() => mapRef.current?.zoomOut()}
-          className="fixed bottom-24 right-6 z-30 hidden md:flex"
+          className="fixed bottom-24 right-6 z-30 hidden md:flex signed-out:hidden"
         />
       )}
     </>
