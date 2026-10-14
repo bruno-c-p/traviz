@@ -1,12 +1,17 @@
 "use client";
 
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import { EmailLinkSent } from "@/features/auth/components/email-link-sent";
 import { useEmailLinkSignIn } from "@/features/auth/hooks/use-email-link-sign-in";
+import { forgetStoredMarks } from "@/lib/marks-storage";
 import { cn } from "@/lib/utils";
 
 export function EmailLinkForm() {
   const errorId = useId();
+
+  useEffect(() => {
+    forgetStoredMarks();
+  }, []);
 
   const { emailAddress, setEmailAddress, step, errorMessage, handleSubmit, restart } =
     useEmailLinkSignIn();

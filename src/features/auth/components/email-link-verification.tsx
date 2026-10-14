@@ -4,6 +4,7 @@ import { useClerk } from "@clerk/nextjs";
 import { EmailLinkErrorCodeStatus, isEmailLinkError } from "@clerk/nextjs/errors";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { forgetStoredMarks } from "@/lib/marks-storage";
 import { homePath, signInPath } from "@/paths";
 
 const MESSAGES = {
@@ -44,6 +45,10 @@ function toFailureStatus(error: Partial<Error>): Status {
 export function EmailLinkVerification() {
   const { handleEmailLinkVerification, loaded } = useClerk();
   const [status, setStatus] = useState<Status>("checking");
+
+  useEffect(() => {
+    forgetStoredMarks();
+  }, []);
 
   useEffect(() => {
     if (!loaded) return;
