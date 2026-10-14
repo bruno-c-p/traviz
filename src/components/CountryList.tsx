@@ -1,94 +1,63 @@
 "use client";
 
-import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import type { Range } from "@tanstack/react-virtual";
 import { Search, X } from "lucide-react";
-import countriesData from "@/data/countries.json";
-import type { Continent, Country } from "@/lib/stats";
-import { STATE_COLORS } from "@/lib/colors";
+import { ContinentFilter } from "@/components/continent-filter";
+import { CountryRow } from "@/components/country-row";
+import { StatusFilters } from "@/components/status-filters";
 import type { StateColorKey } from "@/lib/colors";
+import { CONTINENT_ORDER, countByState, countries, searchCountries } from "@/lib/countries";
+import type { Continent, Country } from "@/lib/stats";
 import { useCountriesStore } from "@/store/countries";
-import { StateButtons } from "@/components/StateButtons";
-import { cn } from "@/lib/utils";
 
-const countries = countriesData as Country[];
-
-const CONTINENT_ORDER: readonly Continent[] = [
-  "Africa",
-  "Asia",
-  "Europe",
-  "North America",
-  "South America",
-  "Oceania",
-  "Antarctica",
-];
-
-const FILTERS: readonly { value: StateColorKey; label: string }[] = [
-  { value: "visited", label: "Visited" },
-  { value: "want", label: "Want" },
-  { value: "not_interested", label: "Not interested" },
-  { value: "unmarked", label: "Unmarked" },
-];
-
-const ROW_HEIGHT = 45;
-const HEADER_HEIGHT = 30;
+const ROW_HEIGHT = 60;
+const HEADER_HEIGHT = 40;
 
 type ListItem =
   | { type: "header"; continent: Continent; count: number }
   | { type: "row"; country: Country };
 
-function normalize(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
-
-const normalizedNames = new Map(countries.map((c) => [c.code, normalize(c.name)]));
-
-function matchRank(code: string, query: string): number {
-  const name = normalizedNames.get(code)!;
-  if (name.startsWith(query)) return 0;
-  if (name.includes(query)) return 1;
-  return -1;
-}
-
 export function CountryList() {
-  const marks = useCountriesStore((s) => s.marks);
+  const marks = useCountriesStore((state) => state.marks);
   const [query, setQuery] = useState("");
+  const [selectedContinent, setSelectedContinent] = useState<Continent | null>(null);
   const [activeFilters, setActiveFilters] = useState<ReadonlySet<StateColorKey>>(() => new Set());
 
   function toggleFilter(value: StateColorKey) {
-    setActiveFilters((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) {
-        next.delete(value);
+    setActiveFilters((previousFilters) => {
+      const nextFilters = new Set(previousFilters);
+      if (nextFilters.has(value)) {
+        nextFilters.delete(value);
       } else {
-        next.add(value);
+        nextFilters.add(value);
       }
-      return next;
+      return nextFilters;
     });
   }
 
+  const continentPool = useMemo(
+    () =>
+      selectedContinent
+        ? countries.filter((country) => country.continent === selectedContinent)
+        : countries,
+    [selectedContinent],
+  );
+
+  const stateCounts = useMemo(() => countByState(continentPool, marks), [continentPool, marks]);
+
   const stateFiltered = useMemo(() => {
-    if (activeFilters.size === 0) return countries;
-    return countries.filter((c) =>
-      activeFilters.has((marks[c.code] ?? "unmarked") as StateColorKey),
-    );
-  }, [marks, activeFilters]);
+    if (activeFilters.size === 0) return continentPool;
+    return continentPool.filter((country) => activeFilters.has(marks[country.code] ?? "unmarked"));
+  }, [continentPool, marks, activeFilters]);
 
-  const trimmedQuery = normalize(query.trim());
+  const trimmedQuery = query.trim();
 
-  const searchResults = useMemo(() => {
-    if (!trimmedQuery) return null;
-    return stateFiltered
-      .map((country) => ({ country, rank: matchRank(country.code, trimmedQuery) }))
-      .filter((entry) => entry.rank >= 0)
-      .sort((a, b) => a.rank - b.rank || a.country.name.localeCompare(b.country.name))
-      .map((entry) => entry.country);
-  }, [stateFiltered, trimmedQuery]);
+  const searchResults = useMemo(
+    () => (trimmedQuery ? searchCountries(trimmedQuery, stateFiltered) : null),
+    [stateFiltered, trimmedQuery],
+  );
 
   const items = useMemo<ListItem[]>(() => {
     if (searchResults) {
@@ -105,16 +74,16 @@ export function CountryList() {
       }
     }
 
-    const flat: ListItem[] = [];
+    const flatItems: ListItem[] = [];
     for (const continent of CONTINENT_ORDER) {
-      const list = byContinent.get(continent);
-      if (!list || list.length === 0) continue;
-      flat.push({ type: "header", continent, count: list.length });
-      for (const country of list) {
-        flat.push({ type: "row", country });
+      const continentCountries = byContinent.get(continent);
+      if (!continentCountries || continentCountries.length === 0) continue;
+      flatItems.push({ type: "header", continent, count: continentCountries.length });
+      for (const country of continentCountries) {
+        flatItems.push({ type: "row", country });
       }
     }
-    return flat;
+    return flatItems;
   }, [stateFiltered, searchResults]);
 
   const headerIndexes = useMemo(() => {
@@ -131,10 +100,6 @@ export function CountryList() {
   const [scrollMargin, setScrollMargin] = useState(0);
   const activeHeaderRef = useRef<number | null>(null);
 
-  // The list shares the panel's scroll container with the search and filter
-  // block above it, so the virtualizer needs that block's height as its scroll
-  // margin. Remeasure when the block resizes — the filter chips wrap on narrow
-  // viewports, which moves the list down.
   useLayoutEffect(() => {
     const list = listRef.current;
     const header = headerRef.current;
@@ -153,10 +118,10 @@ export function CountryList() {
   const rangeExtractor = useCallback(
     (range: Range) => {
       const indexes = defaultRangeExtractor(range);
-      const active = headerIndexes.findLast((index) => index <= range.startIndex);
-      activeHeaderRef.current = active ?? null;
-      if (active === undefined || indexes.includes(active)) return indexes;
-      return [active, ...indexes];
+      const activeHeader = headerIndexes.findLast((index) => index <= range.startIndex);
+      activeHeaderRef.current = activeHeader ?? null;
+      if (activeHeader === undefined || indexes.includes(activeHeader)) return indexes;
+      return [activeHeader, ...indexes];
     },
     [headerIndexes],
   );
@@ -173,120 +138,106 @@ export function CountryList() {
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <>
-      <h1 className="px-6 pt-6 text-lg font-semibold text-ink">List</h1>
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 pt-6 md:flex-row md:items-start md:px-6 md:pt-2">
+      <ContinentFilter
+        layout="sidebar"
+        selectedContinent={selectedContinent}
+        onSelect={setSelectedContinent}
+        className="hidden w-[280px] shrink-0 md:sticky md:top-2 md:flex"
+      />
 
-      <div ref={headerRef} className="space-y-3 px-4 pt-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-mute" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
-            placeholder="Search countries…"
-            aria-label="Search countries"
-            className="w-full rounded-md border border-ink bg-canvas py-2 pl-9 pr-8 text-sm text-ink placeholder:text-mute focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              aria-label="Clear search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-mute hover:text-ink"
+      <section aria-labelledby="country-list-heading" className="flex min-w-0 flex-1 flex-col">
+        <div ref={headerRef} className="flex flex-col gap-4 pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1
+              id="country-list-heading"
+              className="text-3xl font-bold tracking-tight text-ink md:text-4xl"
             >
-              <X className="h-4 w-4" />
-            </button>
+              {selectedContinent ?? "All countries"}
+            </h1>
+            <div className="relative w-full sm:w-80">
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-mute"
+              />
+              <input
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search countries"
+                aria-label="Search countries"
+                autoComplete="off"
+                className="h-12 w-full rounded-full border border-line bg-canvas pl-11 pr-12 text-[15px] text-ink placeholder:text-mute focus:border-ink focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-1.5 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-mute hover:bg-canvas-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                >
+                  <X size={16} aria-hidden />
+                </button>
+              )}
+            </div>
+          </div>
+          <ContinentFilter
+            layout="chips"
+            selectedContinent={selectedContinent}
+            onSelect={setSelectedContinent}
+            className="md:hidden"
+          />
+          <StatusFilters
+            activeFilters={activeFilters}
+            counts={stateCounts}
+            onToggle={toggleFilter}
+          />
+        </div>
+
+        <div ref={listRef} className="relative overflow-clip rounded-3xl bg-canvas shadow-card">
+          {items.length === 0 ? (
+            <p className="px-6 py-12 text-center text-[15px] text-body">
+              {searchResults
+                ? `No countries match “${trimmedQuery}”.`
+                : "No countries match the selected filters."}
+            </p>
+          ) : (
+            <div style={{ height: virtualizer.getTotalSize() }}>
+              {virtualItems.map((virtualItem) => {
+                const item = items[virtualItem.index];
+                const isStuck =
+                  item.type === "header" && activeHeaderRef.current === virtualItem.index;
+
+                return (
+                  <div
+                    key={virtualItem.key}
+                    style={{
+                      position: isStuck ? "sticky" : "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: virtualItem.size,
+                      zIndex: item.type === "header" ? 10 : undefined,
+                      transform: isStuck
+                        ? undefined
+                        : `translateY(${virtualItem.start - scrollMargin}px)`,
+                    }}
+                  >
+                    {item.type === "header" ? (
+                      <div className="flex h-full items-center gap-2 bg-canvas-soft/95 px-5 font-mono text-xs uppercase tracking-wider text-mute">
+                        <span className="text-ink">{item.continent}</span>
+                        <span>{item.count}</span>
+                      </div>
+                    ) : (
+                      <CountryRow country={item.country} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
-
-        <div className="flex flex-wrap gap-1.5">
-          {FILTERS.map((filter) => {
-            const active = activeFilters.has(filter.value);
-            return (
-              <button
-                key={filter.value}
-                type="button"
-                onClick={() => toggleFilter(filter.value)}
-                aria-pressed={active}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
-                  active
-                    ? "bg-primary-pale text-positive-deep"
-                    : "bg-canvas-soft text-body hover:bg-primary-pale",
-                )}
-              >
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: STATE_COLORS[filter.value] }}
-                />
-                {filter.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div ref={listRef} className="relative mt-3">
-        {items.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-body">
-            {searchResults
-              ? `No countries match “${query.trim()}”.`
-              : "No countries match the selected filters."}
-          </p>
-        ) : (
-          <div style={{ height: virtualizer.getTotalSize() }}>
-            {virtualItems.map((virtualItem) => {
-              const item = items[virtualItem.index];
-              const stuck = item.type === "header" && activeHeaderRef.current === virtualItem.index;
-
-              return (
-                <div
-                  key={virtualItem.key}
-                  style={{
-                    position: stuck ? "sticky" : "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: virtualItem.size,
-                    zIndex: item.type === "header" ? 10 : undefined,
-                    transform: stuck
-                      ? undefined
-                      : `translateY(${virtualItem.start - scrollMargin}px)`,
-                  }}
-                >
-                  {item.type === "header" ? (
-                    <div className="flex h-full items-center bg-canvas-soft/95 px-4 text-xs font-semibold uppercase tracking-wide text-body backdrop-blur-md">
-                      {item.continent} <span className="ml-1 text-mute">{item.count}</span>
-                    </div>
-                  ) : (
-                    <CountryRow country={item.country} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-const CountryRow = memo(function CountryRow({ country }: { country: Country }) {
-  return (
-    <div className="flex h-full items-center gap-3 border-b border-canvas-soft bg-canvas px-4">
-      <span className="text-xl leading-none">{country.flag}</span>
-      <span className="min-w-0 flex-1 truncate text-sm text-ink">{country.name}</span>
-      {!country.counted && (
-        <span
-          title="Territory — not counted toward the 195 headline"
-          className="shrink-0 rounded border border-mute px-1 py-0.5 text-[9px] uppercase leading-none tracking-wide text-body"
-        >
-          Territory
-        </span>
-      )}
-      <div className="shrink-0">
-        <StateButtons code={country.code} size="sm" />
-      </div>
+      </section>
     </div>
   );
-});
+}

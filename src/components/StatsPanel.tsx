@@ -1,166 +1,62 @@
 "use client";
 
-import countriesData from "@/data/countries.json";
-import type { Continent, ContinentStats, Country, StateCounts } from "@/lib/stats";
+import { AccountSection } from "@/components/account-section";
+import { ContinentCard } from "@/components/continent-card";
+import { DangerZone } from "@/components/danger-zone";
+import { ProgressCard } from "@/components/progress-card";
+import { TotalTile } from "@/components/total-tile";
+import { STATE_COLORS } from "@/lib/colors";
+import { CONTINENT_ORDER, countries } from "@/lib/countries";
 import { computeStats } from "@/lib/stats";
-import { COUNTRY_STATES, STATE_COLORS, STATE_TEXT_COLORS } from "@/lib/colors";
 import { useCountriesStore } from "@/store/countries";
 
-const countries = countriesData as Country[];
-
-const CONTINENT_ORDER: readonly Continent[] = [
-  "Africa",
-  "Asia",
-  "Europe",
-  "North America",
-  "South America",
-  "Oceania",
-  "Antarctica",
-];
-
-const STATE_LABELS = {
-  visited: "Visited",
-  want: "Want",
-  not_interested: "Not interested",
-} as const;
-
 export function StatsPanel() {
-  const marks = useCountriesStore((s) => s.marks);
+  const marks = useCountriesStore((state) => state.marks);
   const stats = computeStats(marks, countries);
-  const headlinePct =
-    stats.headline.total > 0 ? (stats.headline.visited / stats.headline.total) * 100 : 0;
 
   return (
-    <>
-      <h1 className="px-6 pt-6 text-lg font-semibold text-ink">Stats</h1>
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 pt-6 md:px-6 md:pt-2">
+      <h1 className="text-3xl font-bold tracking-tight text-ink md:text-4xl">Your travels</h1>
 
-      <div className="flex flex-col gap-8 px-6 py-6">
-        <section className="text-center">
-          <div
-            className="text-5xl font-bold tabular-nums"
-            style={{ color: STATE_TEXT_COLORS.visited }}
-          >
-            {stats.headline.visited}
-            <span className="text-2xl text-mute"> / {stats.headline.total}</span>
-          </div>
-          <p className="mt-1 text-sm text-body">countries visited</p>
-          <div className="mx-auto mt-4 h-2 max-w-xs overflow-hidden rounded-full bg-canvas-soft">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${headlinePct}%`, backgroundColor: STATE_COLORS.visited }}
+      <div className="flex flex-wrap gap-4">
+        <ProgressCard variant="hero" className="min-w-0 flex-[2_1_420px] justify-center" />
+        <div className="grid min-w-0 flex-[1_1_260px] grid-cols-2 gap-3 md:grid-cols-1">
+          <TotalTile label="Want to go" value={stats.totals.want} color={STATE_COLORS.want} />
+          <TotalTile
+            label="Not interested"
+            value={stats.totals.not_interested}
+            color={STATE_COLORS.not_interested}
+          />
+          <TotalTile
+            label="Visited, incl. territories"
+            value={stats.totals.visited}
+            color={STATE_COLORS.visited}
+            className="col-span-2 md:col-span-1"
+          />
+        </div>
+      </div>
+
+      <section aria-labelledby="continents-heading" className="flex flex-col gap-3">
+        <h2
+          id="continents-heading"
+          className="font-mono text-xs uppercase tracking-wider text-mute"
+        >
+          By continent
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {CONTINENT_ORDER.map((continent) => (
+            <ContinentCard
+              key={continent}
+              continent={continent}
+              stats={stats.byContinent[continent]}
             />
-          </div>
-        </section>
+          ))}
+        </div>
+      </section>
 
-        <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-body">
-            Totals (incl. territories)
-          </h2>
-          <div className="grid grid-cols-3 gap-2">
-            {COUNTRY_STATES.map((key) => (
-              <div key={key} className="rounded-lg bg-canvas-soft px-3 py-3 text-center">
-                <div className="text-2xl font-semibold tabular-nums text-ink">
-                  {stats.totals[key]}
-                </div>
-                <div className="mt-1 flex items-center justify-center gap-1.5 text-xs text-body">
-                  <span
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: STATE_COLORS[key] }}
-                  />
-                  {STATE_LABELS[key]}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-body">
-            By continent
-          </h2>
-          <div className="flex flex-col gap-4">
-            {CONTINENT_ORDER.map((continent) => (
-              <ContinentRow
-                key={continent}
-                continent={continent}
-                stats={stats.byContinent[continent]}
-              />
-            ))}
-          </div>
-        </section>
-      </div>
-    </>
-  );
-}
-
-function ContinentRow({ continent, stats }: { continent: Continent; stats: ContinentStats }) {
-  const { countedTotal, countedVisited } = stats;
-
-  // Antarctica has no counted (headline-eligible) countries, only
-  // territories — a progress bar against a 0 denominator is meaningless, so
-  // show its territory marks as a plain summary instead.
-  if (countedTotal === 0) {
-    return <TerritoriesOnlyRow continent={continent} stats={stats} />;
-  }
-
-  const pct = (n: number) => (n / countedTotal) * 100;
-
-  return (
-    <div>
-      <div className="mb-1.5 flex items-baseline justify-between text-sm">
-        <span className="text-ink">{continent}</span>
-        <span className="text-xs tabular-nums text-mute">
-          {countedVisited} / {countedTotal} visited
-        </span>
-      </div>
-      <div
-        className="flex h-2 w-full overflow-hidden rounded-full"
-        style={{ backgroundColor: STATE_COLORS.unmarked }}
-      >
-        <div style={{ width: `${pct(countedVisited)}%`, backgroundColor: STATE_COLORS.visited }} />
-        <div style={{ width: `${pct(stats.want)}%`, backgroundColor: STATE_COLORS.want }} />
-        <div
-          style={{
-            width: `${pct(stats.not_interested)}%`,
-            backgroundColor: STATE_COLORS.not_interested,
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function TerritoriesOnlyRow({ continent, stats }: { continent: Continent; stats: ContinentStats }) {
-  const marked = stats.visited + stats.want + stats.not_interested;
-  const chips: { key: keyof StateCounts; count: number }[] = [
-    { key: "visited", count: stats.visited },
-    { key: "want", count: stats.want },
-    { key: "not_interested", count: stats.not_interested },
-  ];
-
-  return (
-    <div>
-      <div className="mb-1.5 flex items-baseline justify-between text-sm">
-        <span className="text-ink">{continent}</span>
-        <span className="text-xs tabular-nums text-mute">{stats.total} territories</span>
-      </div>
-      <div className="flex items-center gap-2 rounded-lg border border-dashed border-mute bg-canvas-soft px-3 py-2 text-xs text-body">
-        <span>Territories only — not part of the 195 headline.</span>
-        {marked > 0 && (
-          <span className="ml-auto flex shrink-0 items-center gap-2 tabular-nums">
-            {chips
-              .filter((chip) => chip.count > 0)
-              .map((chip) => (
-                <span key={chip.key} className="flex items-center gap-1">
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ backgroundColor: STATE_COLORS[chip.key] }}
-                  />
-                  {chip.count}
-                </span>
-              ))}
-          </span>
-        )}
+      <div className="flex flex-wrap gap-4">
+        <AccountSection className="min-w-0 flex-[1_1_360px]" />
+        <DangerZone className="min-w-0 flex-[1_1_360px]" />
       </div>
     </div>
   );
