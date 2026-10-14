@@ -33,6 +33,7 @@ function errorMessage(error: Partial<Error>): string {
 
 const pendingWrites = new Map<string, Promise<void>>();
 const editsBeforeSync = new Map<string, CountryState | undefined>();
+let isResetBeforeSync = false;
 
 function scheduleWrite(code: string, write: () => Promise<void>): void {
   const previous = pendingWrites.get(code) ?? Promise.resolve();
@@ -43,6 +44,8 @@ function scheduleWrite(code: string, write: () => Promise<void>): void {
       useCountriesStore.setState({ syncError: null });
     })
     .catch((error) => {
+      if (pendingWrites.get(code) === next) editsBeforeSync.delete(code);
+
       useCountriesStore.setState({ syncError: errorMessage(error) });
     })
     .finally(() => {
@@ -84,14 +87,20 @@ export const useCountriesStore = create<CountriesState>()(
       },
 
       resetAll: () => {
+        if (get().status !== "ready") {
+          editsBeforeSync.clear();
+          isResetBeforeSync = true;
+        }
+
         set({ marks: {} });
         clearMarksAction().catch((error) => {
+          isResetBeforeSync = false;
           set({ syncError: errorMessage(error) });
         });
       },
 
       syncMarks: (serverMarks) => {
-        const marks = { ...serverMarks };
+        const marks = isResetBeforeSync ? {} : { ...serverMarks };
 
         for (const [code, state] of editsBeforeSync) {
           if (state) {
@@ -102,12 +111,14 @@ export const useCountriesStore = create<CountriesState>()(
         }
 
         editsBeforeSync.clear();
+        isResetBeforeSync = false;
         set({ marks, status: "ready" });
       },
 
       clearLocal: () => {
         pendingWrites.clear();
         editsBeforeSync.clear();
+        isResetBeforeSync = false;
         set({ marks: {}, status: "idle", syncError: null });
       },
     }),
