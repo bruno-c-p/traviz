@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useCountriesStore } from "@/store/countries";
 
 const DANGER_BUTTON_CLASS =
-  "min-h-11 rounded-full bg-negative px-5 text-sm font-semibold text-canvas hover:bg-negative-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2";
+  "pressable min-h-11 rounded-full bg-negative px-5 text-sm font-semibold text-canvas hover:bg-negative-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2";
 
 export function DangerZone({ className }: { className?: string }) {
   const resetAll = useCountriesStore((state) => state.resetAll);
@@ -38,7 +38,7 @@ export function DangerZone({ className }: { className?: string }) {
         Permanently erase every mark. This cannot be undone.
       </p>
       {isConfirming ? (
-        <div className="flex flex-col gap-3 rounded-2xl bg-negative-pale p-4">
+        <div className="flex origin-top flex-col gap-3 rounded-2xl bg-negative-pale p-4 transition-[opacity,scale] duration-200 ease-out starting:opacity-0 motion-safe:starting:scale-[0.98]">
           <p className="text-sm font-medium text-negative-darkest">
             Are you sure? All marks will be permanently deleted.
           </p>
@@ -49,7 +49,7 @@ export function DangerZone({ className }: { className?: string }) {
             <button
               type="button"
               onClick={() => setIsConfirming(false)}
-              className="min-h-11 rounded-full bg-canvas px-5 text-sm font-semibold text-ink hover:bg-land focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+              className="pressable min-h-11 rounded-full bg-canvas px-5 text-sm font-semibold text-ink hover:bg-land focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
             >
               Cancel
             </button>

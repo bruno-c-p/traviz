@@ -15,7 +15,7 @@ export function AccountButton({ className }: { className?: string }) {
       href={accountPath()}
       aria-label="Account"
       className={cn(
-        "flex size-12 shrink-0 items-center justify-center rounded-full bg-ink-deep text-base font-semibold text-primary shadow-float transition-colors hover:bg-ink",
+        "flex size-12 shrink-0 items-center justify-center rounded-full bg-ink-deep text-base font-semibold text-primary shadow-float pressable hover:bg-ink",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
         className,
       )}
