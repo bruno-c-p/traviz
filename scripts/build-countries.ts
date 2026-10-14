@@ -30,6 +30,7 @@ function mapRegionToContinent(region: string | undefined, subregion: string | un
     if (subregion === "South America") {
       return "South America";
     }
+
     // Caribbean, Central America, North America, Northern America -> North America
     return "North America";
   }
@@ -39,8 +40,11 @@ function mapRegionToContinent(region: string | undefined, subregion: string | un
   }
 
   if (region === "Africa") return "Africa";
+
   if (region === "Asia") return "Asia";
+
   if (region === "Europe") return "Europe";
+
   if (region === "Oceania") return "Oceania";
 
   return undefined as any;
@@ -55,6 +59,7 @@ const continents = [
   "Oceania",
   "Antarctica",
 ];
+
 const continentCounts: Record<string, number> = Object.fromEntries(continents.map((c) => [c, 0]));
 let countedCount = 0;
 const flagFallbacks: string[] = [];
@@ -78,6 +83,7 @@ const processed = countries
 
     // Apply fallback for missing/empty flags (e.g., BES, unrecognized territories)
     let flag = country.flag;
+
     if (!flag || flag.trim() === "") {
       flag = "🏳️";
       flagFallbacks.push(country.cca3);
@@ -95,6 +101,7 @@ const processed = countries
 
 // Verify no empty flags remain
 const emptyFlags = processed.filter((c) => !c.flag || c.flag.trim() === "");
+
 if (emptyFlags.length > 0) {
   throw new Error(
     `Found ${emptyFlags.length} entries with empty flags: ${emptyFlags.map((c) => c.code).join(", ")}`,
@@ -112,15 +119,19 @@ if (countedCount !== 195) {
 // Verify VAT and PSE are both in the counted set
 const vat = processed.find((c) => c.code === "VAT");
 const pse = processed.find((c) => c.code === "PSE");
+
 if (!vat) {
   throw new Error("Vatican City (VAT) not found in data");
 }
+
 if (!vat.counted) {
   throw new Error("Vatican City (VAT) must have counted=true");
 }
+
 if (!pse) {
   throw new Error("Palestine (PSE) not found in data");
 }
+
 if (!pse.counted) {
   throw new Error("Palestine (PSE) must have counted=true");
 }
@@ -137,19 +148,26 @@ const labels = countries
     area: country.area,
   }))
   .sort((a, b) => b.area - a.area);
+
 fs.writeFileSync(labelsOutputPath, JSON.stringify(labels) + "\n");
 
 const totalRows = processed.length;
 const fileSize = fs.statSync(outputPath).size;
 
 console.log(`Generated ${outputPath}`);
+
 console.log(`Total rows: ${totalRows}`);
+
 console.log(`Counted (counted=true): ${countedCount}`);
+
 console.log(`Per-continent breakdown:`);
+
 continents.forEach((c) => {
   console.log(`  ${c}: ${continentCounts[c]}`);
 });
+
 console.log(`File size: ${fileSize} bytes (~${Math.round(fileSize / 1024)}KB)`);
+
 if (flagFallbacks.length > 0) {
   console.log(`Flag fallbacks applied: ${flagFallbacks.join(", ")}`);
 }

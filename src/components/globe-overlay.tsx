@@ -18,10 +18,13 @@ export function GlobeOverlay() {
 
   useEffect(() => {
     if (!selectedCode) return;
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") clearSelection();
     }
+
     document.addEventListener("keydown", handleKeyDown);
+
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [selectedCode, clearSelection]);
 

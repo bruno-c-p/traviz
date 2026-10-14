@@ -16,6 +16,7 @@ export function TabBar() {
     >
       {NAVIGATION_ITEMS.map(({ href, label, Icon }) => {
         const isActive = pathname === href;
+
         return (
           <Link
             key={href}

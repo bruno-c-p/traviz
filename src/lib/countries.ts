@@ -26,11 +26,13 @@ const LABEL_COORDINATES = new Map<string, number[]>(
 export function countryCenter(code: string): [number, number] | null {
   const country = COUNTRIES_BY_CODE.get(code);
   const coordinates = country ? LABEL_COORDINATES.get(country.name) : undefined;
+
   if (!coordinates || coordinates.length < 2) return null;
+
   return [coordinates[0], coordinates[1]];
 }
 
-export function normalizeSearchText(value: string): string {
+function normalizeSearchText(value: string): string {
   return value
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
@@ -43,17 +45,25 @@ const NORMALIZED_NAMES = new Map(
 
 function matchRank(code: string, normalizedQuery: string): number {
   const name = NORMALIZED_NAMES.get(code) ?? "";
+
   if (name.startsWith(normalizedQuery)) return 0;
+
   if (name.includes(normalizedQuery)) return 1;
+
   return -1;
 }
 
 export function searchCountries(query: string, pool: readonly Country[] = countries): Country[] {
   const normalizedQuery = normalizeSearchText(query.trim());
+
   if (!normalizedQuery) return [];
+
   return pool
-    .map((country) => ({ country, rank: matchRank(country.code, normalizedQuery) }))
-    .filter((entry) => entry.rank >= 0)
+    .flatMap((country) => {
+      const rank = matchRank(country.code, normalizedQuery);
+
+      return rank >= 0 ? [{ country, rank }] : [];
+    })
     .sort(
       (first, second) =>
         first.rank - second.rank || first.country.name.localeCompare(second.country.name),
@@ -71,8 +81,10 @@ export function countByState(
     not_interested: 0,
     unmarked: 0,
   };
+
   for (const country of pool) {
     counts[marks[country.code] ?? "unmarked"] += 1;
   }
+
   return counts;
 }

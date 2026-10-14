@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "traviz-dev",
-      "runtimeExecutable": "pnpm",
+      "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
       "autoPort": true

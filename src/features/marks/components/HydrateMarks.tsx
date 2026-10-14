@@ -7,6 +7,7 @@ import { useCountriesStore } from "@/store/countries";
 export function HydrateMarks({ marks }: { marks: Marks }) {
   useEffect(() => {
     useCountriesStore.setState({ marks, status: "ready" });
+
     return () => {
       useCountriesStore.getState().clearLocal();
     };

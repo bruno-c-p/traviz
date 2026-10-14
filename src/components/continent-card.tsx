@@ -11,6 +11,7 @@ export function ContinentCard({ continent, stats }: ContinentCardProps) {
   const denominator = isTerritoriesOnly ? stats.total : stats.countedTotal;
   const visitedCount = isTerritoriesOnly ? stats.visited : stats.countedVisited;
   const unmarked = stats.total - stats.visited - stats.want - stats.not_interested;
+
   const segmentWidths = {
     visited: visitedCount,
     want: stats.want,

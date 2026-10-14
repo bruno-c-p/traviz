@@ -204,4 +204,4 @@ Use callbacks for toasts, notifications, focus management, or analytics. The ini
 
 ## Checks
 
-After form work, run `pnpm lint`, `pnpm format`, and, when TypeScript changes, `pnpm typecheck`.
+After form work, run `bun run lint`, `bun run format`, and, when TypeScript changes, `bun run typecheck`.

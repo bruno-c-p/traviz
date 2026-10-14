@@ -4,9 +4,9 @@ import { clearMarksAction } from "@/features/marks/actions/clear-marks";
 import { setMarkAction } from "@/features/marks/actions/set-mark";
 import { clearMarkAction } from "@/features/marks/actions/clear-mark";
 
-export type SyncStatus = "idle" | "ready" | "error";
+type SyncStatus = "idle" | "ready" | "error";
 
-export interface CountriesState {
+interface CountriesState {
   marks: Marks;
   status: SyncStatus;
   syncError: string | null;
@@ -20,10 +20,11 @@ export interface CountriesState {
 function omit(marks: Marks, code: string): Marks {
   const next = { ...marks };
   delete next[code];
+
   return next;
 }
 
-function errorMessage(error: unknown): string {
+function errorMessage(error: Partial<Error>): string {
   return error instanceof Error ? error.message : "Something went wrong syncing your data.";
 }
 
@@ -31,12 +32,13 @@ const pendingWrites = new Map<string, Promise<void>>();
 
 function scheduleWrite(code: string, write: () => Promise<void>): void {
   const previous = pendingWrites.get(code) ?? Promise.resolve();
+
   const next = previous
     .then(write)
     .then(() => {
       useCountriesStore.setState({ syncError: null });
     })
-    .catch((error: unknown) => {
+    .catch((error) => {
       useCountriesStore.setState({ syncError: errorMessage(error) });
     })
     .finally(() => {
@@ -44,6 +46,7 @@ function scheduleWrite(code: string, write: () => Promise<void>): void {
         pendingWrites.delete(code);
       }
     });
+
   pendingWrites.set(code, next);
 }
 
@@ -74,7 +77,7 @@ export const useCountriesStore = create<CountriesState>()((set, get) => ({
 
   resetAll: () => {
     set({ marks: {} });
-    clearMarksAction().catch((error: unknown) => {
+    clearMarksAction().catch((error) => {
       set({ syncError: errorMessage(error) });
     });
   },

@@ -15,6 +15,7 @@ export function MainNav() {
     >
       {NAVIGATION_ITEMS.map(({ href, label, Icon }) => {
         const isActive = pathname === href;
+
         return (
           <Link
             key={href}

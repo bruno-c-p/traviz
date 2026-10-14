@@ -40,7 +40,7 @@ Screenshots show a demo account with sample marks, captured from a local product
 ### Prerequisites
 
 - Node.js 20.9 or later (required by Next.js 16)
-- pnpm 11, the version pinned in `package.json`. pnpm 10 can't read the lockfile.
+- Bun 1.3 or later
 - A Mapbox public access token
 - A Turso database
 - A Clerk application set up for email link sign-in only
@@ -48,7 +48,7 @@ Screenshots show a demo account with sample marks, captured from a local product
 ### Install
 
 ```bash
-pnpm install
+bun install
 ```
 
 ### Configure environment variables
@@ -78,7 +78,7 @@ The Clerk instance must use email link (magic link) sign-in only: no password or
 ### Set up the database
 
 ```bash
-pnpm db:migrate
+bun run db:migrate
 ```
 
 This creates the `marks` table, which holds one row per user and country.
@@ -86,27 +86,27 @@ This creates the `marks` table, which holds one row per user and country.
 ### Run locally
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
 Open http://localhost:3000, enter your email, and open the link in the sign-in email.
 
 ## Scripts
 
-| Command              | What it does                                                            |
-| -------------------- | ----------------------------------------------------------------------- |
-| `pnpm dev`           | Start the Next.js dev server                                            |
-| `pnpm build`         | Build for production                                                    |
-| `pnpm start`         | Serve the production build                                              |
-| `pnpm db:migrate`    | Create the `marks` table                                                |
-| `pnpm gen:countries` | Regenerate `src/data/countries.json` from the `world-countries` package |
-| `pnpm lint`          | Lint with Oxlint                                                        |
-| `pnpm format`        | Format with Oxfmt                                                       |
-| `pnpm typecheck`     | Type-check with `tsc --noEmit`                                          |
+| Command                 | What it does                                                            |
+| ----------------------- | ----------------------------------------------------------------------- |
+| `bun run dev`           | Start the Next.js dev server                                            |
+| `bun run build`         | Build for production                                                    |
+| `bun run start`         | Serve the production build                                              |
+| `bun run db:migrate`    | Create the `marks` table                                                |
+| `bun run gen:countries` | Regenerate `src/data/countries.json` from the `world-countries` package |
+| `bun run lint`          | Lint with Oxlint                                                        |
+| `bun run format`        | Format with Oxfmt                                                       |
+| `bun run typecheck`     | Type-check with `tsc --noEmit`                                          |
 
 ## Country data
 
-`src/data/countries.json` has 250 entries generated from the `world-countries` package. 195 of them count toward the headline total. The other 55 are territories and dependencies: they appear on the map and in the list, but they aren't counted. The generated file is committed, so only run `pnpm gen:countries` after you update that dependency.
+`src/data/countries.json` has 250 entries generated from the `world-countries` package. 195 of them count toward the headline total. The other 55 are territories and dependencies: they appear on the map and in the list, but they aren't counted. The generated file is committed, so only run `bun run gen:countries` after you update that dependency.
 
 ## Project structure
 
