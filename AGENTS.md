@@ -40,16 +40,18 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Rules
 
+Some older code still breaks these rules, with casts, comments, PascalCase file names and a `../` import in `scripts/migrate.ts`. Do not copy it. The table below names the unit that fixes each rule.
+
 - Use bun for every package and script command. Never use npm, pnpm or yarn.
 - Import with the `@/` alias, never `../` or `./`. CSS imports and packages are the exception. `@/paths` resolves to `paths.ts` at the repo root, and `@/*` resolves to `src/*`.
 - Build every route path with a function from `paths.ts`, such as `listPath()`. Never write a route string inline.
 - Use `cn` from `@/lib/utils` for conditional class names.
-- Never use a type assertion (`as`) or `any`, except in `paths.ts`. Fix the type with narrowing, generics or `satisfies`.
+- Never use a type assertion (`as`) or `any`, except in `paths.ts`. `as const` is fine. Fix the type with narrowing, generics or `satisfies`.
 - Make every data change through a Server Action. Each action lives in `src/features/<name>/actions`, with one verb per file and `"use server"` at the top. Never use a route handler or a client `fetch` for a mutation.
 - Each action checks the user with `requireUserId`, validates its input with zod, and only changes rows the user owns.
 - Never put `"use server"` on a services or lib module. It turns every export into a public endpoint. Keep `@/lib/server/*` and feature services out of client code.
 - The marks actions must not call `revalidatePath` or `refresh`. That would rerun `HydrateMarks`, drop pending writes and load an older snapshot.
-- Put one React component in each file. Name the file after it in kebab-case (`country-row.tsx` exports `CountryRow`). Some older files still use PascalCase.
+- Put one React component in each file. Name the file after it in kebab-case (`src/components/country-row.tsx` exports `CountryRow`).
 - Model each business operation once (single write path). Prefer one configurable component over near-copies, once a third copy appears.
 - Write no comments. Use descriptive names instead of one-letter names, and use `T` for a single generic.
 - Do not mock modules in tests. Pass dependencies in as arguments.
@@ -60,22 +62,23 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 "none yet (unit N)" names the unit of the agent-friendly architecture plan that will add the enforcer. "review only" means no tool checks the rule.
 
-| Rule                                              | Enforcer                                                                               |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| bun only                                          | CI runs `bun install --frozen-lockfile`. Lockfile and version guard: none yet (unit 8) |
-| `@/` imports                                      | none yet (unit 9)                                                                      |
-| Route paths from `paths.ts`                       | none yet (unit 16)                                                                     |
-| `cn` for conditional classes                      | review only                                                                            |
-| No `as` or `any` outside `paths.ts`               | `anti-slop/no-chained-type-assertions` covers part. The rest: none yet (unit 7)        |
-| Mutations in `actions/`, `"use server"` placement | none yet (unit 10)                                                                     |
-| Actions check the user and validate input         | review only. Unit 17c adds a test for the owner check                                  |
-| Server modules stay out of client code            | none yet (unit 3)                                                                      |
-| No `revalidatePath` in marks actions              | review only. Unit 21 removes `HydrateMarks`                                            |
-| One component per file, kebab-case names          | none yet (unit 9)                                                                      |
-| Single write path, configurable components        | review only                                                                            |
-| No comments                                       | none yet (unit 10)                                                                     |
-| Descriptive names                                 | review only                                                                            |
-| No module mocking                                 | `anti-slop/no-module-mocking` in `bun run lint`                                        |
-| Screenshots after UI changes                      | review only                                                                            |
-| Format, lint, typecheck                           | CI                                                                                     |
-| Docs name only real paths and scripts             | `bun run check:docs` in CI                                                             |
+| Rule                                             | Enforcer                                                                               |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| bun only                                         | CI runs `bun install --frozen-lockfile`. Lockfile and version guard: none yet (unit 8) |
+| `@/` imports                                     | `../`: none yet (unit 9). `./`: review only                                            |
+| Route paths from `paths.ts`                      | review only. Unit 16 type-checks route strings but still allows inline ones            |
+| `cn` for conditional classes                     | review only                                                                            |
+| No `as` or `any` outside `paths.ts`              | `anti-slop/no-chained-type-assertions` covers part. The rest: none yet (unit 7)        |
+| `"use server"` only in `actions/` files          | none yet (unit 10)                                                                     |
+| No route handler or client `fetch` for mutations | review only                                                                            |
+| Actions check the user and validate input        | review only. Unit 17c adds a test for the owner check                                  |
+| Server modules stay out of client code           | none yet (unit 3)                                                                      |
+| No `revalidatePath` in marks actions             | review only. Unit 21 removes `HydrateMarks`                                            |
+| One component per file, kebab-case names         | none yet (unit 9)                                                                      |
+| Single write path, configurable components       | review only                                                                            |
+| No comments                                      | none yet (unit 10)                                                                     |
+| Descriptive names                                | review only                                                                            |
+| No module mocking                                | `anti-slop/no-module-mocking` in `bun run lint`                                        |
+| Screenshots after UI changes                     | review only                                                                            |
+| Format, lint, typecheck                          | CI                                                                                     |
+| Docs name only real paths and scripts            | `bun run check:docs` in CI                                                             |

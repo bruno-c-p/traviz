@@ -22,13 +22,13 @@ Mark the countries you've visited, want to visit, or aren't interested in, on an
     <td width="50%"><img src="docs/screenshots/list.png" alt="Country list with search and state filters" /></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/stats.png" alt="Stats page with totals and progress by continent" /></td>
+    <td colspan="2" align="center"><img src="docs/screenshots/stats.png" alt="Stats page with totals and progress by continent" width="50%" /></td>
   </tr>
 </table>
 
 <p align="center">
   <img src="docs/screenshots/mobile-sign-in.png" alt="Sign-in screen on a phone" width="220" />
-  <img src="docs/screenshots/mobile-map.png" alt="Globe on a phone with the navigation dock" width="220" />
+  <img src="docs/screenshots/mobile-map.png" alt="Globe on a phone with the navigation bar" width="220" />
   <img src="docs/screenshots/mobile-mark-country.png" alt="Marking a country from a bottom sheet on a phone" width="220" />
 </p>
 
