@@ -15,6 +15,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## How the app works
 
 - Routes: `/` (globe), `/list`, `/stats` (the account and reset controls are at `/stats#account`), `/sign-in` and `/sign-in/verify`. `src/proxy.ts` sends signed-out users to `/sign-in` and signed-in users away from it.
+- Signed-in pages go under `src/app/(app)/`, whose layout renders the globe shell. `src/proxy.ts` redirects every signed-out request except `/sign-in*`, so a new public page also needs a change there. The nav tabs come from `src/lib/navigation.ts`. A new route needs a function in `paths.ts`, an entry in the routes list above, and a nav entry if it is a tab.
 - Sign-in uses Clerk email links only. There are no passwords and no social providers. The form is custom code in `src/features/auth`. The root layout sets `prefetchUI={false}`, so Clerk's prebuilt UI bundle never loads.
 - Marks are a `Marks` record from `src/lib/colors.ts`, keyed by country code. `src/store/countries.ts` is an optimistic zustand store. It updates the screen first, then calls a Server Action. Writes for one country run in order. Edits made before the first server snapshot are replayed on top of it. The `persist` middleware caches marks in localStorage under `traviz-marks`, so a repeat visit shows them at once.
 - The store calls the actions in `src/features/marks/actions` as plain async functions, such as `setMarkAction(code, state)`. They are not form actions. The app has no `useActionState` and no form library. Each action calls `requireUserId` from `@/lib/server/session`, parses its input with the zod schemas in `src/features/marks/schemas.ts`, and writes through `src/features/marks/services/marks.ts`.
@@ -25,26 +26,28 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Commands
 
-| Command                 | What it does                                            |
-| ----------------------- | ------------------------------------------------------- |
-| `bun run dev`           | Dev server. Needs the `.env.local` values in README.md. |
-| `bun run format`        | Format with oxfmt                                       |
-| `bun run lint`          | oxlint, with the local `anti-slop` plugin in `tools/`   |
-| `bun run typecheck`     | `tsc --noEmit`                                          |
-| `bun run check:docs`    | Fail when these docs name a missing path or script      |
-| `bun run build`         | Production build                                        |
-| `bun run fallow`        | Dead code and complexity report                         |
-| `bun run react-doctor`  | React rules                                             |
-| `bun run db:migrate`    | Create the `marks` table                                |
-| `bun run gen:countries` | Regenerate `src/data/countries.json`                    |
+| Command                 | What it does                                                             |
+| ----------------------- | ------------------------------------------------------------------------ |
+| `bun run dev`           | Dev server. Needs the `.env.local` values in README.md.                  |
+| `bun run format`        | Format with oxfmt                                                        |
+| `bun run lint`          | oxlint, with the local `anti-slop` plugin in `tools/`                    |
+| `bun run typecheck`     | `tsc --noEmit`                                                           |
+| `bun run check:docs`    | Fail when AGENTS.md, README.md or `docs/` names a missing path or script |
+| `bun run build`         | Production build                                                         |
+| `bun run fallow`        | Dead code and complexity report                                          |
+| `bun run react-doctor`  | React rules                                                              |
+| `bun run db:migrate`    | Create the `marks` table                                                 |
+| `bun run gen:countries` | Regenerate `src/data/countries.json` and `src/data/country-labels.json`  |
+
+`bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. Without them the database client fails at import. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk and Mapbox values in README.md.
 
 ## Rules
 
-Some older code still breaks these rules, with casts, comments, PascalCase file names and a `../` import in `scripts/migrate.ts`. Do not copy it. The table below names the unit that fixes each rule.
+Some older code still breaks these rules, with casts, comments, PascalCase file names and a `../` import in `scripts/migrate.ts`. Do not copy it. The table at the end says which rules a tool checks today.
 
 - Use bun for every package and script command. Never use npm, pnpm or yarn.
 - Import with the `@/` alias, never `../` or `./`. CSS imports and packages are the exception. `@/paths` resolves to `paths.ts` at the repo root, and `@/*` resolves to `src/*`.
-- Build every route path with a function from `paths.ts`, such as `listPath()`. Never write a route string inline.
+- Build every route path with a function from `paths.ts`, such as `export const listPath = (): string => "/list";`. Never write a route string inline.
 - Use `cn` from `@/lib/utils` for conditional class names.
 - Never use a type assertion (`as`) or `any`, except in `paths.ts`. `as const` is fine. Fix the type with narrowing, generics or `satisfies`.
 - Make every data change through a Server Action. Each action lives in `src/features/<name>/actions`, with one verb per file and `"use server"` at the top. Never use a route handler or a client `fetch` for a mutation.
@@ -54,31 +57,31 @@ Some older code still breaks these rules, with casts, comments, PascalCase file 
 - Put one React component in each file. Name the file after it in kebab-case (`src/components/country-row.tsx` exports `CountryRow`).
 - Model each business operation once (single write path). Prefer one configurable component over near-copies, once a third copy appears.
 - Write no comments. Use descriptive names instead of one-letter names, and use `T` for a single generic.
-- Do not mock modules in tests. Pass dependencies in as arguments.
+- Do not mock modules in tests. Pass dependencies in as arguments. The app has no test runner yet. The only tests are the lint rule tests in `tools/oxlint`, and no script runs them.
 - After a UI change, open every affected page in the dev server and screenshot it at 375, 768 and 1440 px. Fix layout breakage, overlap, clipped text and low contrast, then screenshot again. If you cannot run the dev server, say so instead of skipping this.
 - Before you report a task as done, run `bun run format`, `bun run lint`, `bun run typecheck` and `bun run check:docs`, and fix what they report.
 
 ## Who enforces each rule
 
-"none yet (unit N)" names the unit of the agent-friendly architecture plan that will add the enforcer. "review only" means no tool checks the rule.
+"none yet" means a check is planned but not added. "review only" means no tool checks the rule and none is planned.
 
-| Rule                                             | Enforcer                                                                               |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| bun only                                         | CI runs `bun install --frozen-lockfile`. Lockfile and version guard: none yet (unit 8) |
-| `@/` imports                                     | `../`: none yet (unit 9). `./`: review only                                            |
-| Route paths from `paths.ts`                      | review only. Unit 16 type-checks route strings but still allows inline ones            |
-| `cn` for conditional classes                     | review only                                                                            |
-| No `as` or `any` outside `paths.ts`              | `anti-slop/no-chained-type-assertions` covers part. The rest: none yet (unit 7)        |
-| `"use server"` only in `actions/` files          | none yet (unit 10)                                                                     |
-| No route handler or client `fetch` for mutations | review only                                                                            |
-| Actions check the user and validate input        | review only. Unit 17c adds a test for the owner check                                  |
-| Server modules stay out of client code           | `import "server-only"` fails the build. Lint rule: none yet (unit 10)                  |
-| No `revalidatePath` in marks actions             | review only. Unit 21 removes `HydrateMarks`                                            |
-| One component per file, kebab-case names         | none yet (unit 9)                                                                      |
-| Single write path, configurable components       | review only                                                                            |
-| No comments                                      | none yet (unit 10)                                                                     |
-| Descriptive names                                | review only                                                                            |
-| No module mocking                                | `anti-slop/no-module-mocking` in `bun run lint`                                        |
-| Screenshots after UI changes                     | review only                                                                            |
-| Format, lint, typecheck                          | CI                                                                                     |
-| Docs name only real paths and scripts            | `bun run check:docs` in CI                                                             |
+| Rule                                             | Enforcer                                                                                                        |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| bun only                                         | CI runs `bun install --frozen-lockfile`. Lockfile and version guard: none yet                                   |
+| `@/` imports                                     | `../`: none yet. `./`: review only                                                                              |
+| Route paths from `paths.ts`                      | review only                                                                                                     |
+| `cn` for conditional classes                     | review only                                                                                                     |
+| No `as` or `any` outside `paths.ts`              | `anti-slop/no-chained-type-assertions` covers part. The rest: none yet                                          |
+| `"use server"` only in `actions/` files          | none yet                                                                                                        |
+| No route handler or client `fetch` for mutations | review only                                                                                                     |
+| Actions check the user and validate input        | review only                                                                                                     |
+| Server modules stay out of client code           | `import "server-only"` fails the build. Lint rule: none yet                                                     |
+| No `revalidatePath` in marks actions             | review only                                                                                                     |
+| One component per file, kebab-case names         | none yet                                                                                                        |
+| Single write path, configurable components       | review only                                                                                                     |
+| No comments                                      | none yet                                                                                                        |
+| Descriptive names                                | review only                                                                                                     |
+| No module mocking                                | `anti-slop/no-module-mocking` in `bun run lint` covers `vi.mock` and `jest.mock`. Bun's `mock.module`: none yet |
+| Screenshots after UI changes                     | review only                                                                                                     |
+| Format, lint, typecheck                          | CI                                                                                                              |
+| Docs name only real paths and scripts            | `bun run check:docs` in CI                                                                                      |

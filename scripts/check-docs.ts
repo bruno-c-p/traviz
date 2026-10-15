@@ -59,7 +59,7 @@ function trimTrailingPunctuation(reference: string): string {
     trimmed = trimmed.slice(0, -1).replace(/\.+$/, "");
   }
 
-  return trimmed.replace(/(?<=.)\/$/, "");
+  return trimmed;
 }
 
 function pathExists(relativePath: string): boolean {

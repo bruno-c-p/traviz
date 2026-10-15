@@ -92,36 +92,38 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 
 ## Scripts
 
-| Command                 | What it does                                                            |
-| ----------------------- | ----------------------------------------------------------------------- |
-| `bun run dev`           | Start the Next.js dev server                                            |
-| `bun run build`         | Build for production                                                    |
-| `bun run start`         | Serve the production build                                              |
-| `bun run db:migrate`    | Create the `marks` table                                                |
-| `bun run gen:countries` | Regenerate `src/data/countries.json` from the `world-countries` package |
-| `bun run lint`          | Lint with Oxlint                                                        |
-| `bun run format`        | Format with Oxfmt                                                       |
-| `bun run typecheck`     | Type-check with `tsc --noEmit`                                          |
-| `bun run check:docs`    | Check that the docs name only paths and scripts that exist              |
+| Command                 | What it does                                                                                               |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `bun run dev`           | Start the Next.js dev server                                                                               |
+| `bun run build`         | Build for production                                                                                       |
+| `bun run start`         | Serve the production build                                                                                 |
+| `bun run db:migrate`    | Create the `marks` table                                                                                   |
+| `bun run gen:countries` | Regenerate `src/data/countries.json` and `src/data/country-labels.json` from the `world-countries` package |
+| `bun run lint`          | Lint with Oxlint                                                                                           |
+| `bun run format`        | Format with Oxfmt                                                                                          |
+| `bun run typecheck`     | Type-check with `tsc --noEmit`                                                                             |
+| `bun run check:docs`    | Check that the docs name only paths and scripts that exist                                                 |
 
 ## Country data
 
-`src/data/countries.json` has 250 entries generated from the `world-countries` package. 195 of them count toward the headline total. The other 55 are territories and dependencies: they appear on the map and in the list, but they aren't counted. The generated file is committed, so only run `bun run gen:countries` after you update that dependency.
+`src/data/countries.json` has 250 entries generated from the `world-countries` package. 195 of them count toward the headline total. The other 55 are territories and dependencies: they appear on the map and in the list, but they aren't counted. The same script writes `src/data/country-labels.json`, the name and position of each label on the globe. Both generated files are committed, so only run `bun run gen:countries` after you update that dependency.
 
 ## Project structure
 
 ```text
 .
 ├── docs/    Screenshots for this README
-├── scripts/ Database migration and country generation
+├── scripts/ Database migration, country generation, and the docs check
 └── src/
     ├── app/             Routes: / (globe), /list, /stats, and /sign-in
     ├── components/      Shell, globe, list, stats, account, and sign-in components
     ├── features/auth/   Email link sign-in form
     ├── features/marks/  Server Actions and services that save and load marks
+    ├── hooks/           Shared React hooks
     ├── lib/             Shared helpers, plus server-only auth and database code
     ├── store/           Zustand store for marks: updates instantly, then syncs
-    └── data/            Generated country list
+    ├── data/            Generated country list and globe labels
+    └── proxy.ts         Sends signed-out users to /sign-in
 ```
 
 ## Deployment
