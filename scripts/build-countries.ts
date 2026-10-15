@@ -25,7 +25,10 @@ interface CountryData {
   counted: boolean;
 }
 
-function mapRegionToContinent(region: string | undefined, subregion: string | undefined): string {
+function mapRegionToContinent(
+  region: string | undefined,
+  subregion: string | undefined,
+): string | undefined {
   if (region === "Americas") {
     if (subregion === "South America") {
       return "South America";
@@ -47,7 +50,7 @@ function mapRegionToContinent(region: string | undefined, subregion: string | un
 
   if (region === "Oceania") return "Oceania";
 
-  return undefined as any;
+  return undefined;
 }
 
 const continents = [
@@ -65,7 +68,7 @@ let countedCount = 0;
 const flagFallbacks: string[] = [];
 
 const processed = countries
-  .map((country) => {
+  .map((country): CountryData => {
     const continent = mapRegionToContinent(country.region, country.subregion);
 
     if (!continent) {
@@ -95,7 +98,7 @@ const processed = countries
       flag,
       continent,
       counted,
-    } as CountryData;
+    };
   })
   .sort((a, b) => a.name.localeCompare(b.name));
 

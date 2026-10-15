@@ -32,12 +32,12 @@ const MESSAGES = {
 
 type Status = keyof typeof MESSAGES;
 
-function toFailureStatus(error: Partial<Error>): Status {
-  if (!(error instanceof Error) || !isEmailLinkError(error)) return "failed";
+function toFailureStatus(cause: unknown): Status {
+  if (!(cause instanceof Error) || !isEmailLinkError(cause)) return "failed";
 
-  if (error.code === EmailLinkErrorCodeStatus.Expired) return "expired";
+  if (cause.code === EmailLinkErrorCodeStatus.Expired) return "expired";
 
-  if (error.code === EmailLinkErrorCodeStatus.ClientMismatch) return "client_mismatch";
+  if (cause.code === EmailLinkErrorCodeStatus.ClientMismatch) return "client_mismatch";
 
   return "failed";
 }
@@ -57,7 +57,7 @@ export function EmailLinkVerification() {
       onVerifiedOnOtherDevice: () => setStatus("verified"),
     })
       .then(() => setStatus("verified"))
-      .catch((error) => setStatus(toFailureStatus(error)));
+      .catch((error: unknown) => setStatus(toFailureStatus(error)));
   }, [loaded, handleEmailLinkVerification]);
 
   const message = MESSAGES[status];
