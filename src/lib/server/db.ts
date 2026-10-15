@@ -1,3 +1,4 @@
+import "server-only";
 import { createClient } from "@libsql/client";
 
 const config = {
