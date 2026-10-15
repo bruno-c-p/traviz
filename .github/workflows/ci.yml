@@ -19,11 +19,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
       - run: bun install --frozen-lockfile
       - run: bun run format --check
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run check:docs
+      - run: bun run test:rules
       - run: bun run build
         env:
           TURSO_DATABASE_URL: libsql://ci-placeholder.turso.io
