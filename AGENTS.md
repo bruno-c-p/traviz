@@ -50,7 +50,7 @@ Some older code still breaks these rules, with comments, PascalCase file names a
 - Build every route path with a function from `paths.ts`, such as `export const listPath = (): string => "/list";`. Never write a route string inline.
 - Use `cn` from `@/lib/utils` for conditional class names.
 - Never use a type assertion (`as`) outside `paths.ts`. Never use a non-null assertion (`!`) or `any`. `as const` is fine. Fix the type with narrowing, generics or `satisfies`. Parse an untyped value, such as a `JSON.parse` result, before you use it. Never use `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`.
-- Type the parameter of a `.catch` handler as `unknown`, as in `.catch((error: unknown) => ...)`, and narrow it with `instanceof`. Never type it as `Partial<Error>` or `any`. A helper that takes the caught value names its parameter `cause: unknown`, because `anti-slop/no-unknown-parameters` allows `unknown` only under that name.
+- Type the parameter of a `.catch` handler as `unknown`, as in `.catch((error: unknown) => ...)`, and narrow it with `instanceof`. Never type it as `Partial<Error>` or `any`. A helper that takes the caught value names its parameter `cause: unknown`, the name `anti-slop/no-unknown-parameters` exempts.
 - Make every data change through a Server Action. Each action lives in `src/features/<name>/actions`, with one verb per file and `"use server"` at the top. Never use a route handler or a client `fetch` for a mutation.
 - Each action checks the user with `requireUserId`, validates its input with zod, and only changes rows the user owns.
 - Never put `"use server"` on a services or lib module. It turns every export into a public endpoint. Keep the modules that import `server-only` out of client code.
