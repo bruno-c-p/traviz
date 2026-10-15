@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "geojson", "bun"]
+  },
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/testing"],
+  "exclude": ["node_modules"]
+}
