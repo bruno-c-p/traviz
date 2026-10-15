@@ -12,7 +12,7 @@ Mark the countries you've visited, want to visit, or aren't interested in, on an
 - **Stats.** Progress toward the 195 countries in the headline count, with totals per state and a breakdown by continent.
 - **Passwordless sign-in.** Enter your email and open the magic link. No passwords.
 - **Synced to your account.** Every change is saved to a Turso (libSQL) database.
-- **Works on phones.** Countries are marked from a bottom sheet, and navigation sits in a floating dock.
+- **Works on phones.** Countries are marked from a bottom sheet, and a tab bar at the bottom holds the navigation.
 
 ## Screenshots
 
@@ -23,7 +23,6 @@ Mark the countries you've visited, want to visit, or aren't interested in, on an
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/stats.png" alt="Stats page with totals and progress by continent" /></td>
-    <td width="50%"><img src="docs/screenshots/data.png" alt="Data page with the account and the reset option" /></td>
   </tr>
 </table>
 
@@ -103,6 +102,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 | `bun run lint`          | Lint with Oxlint                                                        |
 | `bun run format`        | Format with Oxfmt                                                       |
 | `bun run typecheck`     | Type-check with `tsc --noEmit`                                          |
+| `bun run check:docs`    | Check that the docs name only paths and scripts that exist              |
 
 ## Country data
 
@@ -112,11 +112,12 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 
 ```text
 .
-├── docs/    Engineering guidelines and screenshots
+├── docs/    Screenshots for this README
 ├── scripts/ Database migration and country generation
 └── src/
-    ├── app/             Routes: / (globe), /list, /stats, and /data
-    ├── components/      Shell, globe, list, stats, data, and sign-in components
+    ├── app/             Routes: / (globe), /list, /stats, and /sign-in
+    ├── components/      Shell, globe, list, stats, account, and sign-in components
+    ├── features/auth/   Email link sign-in form
     ├── features/marks/  Server Actions and services that save and load marks
     ├── lib/             Shared helpers, plus server-only auth and database code
     ├── store/           Zustand store for marks: updates instantly, then syncs
@@ -131,7 +132,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 
 ## Contributing
 
-Read [AGENTS.md](AGENTS.md) before contributing; it covers the project's conventions. Form rules are in [docs/FORM_HANDLING.md](docs/FORM_HANDLING.md), and the component and Server Action guidelines are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Read [AGENTS.md](AGENTS.md) before contributing. It explains how the app works, lists the project's rules, and names the check that enforces each one.
 
 ## License
 
