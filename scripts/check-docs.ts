@@ -1,5 +1,5 @@
-import { existsSync, globSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, globSync, readFileSync, readdirSync } from "node:fs";
+import { dirname, join, matchesGlob, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { z } from "zod";
 
@@ -17,14 +17,25 @@ const packageManifest = z
   .parse(JSON.parse(readFileSync(join(root, "package.json"), "utf8")));
 
 const packageScripts = Object.keys(packageManifest.scripts);
+const skippedDirectories = new Set([".git", ".next", "node_modules"]);
 const moduleExtensions = ["", ".ts", ".tsx", ".js", ".json", "/index.ts", "/index.tsx"];
 
 const prefixedPathPattern =
   /(?<![\w/.-])(?:@\/|(?:src|docs|scripts|tools|\.github)\/)[\w./@()[\]*-]+/g;
 
 const backtickedFilePattern = /`([\w./@()[\]*-]+\.(?:ts|tsx|js|mjs|json|md|yml|yaml|css))`/g;
-const linkTargetPattern = /\]\(([^)\s]+)\)/g;
+const linkTargetPattern = /\]\(((?:[^()\s]|\([^()\s]*\))+)\)/g;
 const scriptPattern = /bun run ([\w:-]+)/g;
+
+function fileNamesUnder(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    if (!entry.isDirectory()) return [entry.name];
+
+    return skippedDirectories.has(entry.name) ? [] : fileNamesUnder(join(directory, entry.name));
+  });
+}
+
+const repoFileNames = fileNamesUnder(root);
 
 function countOf(text: string, character: string): number {
   return text.split(character).length - 1;
@@ -54,6 +65,8 @@ function pathExists(relativePath: string): boolean {
 function referenceResolves(reference: string): boolean {
   if (reference === "@/paths") return pathExists("paths.ts");
 
+  if (!reference.includes("/")) return repoFileNames.some((name) => matchesGlob(name, reference));
+
   const relativePath = reference.startsWith("@/") ? `src/${reference.slice(2)}` : reference;
 
   return moduleExtensions.some((extension) => pathExists(relativePath + extension));
@@ -81,9 +94,13 @@ function pathReferencesIn(line: string): Set<string> {
   return references;
 }
 
-function linkTargetsIn(line: string, pathReferences: Set<string>): string[] {
+function linkTargetsIn(document: string, line: string, pathReferences: Set<string>): string[] {
+  const isRootDocument = dirname(document) === ".";
+
   return [...line.matchAll(linkTargetPattern)].flatMap(([, target]) =>
-    /^[a-z][a-z\d+.-]*:/i.test(target) || pathReferences.has(target) ? [] : [target],
+    /^[a-z][a-z\d+.-]*:/i.test(target) || (isRootDocument && pathReferences.has(target))
+      ? []
+      : [target],
   );
 }
 
@@ -104,7 +121,7 @@ for (const document of documents) {
       if (!referenceResolves(reference)) failures.push(`${location} path ${reference}`);
     }
 
-    for (const target of linkTargetsIn(lineWithoutUrls, pathReferences)) {
+    for (const target of linkTargetsIn(document, lineWithoutUrls, pathReferences)) {
       checkedCount += 1;
 
       if (!linkTargetResolves(document, target)) failures.push(`${location} link ${target}`);
