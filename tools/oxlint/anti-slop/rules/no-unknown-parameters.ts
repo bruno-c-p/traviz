@@ -48,7 +48,7 @@ export const noUnknownParametersRule = defineRule({
     },
     messages: {
       unknownParameter:
-        "Parameter `{{parameter}}` leaves input unparsed. Accept a named domain type; run the expected schema or parser at the I/O boundary before calling this function.",
+        "Parameter `{{parameter}}` leaves input unparsed. Accept a named domain type; run the expected schema or parser at the I/O boundary before calling this function. A helper that takes a caught error names its parameter `cause`.",
     },
   },
   createOnce(context) {

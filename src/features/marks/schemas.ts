@@ -10,3 +10,5 @@ export const countryCodeSchema = z.string().refine((code) => validCodes.has(code
 });
 
 export const countryStateSchema = z.literal(COUNTRY_STATES);
+
+export const markRowSchema = z.object({ code: z.string(), state: countryStateSchema });

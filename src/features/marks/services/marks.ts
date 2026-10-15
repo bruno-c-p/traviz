@@ -1,5 +1,5 @@
 import "server-only";
-import { countryStateSchema } from "@/features/marks/schemas";
+import { markRowSchema } from "@/features/marks/schemas";
 import type { CountryState, Marks } from "@/lib/colors";
 import { turso } from "@/lib/server/db";
 
@@ -12,9 +12,9 @@ export async function loadMarks(userId: string): Promise<Marks> {
   const marks: Marks = {};
 
   for (const row of result.rows) {
-    const state = countryStateSchema.safeParse(row.state);
+    const mark = markRowSchema.safeParse(row);
 
-    if (state.success) marks[String(row.code)] = state.data;
+    if (mark.success) marks[mark.data.code] = mark.data.state;
   }
 
   return marks;

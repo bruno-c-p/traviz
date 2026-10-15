@@ -49,8 +49,8 @@ Some older code still breaks these rules, with comments, PascalCase file names a
 - Import with the `@/` alias, never `../` or `./`. CSS imports and packages are the exception. `@/paths` resolves to `paths.ts` at the repo root, and `@/*` resolves to `src/*`.
 - Build every route path with a function from `paths.ts`, such as `export const listPath = (): string => "/list";`. Never write a route string inline.
 - Use `cn` from `@/lib/utils` for conditional class names.
-- Never use a type assertion (`as`) or `any`, except in `paths.ts`. `as const` is fine. Fix the type with narrowing, generics or `satisfies`.
-- Type the parameter of a `.catch` handler as `unknown`, as in `.catch((error: unknown) => ...)`, and narrow it with `instanceof`. Never type it as `Partial<Error>` or `any`.
+- Never use a type assertion (`as`) outside `paths.ts`. Never use a non-null assertion (`!`) or `any`. `as const` is fine. Fix the type with narrowing, generics or `satisfies`. Parse an untyped value, such as a `JSON.parse` result, before you use it. Never use `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`.
+- Type the parameter of a `.catch` handler as `unknown`, as in `.catch((error: unknown) => ...)`, and narrow it with `instanceof`. Never type it as `Partial<Error>` or `any`. A helper that takes the caught value names its parameter `cause: unknown`, because `anti-slop/no-unknown-parameters` allows `unknown` only under that name.
 - Make every data change through a Server Action. Each action lives in `src/features/<name>/actions`, with one verb per file and `"use server"` at the top. Never use a route handler or a client `fetch` for a mutation.
 - Each action checks the user with `requireUserId`, validates its input with zod, and only changes rows the user owns.
 - Never put `"use server"` on a services or lib module. It turns every export into a public endpoint. Keep the modules that import `server-only` out of client code.
@@ -66,24 +66,24 @@ Some older code still breaks these rules, with comments, PascalCase file names a
 
 "none yet" means a check is planned but not added. "review only" means no tool checks the rule and none is planned.
 
-| Rule                                             | Enforcer                                                                                                        |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| bun only                                         | CI runs `bun install --frozen-lockfile`. Lockfile and version guard: none yet                                   |
-| `@/` imports                                     | `../`: none yet. `./`: review only                                                                              |
-| Route paths from `paths.ts`                      | review only                                                                                                     |
-| `cn` for conditional classes                     | review only                                                                                                     |
-| No `as` or `any` outside `paths.ts`              | `typescript/consistent-type-assertions` and `typescript/no-explicit-any` in `bun run lint`                      |
-| `.catch` handler parameters are `unknown`        | `typescript/use-unknown-in-catch-callback-variable` and `typescript/no-unsafe-argument` in `bun run lint`       |
-| `"use server"` only in `actions/` files          | none yet                                                                                                        |
-| No route handler or client `fetch` for mutations | review only                                                                                                     |
-| Actions check the user and validate input        | review only                                                                                                     |
-| Server modules stay out of client code           | `import "server-only"` fails the build. Lint rule: none yet                                                     |
-| No `revalidatePath` in marks actions             | review only                                                                                                     |
-| One component per file, kebab-case names         | none yet                                                                                                        |
-| Single write path, configurable components       | review only                                                                                                     |
-| No comments                                      | none yet                                                                                                        |
-| Descriptive names                                | review only                                                                                                     |
-| No module mocking                                | `anti-slop/no-module-mocking` in `bun run lint` covers `vi.mock` and `jest.mock`. Bun's `mock.module`: none yet |
-| Screenshots after UI changes                     | review only                                                                                                     |
-| Format, lint, typecheck (`strict` on)            | CI                                                                                                              |
-| Docs name only real paths and scripts            | `bun run check:docs` in CI                                                                                      |
+| Rule                                             | Enforcer                                                                                                                                                       |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| bun only                                         | CI runs `bun install --frozen-lockfile`. Lockfile and version guard: none yet                                                                                  |
+| `@/` imports                                     | `../`: none yet. `./`: review only                                                                                                                             |
+| Route paths from `paths.ts`                      | review only                                                                                                                                                    |
+| `cn` for conditional classes                     | review only                                                                                                                                                    |
+| No `as` outside `paths.ts`, no `!` or `any`      | `typescript/consistent-type-assertions`, `no-non-null-assertion`, `no-explicit-any`, `ban-ts-comment` and the type-aware `no-unsafe-*` rules in `bun run lint` |
+| `.catch` handler parameters are `unknown`        | `typescript/use-unknown-in-catch-callback-variable` and `anti-slop/no-unknown-parameters` in `bun run lint`                                                    |
+| `"use server"` only in `actions/` files          | none yet                                                                                                                                                       |
+| No route handler or client `fetch` for mutations | review only                                                                                                                                                    |
+| Actions check the user and validate input        | review only                                                                                                                                                    |
+| Server modules stay out of client code           | `import "server-only"` fails the build. Lint rule: none yet                                                                                                    |
+| No `revalidatePath` in marks actions             | review only                                                                                                                                                    |
+| One component per file, kebab-case names         | none yet                                                                                                                                                       |
+| Single write path, configurable components       | review only                                                                                                                                                    |
+| No comments                                      | none yet                                                                                                                                                       |
+| Descriptive names                                | review only                                                                                                                                                    |
+| No module mocking                                | `anti-slop/no-module-mocking` in `bun run lint` covers `vi.mock` and `jest.mock`. Bun's `mock.module`: none yet                                                |
+| Screenshots after UI changes                     | review only                                                                                                                                                    |
+| Format, lint, typecheck (`strict` on)            | CI                                                                                                                                                             |
+| Docs name only real paths and scripts            | `bun run check:docs` in CI                                                                                                                                     |

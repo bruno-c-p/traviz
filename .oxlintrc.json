@@ -15,6 +15,12 @@
     "typescript/consistent-type-assertions": ["error", { "assertionStyle": "never" }],
     "typescript/use-unknown-in-catch-callback-variable": "error",
     "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/ban-ts-comment": ["error", { "ts-expect-error": true }],
     "anti-slop/no-array-filter-map": "error",
     "anti-slop/no-reduce-accumulator-copy": "error",
     "anti-slop/no-chained-type-assertions": "error",
@@ -36,7 +42,7 @@
   },
   "overrides": [
     {
-      "files": ["paths.ts"],
+      "files": ["./paths.ts"],
       "rules": { "typescript/consistent-type-assertions": "off" }
     }
   ],
