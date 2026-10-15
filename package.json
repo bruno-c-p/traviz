@@ -13,7 +13,8 @@
     "format": "oxfmt .",
     "fallow": "fallow",
     "react-doctor": "react-doctor",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:docs": "bun scripts/check-docs.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.14",
