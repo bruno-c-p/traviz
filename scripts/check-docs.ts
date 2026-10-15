@@ -1,5 +1,6 @@
-import { existsSync, globSync, readFileSync, readdirSync } from "node:fs";
-import { dirname, join, matchesGlob, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import { existsSync, globSync, readFileSync } from "node:fs";
+import { basename, dirname, join, matchesGlob, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { z } from "zod";
 
@@ -17,7 +18,6 @@ const packageManifest = z
   .parse(JSON.parse(readFileSync(join(root, "package.json"), "utf8")));
 
 const packageScripts = Object.keys(packageManifest.scripts);
-const skippedDirectories = new Set([".git", ".next", "node_modules"]);
 const moduleExtensions = ["", ".ts", ".tsx", ".js", ".json", "/index.ts", "/index.tsx"];
 
 const prefixedPathPattern =
@@ -27,15 +27,23 @@ const backtickedFilePattern = /`([\w./@()[\]*-]+\.(?:ts|tsx|js|mjs|json|md|yml|y
 const linkTargetPattern = /\]\(((?:[^()\s]|\([^()\s]*\))+)\)/g;
 const scriptPattern = /bun run ([\w:-]+)/g;
 
-function fileNamesUnder(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    if (!entry.isDirectory()) return [entry.name];
+const repoFileNames = execFileSync(
+  "git",
+  ["ls-files", "--cached", "--others", "--exclude-standard"],
+  {
+    cwd: root,
+    encoding: "utf8",
+  },
+)
+  .split("\n")
+  .filter((filePath) => filePath !== "" && existsSync(join(root, filePath)))
+  .map((filePath) => basename(filePath));
 
-    return skippedDirectories.has(entry.name) ? [] : fileNamesUnder(join(directory, entry.name));
-  });
+function bareNameResolves(reference: string): boolean {
+  if (reference.includes("*")) return repoFileNames.some((name) => matchesGlob(name, reference));
+
+  return repoFileNames.includes(reference);
 }
-
-const repoFileNames = fileNamesUnder(root);
 
 function countOf(text: string, character: string): number {
   return text.split(character).length - 1;
@@ -65,7 +73,7 @@ function pathExists(relativePath: string): boolean {
 function referenceResolves(reference: string): boolean {
   if (reference === "@/paths") return pathExists("paths.ts");
 
-  if (!reference.includes("/")) return repoFileNames.some((name) => matchesGlob(name, reference));
+  if (!reference.includes("/")) return bareNameResolves(reference);
 
   const relativePath = reference.startsWith("@/") ? `src/${reference.slice(2)}` : reference;
 
@@ -98,7 +106,8 @@ function linkTargetsIn(document: string, line: string, pathReferences: Set<strin
   const isRootDocument = dirname(document) === ".";
 
   return [...line.matchAll(linkTargetPattern)].flatMap(([, target]) =>
-    /^[a-z][a-z\d+.-]*:/i.test(target) || (isRootDocument && pathReferences.has(target))
+    /^[a-z][a-z\d+.-]*:/i.test(target) ||
+    (isRootDocument && target.includes("/") && pathReferences.has(target))
       ? []
       : [target],
   );
