@@ -15,16 +15,14 @@ const envSchema = z
     },
   );
 
-function parseEnv() {
-  const parsed = envSchema.safeParse(process.env);
+const parsedEnv = envSchema.safeParse(process.env);
 
-  if (!parsed.success) {
-    const problems = parsed.error.issues.map((issue) => `${issue.path.join(".")} ${issue.message}`);
+if (!parsedEnv.success) {
+  const problems = parsedEnv.error.issues.map(
+    (issue) => `${issue.path.join(".")} ${issue.message}`,
+  );
 
-    throw new Error(`Invalid environment: ${problems.join("; ")}`);
-  }
-
-  return parsed.data;
+  throw new Error(`Invalid environment: ${problems.join("; ")}`);
 }
 
-export const env = parseEnv();
+export const env = parsedEnv.data;
