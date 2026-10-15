@@ -26,30 +26,31 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Commands
 
-| Command                 | What it does                                                             |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `bun run dev`           | Dev server. Needs the `.env.local` values in README.md.                  |
-| `bun run format`        | Format with oxfmt                                                        |
-| `bun run lint`          | oxlint, with the local `anti-slop` plugin in `tools/`                    |
-| `bun run typecheck`     | `tsc --noEmit`                                                           |
-| `bun run check:docs`    | Fail when AGENTS.md, README.md or `docs/` names a missing path or script |
-| `bun run build`         | Production build                                                         |
-| `bun run fallow`        | Dead code and complexity report                                          |
-| `bun run react-doctor`  | React rules                                                              |
-| `bun run db:migrate`    | Create the `marks` table                                                 |
-| `bun run gen:countries` | Regenerate `src/data/countries.json` and `src/data/country-labels.json`  |
+| Command                 | What it does                                                                |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `bun run dev`           | Dev server. Needs the `.env.local` values in README.md.                     |
+| `bun run format`        | Format with oxfmt                                                           |
+| `bun run lint`          | oxlint with type-aware rules, plus the local `anti-slop` plugin in `tools/` |
+| `bun run typecheck`     | `tsc --noEmit`                                                              |
+| `bun run check:docs`    | Fail when AGENTS.md, README.md or `docs/` names a missing path or script    |
+| `bun run build`         | Production build                                                            |
+| `bun run fallow`        | Dead code and complexity report                                             |
+| `bun run react-doctor`  | React rules                                                                 |
+| `bun run db:migrate`    | Create the `marks` table                                                    |
+| `bun run gen:countries` | Regenerate `src/data/countries.json` and `src/data/country-labels.json`     |
 
 `bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. `src/lib/server/env.ts` parses them once and throws an error that names any missing one. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk and Mapbox values in README.md.
 
 ## Rules
 
-Some older code still breaks these rules, with casts, comments, PascalCase file names and a `../` import in `scripts/migrate.ts`. Do not copy it. The table at the end says which rules a tool checks today.
+Some older code still breaks these rules, with comments, PascalCase file names and a `../` import in `scripts/migrate.ts`. Do not copy it. The table at the end says which rules a tool checks today.
 
 - Use bun for every package and script command. Never use npm, pnpm or yarn.
 - Import with the `@/` alias, never `../` or `./`. CSS imports and packages are the exception. `@/paths` resolves to `paths.ts` at the repo root, and `@/*` resolves to `src/*`.
 - Build every route path with a function from `paths.ts`, such as `export const listPath = (): string => "/list";`. Never write a route string inline.
 - Use `cn` from `@/lib/utils` for conditional class names.
 - Never use a type assertion (`as`) or `any`, except in `paths.ts`. `as const` is fine. Fix the type with narrowing, generics or `satisfies`.
+- Type the parameter of a `.catch` handler as `unknown`, as in `.catch((error: unknown) => ...)`, and narrow it with `instanceof`. Never type it as `Partial<Error>` or `any`.
 - Make every data change through a Server Action. Each action lives in `src/features/<name>/actions`, with one verb per file and `"use server"` at the top. Never use a route handler or a client `fetch` for a mutation.
 - Each action checks the user with `requireUserId`, validates its input with zod, and only changes rows the user owns.
 - Never put `"use server"` on a services or lib module. It turns every export into a public endpoint. Keep the modules that import `server-only` out of client code.
@@ -71,7 +72,8 @@ Some older code still breaks these rules, with casts, comments, PascalCase file 
 | `@/` imports                                     | `../`: none yet. `./`: review only                                                                              |
 | Route paths from `paths.ts`                      | review only                                                                                                     |
 | `cn` for conditional classes                     | review only                                                                                                     |
-| No `as` or `any` outside `paths.ts`              | `anti-slop/no-chained-type-assertions` covers part. The rest: none yet                                          |
+| No `as` or `any` outside `paths.ts`              | `typescript/consistent-type-assertions` and `typescript/no-explicit-any` in `bun run lint`                      |
+| `.catch` handler parameters are `unknown`        | `typescript/use-unknown-in-catch-callback-variable` and `typescript/no-unsafe-argument` in `bun run lint`       |
 | `"use server"` only in `actions/` files          | none yet                                                                                                        |
 | No route handler or client `fetch` for mutations | review only                                                                                                     |
 | Actions check the user and validate input        | review only                                                                                                     |
@@ -83,5 +85,5 @@ Some older code still breaks these rules, with casts, comments, PascalCase file 
 | Descriptive names                                | review only                                                                                                     |
 | No module mocking                                | `anti-slop/no-module-mocking` in `bun run lint` covers `vi.mock` and `jest.mock`. Bun's `mock.module`: none yet |
 | Screenshots after UI changes                     | review only                                                                                                     |
-| Format, lint, typecheck                          | CI                                                                                                              |
+| Format, lint, typecheck (`strict` on)            | CI                                                                                                              |
 | Docs name only real paths and scripts            | `bun run check:docs` in CI                                                                                      |
