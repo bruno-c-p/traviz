@@ -23,6 +23,7 @@ jobs:
       - run: bun run format --check
       - run: bun run lint
       - run: bun run typecheck
+      - run: bun run check:docs
       - run: bun run build
         env:
           TURSO_DATABASE_URL: libsql://ci-placeholder.turso.io
