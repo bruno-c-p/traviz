@@ -4,54 +4,69 @@ import { resolveVariable } from "../shared/scope.ts";
 
 import type { ESTree, SourceCode } from "@oxlint/plugins";
 
-const moduleMockMethods = new Set(["doMock", "mock", "unstable_mockModule"]);
+interface ModuleMockApi {
+  readonly source: string;
+  readonly exportName: string;
+  readonly methods: ReadonlySet<string>;
+}
+
+const frameworkMockMethods: ReadonlySet<string> = new Set(["doMock", "mock", "unstable_mockModule"]);
+const globalFrameworkObjects = new Set(["vi", "jest"]);
+
+const moduleMockApis: readonly ModuleMockApi[] = [
+  { source: "vitest", exportName: "vi", methods: frameworkMockMethods },
+  { source: "@jest/globals", exportName: "jest", methods: frameworkMockMethods },
+  { source: "bun:test", exportName: "mock", methods: new Set(["module"]) },
+  { source: "bun:test", exportName: "vi", methods: new Set(["mock"]) },
+];
 
 function importedName(node: ESTree.Node): string | null {
   if (node.type !== "ImportSpecifier") return null;
   return node.imported.type === "Identifier" ? node.imported.name : node.imported.value;
 }
 
-function isTestFrameworkObject(
+function moduleMockMethodsOf(
   sourceCode: SourceCode,
   expression: ESTree.Expression,
-): expression is ESTree.IdentifierReference {
-  if (expression.type !== "Identifier") return false;
-  if (
-    (expression.name === "vi" || expression.name === "jest") &&
-    sourceCode.isGlobalReference(expression)
-  ) {
-    return true;
+): ReadonlySet<string> | null {
+  if (expression.type !== "Identifier") return null;
+  const isFrameworkGlobalName = globalFrameworkObjects.has(expression.name);
+  if (isFrameworkGlobalName && sourceCode.isGlobalReference(expression)) {
+    return frameworkMockMethods;
   }
 
   const variable = resolveVariable(sourceCode, expression);
   if (variable === null || variable.defs.length === 0) {
-    return expression.name === "vi" || expression.name === "jest";
+    return isFrameworkGlobalName ? frameworkMockMethods : null;
   }
-  return variable.defs.some((definition) => {
+  for (const definition of variable.defs) {
     if (definition.type !== "ImportBinding" || definition.parent?.type !== "ImportDeclaration") {
-      return false;
+      continue;
     }
     const source = definition.parent.source.value;
     const name = importedName(definition.node);
-    return (source === "vitest" && name === "vi") || (source === "@jest/globals" && name === "jest");
-  });
+    const api = moduleMockApis.find(
+      (candidate) => candidate.source === source && candidate.exportName === name,
+    );
+    if (api !== undefined) return api.methods;
+  }
+  return null;
+}
+
+function staticPropertyName(property: ESTree.Node, computed: boolean): string | null {
+  if (!computed && property.type === "Identifier") return property.name;
+  if (computed && property.type === "Literal" && typeof property.value === "string") {
+    return property.value;
+  }
+  return null;
 }
 
 function moduleMockCall(sourceCode: SourceCode, callee: ESTree.Expression): boolean {
   if (!("property" in callee) || !("object" in callee) || !("computed" in callee)) return false;
-  if (!isTestFrameworkObject(sourceCode, callee.object)) return false;
-  const property = callee.property;
-  const method = callee.computed
-    ? property.type === "Literal" &&
-      (property.value === "doMock" ||
-        property.value === "mock" ||
-        property.value === "unstable_mockModule")
-      ? property.value
-      : null
-    : property.type === "Identifier"
-      ? property.name
-      : null;
-  return method !== null && moduleMockMethods.has(method);
+  const methods = moduleMockMethodsOf(sourceCode, callee.object);
+  if (methods === null) return false;
+  const method = staticPropertyName(callee.property, callee.computed);
+  return method !== null && methods.has(method);
 }
 
 /** Ban test framework module mocking in favor of real dependency seams. */
@@ -60,7 +75,7 @@ export const noModuleMockingRule = defineRule({
     type: "problem",
     docs: {
       description:
-        "Disallow Vitest and Jest module mocking; tests must replace dependencies through real interfaces.",
+        "Disallow Vitest, Jest, and Bun module mocking; tests must replace dependencies through real interfaces.",
     },
     messages: {
       moduleMock:
