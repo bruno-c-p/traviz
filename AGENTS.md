@@ -22,7 +22,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - The server snapshot loads in `SessionLayer`. `MarksProvider` reads it with `loadMarks`, and `HydrateMarks` passes it to the store.
 - The globe is imperative. `MapCanvas` imports `mapbox-gl` on the client, and `src/lib/mount-globe.ts` creates the map. The `src/lib/map-*` modules bind spin, country events and store sync. React never renders map content. The globe stays mounted on all three app routes and only spins on `/`.
 - `next.config.ts` turns on Cache Components and Partial Prefetching. Read request data, such as the session or marks, inside a `<Suspense>` boundary, as `src/app/(app)/layout.tsx` does for `SessionLayer`. Read the matching guide in `node_modules/next/dist/docs/` before you change caching or prefetching.
-- Server-only code is `@/lib/server/db` (the Turso client), `@/lib/server/session`, `@/features/marks/services/marks` and `@/features/marks/schemas`. Each one imports `server-only`, so importing it from client code fails the build.
+- Server-only code is `@/lib/server/db` (the Turso client), `@/lib/server/env`, `@/lib/server/session`, `@/features/marks/services/marks` and `@/features/marks/schemas`. Each one imports `server-only`, so importing it from client code fails the build.
 
 ## Commands
 
@@ -39,7 +39,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 | `bun run db:migrate`    | Create the `marks` table                                                 |
 | `bun run gen:countries` | Regenerate `src/data/countries.json` and `src/data/country-labels.json`  |
 
-`bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. Without them the database client fails at import. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk and Mapbox values in README.md.
+`bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. `src/lib/server/env.ts` parses them once and throws an error that names any missing one. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk and Mapbox values in README.md.
 
 ## Rules
 
