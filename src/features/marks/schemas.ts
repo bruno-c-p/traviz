@@ -1,3 +1,4 @@
+import "server-only";
 import { z } from "zod";
 import countriesData from "@/data/countries.json";
 import { COUNTRY_STATES } from "@/lib/colors";

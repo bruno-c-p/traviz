@@ -1,3 +1,4 @@
+import "server-only";
 import type { CountryState, Marks } from "@/lib/colors";
 import { turso } from "@/lib/server/db";
 
