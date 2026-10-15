@@ -33,6 +33,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 | `bun run lint`          | oxlint with type-aware rules, plus the local `anti-slop` plugin in `tools/` |
 | `bun run typecheck`     | `tsc --noEmit`                                                              |
 | `bun run check:docs`    | Fail when AGENTS.md, README.md or `docs/` names a missing path or script    |
+| `bun run test`          | bun tests under `src`                                                       |
+| `bun run test:rules`    | Lint rule tests in `tools/oxlint`, run with Node 24                         |
 | `bun run build`         | Production build                                                            |
 | `bun run fallow`        | Dead code and complexity report                                             |
 | `bun run react-doctor`  | React rules                                                                 |
@@ -58,9 +60,11 @@ Some older code still breaks these rules, with comments, PascalCase file names a
 - Put one React component in each file. Name the file after it in kebab-case (`src/components/country-row.tsx` exports `CountryRow`).
 - Model each business operation once (single write path). Prefer one configurable component over near-copies, once a third copy appears.
 - Write no comments. Use descriptive names instead of one-letter names, and use `T` for a single generic.
-- Do not mock modules in tests. Pass dependencies in as arguments. The app has no test runner yet. The only tests are the lint rule tests in `tools/oxlint`, and no script runs them.
+- Put tests next to the code they test, as `*.test.ts` or `*.test.tsx` under `src`, and run them with `bun run test`. `bun run test` only runs tests under `src`, so tests for `scripts` go in `src/testing`. Tests can import modules that import `server-only`, because `bunfig.toml` preloads a stub for it. Run `bun run test:rules` after you change a rule in `tools/oxlint`. Bun's test runner cannot run those rule tests.
+- Do not mock modules in tests. Pass dependencies in as arguments.
+- Use Bun APIs only in tests, `src/testing` and `scripts`. The app runs on Node in production.
 - After a UI change, open every affected page in the dev server and screenshot it at 375, 768 and 1440 px. Fix layout breakage, overlap, clipped text and low contrast, then screenshot again. If you cannot run the dev server, say so instead of skipping this.
-- Before you report a task as done, run `bun run format`, `bun run lint`, `bun run typecheck` and `bun run check:docs`, and fix what they report.
+- Before you report a task as done, run `bun run format`, `bun run lint`, `bun run typecheck`, `bun run test` and `bun run check:docs`, and fix what they report.
 
 ## Who enforces each rule
 
@@ -83,7 +87,8 @@ Some older code still breaks these rules, with comments, PascalCase file names a
 | Single write path, configurable components       | review only                                                                                                                                                    |
 | No comments                                      | none yet                                                                                                                                                       |
 | Descriptive names                                | review only                                                                                                                                                    |
-| No module mocking                                | `anti-slop/no-module-mocking` in `bun run lint` covers `vi.mock` and `jest.mock`. Bun's `mock.module`: none yet                                                |
+| No module mocking                                | `anti-slop/no-module-mocking` in `bun run lint`                                                                                                                |
+| Bun APIs only in tests and scripts               | `no-restricted-globals` in `bun run lint` covers the `Bun` global. `import.meta.dir`, other Bun globals and imports from `bun`: none yet                       |
 | Screenshots after UI changes                     | review only                                                                                                                                                    |
-| Format, lint, typecheck (`strict` on)            | CI                                                                                                                                                             |
+| Format, lint, typecheck (`strict` on), tests     | CI                                                                                                                                                             |
 | Docs name only real paths and scripts            | `bun run check:docs` in CI                                                                                                                                     |
