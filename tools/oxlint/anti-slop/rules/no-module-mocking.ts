@@ -17,7 +17,8 @@ const moduleMockApis: readonly ModuleMockApi[] = [
   { source: "vitest", exportName: "vi", methods: frameworkMockMethods },
   { source: "@jest/globals", exportName: "jest", methods: frameworkMockMethods },
   { source: "bun:test", exportName: "mock", methods: new Set(["module"]) },
-  { source: "bun:test", exportName: "vi", methods: new Set(["mock"]) },
+  { source: "bun:test", exportName: "vi", methods: frameworkMockMethods },
+  { source: "bun:test", exportName: "jest", methods: frameworkMockMethods },
 ];
 
 function importedName(node: ESTree.Node): string | null {

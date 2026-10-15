@@ -44,5 +44,9 @@ tester.run("anti-slop/no-module-mocking", noModuleMockingRule, {
       code: "import { vi } from 'bun:test'; vi.mock('./user-store', () => ({}));",
       errors: [error],
     },
+    {
+      code: "import { jest } from 'bun:test'; jest.mock('./user-store', () => ({}));",
+      errors: [error],
+    },
   ],
 });
