@@ -1,9 +1,8 @@
 import "server-only";
 import { createClient } from "@libsql/client";
+import { env } from "@/lib/server/env";
 
-const config = {
-  url: process.env.TURSO_DATABASE_URL as string,
-  authToken: process.env.TURSO_AUTH_TOKEN as string,
-};
-
-export const turso = createClient(config);
+export const turso = createClient({
+  url: env.TURSO_DATABASE_URL,
+  authToken: env.TURSO_AUTH_TOKEN,
+});
