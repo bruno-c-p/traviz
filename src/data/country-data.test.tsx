@@ -12,22 +12,22 @@ describe("country dataset invariants", () => {
   test.failing("every counted country has a label and a fly-to center", () => {
     const counted = countries.filter((country) => country.counted);
 
-    const missingLabel = counted
-      .filter((country) => !labelNames.has(country.name))
-      .map((country) => country.code);
+    const missingLabel = counted.flatMap((country) =>
+      labelNames.has(country.name) ? [] : [country.code],
+    );
 
-    const cannotFly = counted
-      .filter((country) => countryCenter(country.code) === null)
-      .map((country) => country.code);
+    const cannotFly = counted.flatMap((country) =>
+      countryCenter(country.code) === null ? [country.code] : [],
+    );
 
     expect(missingLabel).toEqual([]);
     expect(cannotFly).toEqual([]);
   });
 
   test.failing("every searchable entry has a fly-to center", () => {
-    const cannotFly = searchable
-      .filter((country) => countryCenter(country.code) === null)
-      .map((country) => country.code);
+    const cannotFly = searchable.flatMap((country) =>
+      countryCenter(country.code) === null ? [country.code] : [],
+    );
 
     expect(cannotFly).toEqual([]);
   });
