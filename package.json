@@ -15,7 +15,7 @@
     "react-doctor": "react-doctor",
     "typecheck": "tsc --noEmit",
     "check:docs": "bun scripts/check-docs.ts",
-    "test": "bun test src",
+    "test": "bun test",
     "test:rules": "node --import ./tools/oxlint/node-test-setup.ts --test 'tools/oxlint/**/*.test.ts'"
   },
   "dependencies": {
