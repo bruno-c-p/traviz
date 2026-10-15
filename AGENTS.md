@@ -21,7 +21,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - The server snapshot loads in `SessionLayer`. `MarksProvider` reads it with `loadMarks`, and `HydrateMarks` passes it to the store.
 - The globe is imperative. `MapCanvas` imports `mapbox-gl` on the client, and `src/lib/mount-globe.ts` creates the map. The `src/lib/map-*` modules bind spin, country events and store sync. React never renders map content. The globe stays mounted on all three app routes and only spins on `/`.
 - `next.config.ts` turns on Cache Components and Partial Prefetching. Read request data, such as the session or marks, inside a `<Suspense>` boundary, as `src/app/(app)/layout.tsx` does for `SessionLayer`. Read the matching guide in `node_modules/next/dist/docs/` before you change caching or prefetching.
-- Server-only code is `@/lib/server/db` (the Turso client), `@/lib/server/session` and `@/features/marks/services/marks`.
+- Server-only code is `@/lib/server/db` (the Turso client), `@/lib/server/session`, `@/features/marks/services/marks` and `@/features/marks/schemas`. Each one imports `server-only`, so importing it from client code fails the build.
 
 ## Commands
 
@@ -49,7 +49,7 @@ Some older code still breaks these rules, with casts, comments, PascalCase file 
 - Never use a type assertion (`as`) or `any`, except in `paths.ts`. `as const` is fine. Fix the type with narrowing, generics or `satisfies`.
 - Make every data change through a Server Action. Each action lives in `src/features/<name>/actions`, with one verb per file and `"use server"` at the top. Never use a route handler or a client `fetch` for a mutation.
 - Each action checks the user with `requireUserId`, validates its input with zod, and only changes rows the user owns.
-- Never put `"use server"` on a services or lib module. It turns every export into a public endpoint. Keep `@/lib/server/*` and feature services out of client code.
+- Never put `"use server"` on a services or lib module. It turns every export into a public endpoint. Keep the modules that import `server-only` out of client code.
 - The marks actions must not call `revalidatePath` or `refresh`. That would rerun `HydrateMarks`, drop pending writes and load an older snapshot.
 - Put one React component in each file. Name the file after it in kebab-case (`src/components/country-row.tsx` exports `CountryRow`).
 - Model each business operation once (single write path). Prefer one configurable component over near-copies, once a third copy appears.
@@ -72,7 +72,7 @@ Some older code still breaks these rules, with casts, comments, PascalCase file 
 | `"use server"` only in `actions/` files          | none yet (unit 10)                                                                     |
 | No route handler or client `fetch` for mutations | review only                                                                            |
 | Actions check the user and validate input        | review only. Unit 17c adds a test for the owner check                                  |
-| Server modules stay out of client code           | none yet (unit 3)                                                                      |
+| Server modules stay out of client code           | `import "server-only"` fails the build. Lint rule: none yet (unit 10)                  |
 | No `revalidatePath` in marks actions             | review only. Unit 21 removes `HydrateMarks`                                            |
 | One component per file, kebab-case names         | none yet (unit 9)                                                                      |
 | Single write path, configurable components       | review only                                                                            |
