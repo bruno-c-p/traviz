@@ -18,5 +18,5 @@ export function tallyMarks(pool: readonly { code: string }[], marks: Marks): Tal
 }
 
 export function tallyTotal(tally: Tally): number {
-  return Object.values(tally).reduce((sum, count) => sum + count, 0);
+  return tally.visited + tally.want + tally.not_interested + tally.unmarked;
 }
