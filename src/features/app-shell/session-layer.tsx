@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { TabBar } from "@/components/tab-bar";
-import { TopBar } from "@/components/top-bar";
+import { TabBar } from "@/features/app-shell/tab-bar";
+import { TopBar } from "@/features/app-shell/top-bar";
 import { MarksProvider } from "@/features/marks/server";
 import { getUserId } from "@/features/auth/server";
 
