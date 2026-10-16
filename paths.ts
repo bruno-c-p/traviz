@@ -14,14 +14,3 @@ export const ROUTES: readonly { path: string; access: RouteAccess }[] = [
   { path: signInPath(), access: "signedOut" },
   { path: signInVerifyPath(), access: "anyone" },
 ];
-
-export const routeAccess = (pathname: string): RouteAccess =>
-  ROUTES.find((route) => route.path === pathname)?.access ?? "signedIn";
-
-export const decideGate = (access: RouteAccess, isAuthenticated: boolean): string | undefined => {
-  if (access === "signedIn" && !isAuthenticated) return signInPath();
-
-  if (access === "signedOut" && isAuthenticated) return homePath();
-
-  return undefined;
-};
