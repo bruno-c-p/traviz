@@ -125,6 +125,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 | `bun run start`         | Serve the production build                                                                                                            |
 | `bun run setup`         | Fill in `.env.local` with development values, migrate `.data/dev.db` and create the development user                                  |
 | `bun run sign-in-token` | Print a sign-in token for the development user                                                                                        |
+| `bun run perf`          | A/B a production build of HEAD against `--baseline <ref>` (default `main`) in a throttled, signed-in Chrome                           |
 | `bun run db:migrate`    | Create the `marks` table                                                                                                              |
 | `bun run gen:countries` | Regenerate `src/features/countries/countries.generated.ts` from the `world-countries` package. `--check` fails when it is out of date |
 | `bun run lint`          | Lint with Oxlint                                                                                                                      |
@@ -135,6 +136,8 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 | `bun run test:rules`    | Run the lint rule tests in `tools/oxlint` with Node 24                                                                                |
 | `bun run check:bundle`  | Check the last build's first-load JS and preloads against `bundle-budget.json`                                                        |
 | `bun run check`         | Run CI's checks, except fallow and react-doctor, with a build                                                                         |
+
+`bun run perf` refuses a dirty tree, a `bun.lock` that differs from the baseline, a bun other than the `devEngines` pin, a database outside `.data/`, fewer than 5 runs, and a second run anywhere on the machine (`~/.local/state/traviz/perf.lock`). AGENTS.md describes the method and how to read the report.
 
 ## Country data
 
