@@ -1,5 +1,5 @@
 import { CONTINENT_ORDER, countries } from "@/features/countries";
-import { computeStats } from "@/lib/stats";
+import { computeStats } from "@/features/stats";
 import type { Continent } from "@/features/countries";
 import { useCountriesStore } from "@/features/marks";
 

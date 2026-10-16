@@ -1,12 +1,12 @@
 "use client";
 
 import { AccountSection } from "@/components/account-section";
-import { ContinentCard } from "@/components/continent-card";
+import { ContinentCard } from "@/features/stats/continent-card";
 import { DangerZone, STATE_COLORS, useCountriesStore } from "@/features/marks";
-import { ProgressCard } from "@/components/progress-card";
-import { TotalTile } from "@/components/total-tile";
+import { ProgressCard } from "@/features/stats/progress-card";
+import { TotalTile } from "@/features/stats/total-tile";
 import { CONTINENT_ORDER, countries } from "@/features/countries";
-import { computeStats } from "@/lib/stats";
+import { computeStats } from "@/features/stats/stats";
 
 export function StatsPanel() {
   const marks = useCountriesStore((state) => state.marks);

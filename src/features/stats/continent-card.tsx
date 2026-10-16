@@ -1,5 +1,5 @@
 import { COUNTRY_STATES, STATE_COLORS } from "@/features/marks";
-import type { ContinentStats } from "@/lib/stats";
+import type { ContinentStats } from "@/features/stats/stats";
 import type { Continent } from "@/features/countries";
 
 type ContinentCardProps = {
