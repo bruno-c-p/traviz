@@ -1,10 +1,10 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { decideGate, routeAccess } from "@/shared/route-gate";
+import { redirectFor } from "@/shared/route-gate";
 
 export default clerkMiddleware(async (auth, request) => {
   const { isAuthenticated } = await auth();
-  const redirectPath = decideGate(routeAccess(request.nextUrl.pathname), isAuthenticated);
+  const redirectPath = redirectFor(request.nextUrl.pathname, isAuthenticated);
 
   if (redirectPath !== undefined) {
     return NextResponse.redirect(new URL(redirectPath, request.url));

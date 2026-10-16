@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { homePath, listPath, signInPath, signInVerifyPath, statsPath } from "@/paths";
 import type { RouteAccess } from "@/paths";
-import { decideGate, routeAccess } from "@/shared/route-gate";
+import { decideGate, redirectFor, routeAccess } from "@/shared/route-gate";
 
 describe("routeAccess", () => {
   const cases: { pathname: string; access: RouteAccess }[] = [
@@ -35,8 +35,22 @@ describe("decideGate", () => {
       expect(decideGate(access, isAuthenticated)).toBe(redirect);
     },
   );
+});
 
-  test("lets a signed-in user stay on the sign-in verify page", () => {
-    expect(decideGate(routeAccess(signInVerifyPath()), true)).toBeUndefined();
-  });
+describe("redirectFor", () => {
+  const cases: { pathname: string; isAuthenticated: boolean; redirect: string | undefined }[] = [
+    { pathname: signInVerifyPath(), isAuthenticated: true, redirect: undefined },
+    { pathname: signInVerifyPath(), isAuthenticated: false, redirect: undefined },
+    { pathname: signInPath(), isAuthenticated: true, redirect: homePath() },
+    { pathname: listPath(), isAuthenticated: false, redirect: signInPath() },
+    { pathname: "/sign-in/unknown", isAuthenticated: false, redirect: signInPath() },
+    { pathname: "/sign-in/unknown", isAuthenticated: true, redirect: undefined },
+  ];
+
+  test.each(cases)(
+    "$pathname with isAuthenticated=$isAuthenticated redirects to $redirect",
+    ({ pathname, isAuthenticated, redirect }) => {
+      expect(redirectFor(pathname, isAuthenticated)).toBe(redirect);
+    },
+  );
 });
