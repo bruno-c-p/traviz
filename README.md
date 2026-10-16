@@ -122,11 +122,12 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
     ├── app/             Routes: / (globe), /list, /stats, and /sign-in
     ├── features/app-shell/ Globe shell, top bar, nav tabs, and the server-only session layer that loads marks
     ├── features/auth/   Email link sign-in, the account button and section, and the server-only session helpers
+    ├── features/countries/ Country dataset, generated country list and globe labels, and the country heading
     ├── features/country-list/ Country list page, with its search, status and continent filters
     ├── features/globe/  Mapbox globe, its overlay, country card and sheet, search, and the selected-country store
     ├── features/marks/  Marks store, mark controls, and the Server Actions and services that save and load marks
     ├── features/stats/  Stats page, progress card, and the totals by continent
-    ├── data/            Generated country list and globe labels
+    ├── shared/          Class name helper, brand mark, server-only database and env code, and test helpers
     └── proxy.ts         Sends signed-out users to /sign-in
 ```
 
