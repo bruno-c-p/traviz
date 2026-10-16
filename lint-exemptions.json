@@ -2,7 +2,7 @@
   {
     "files": ["./paths.ts"],
     "rule": "typescript/consistent-type-assertions",
-    "reason": "paths.ts is the one module allowed to use type assertions, per the AGENTS.md rule on as."
+    "reason": "paths.ts is the one module allowed a type assertion, and only as Route at the end of a path function that builds its result at runtime, per the AGENTS.md rule on as."
   },
   {
     "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/shared/testing/**", "scripts/**"],
