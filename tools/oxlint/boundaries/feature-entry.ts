@@ -6,7 +6,7 @@ import type { ModuleSourceNode } from "./project-path.ts";
 
 const featureImportPattern = /^@\/features\/([^/]+)(?:\/(.*))?$/;
 const featureFilePattern = /^src\/features\/([^/]+)\/./;
-const entrySubpathPattern = /^(?:server|actions\/[^/]+)$/;
+const entrySubpathPattern = /^(?:server|actions\/[^/.]+)$/;
 
 const allowedSourceLocations = [
   /^src\/app\//,

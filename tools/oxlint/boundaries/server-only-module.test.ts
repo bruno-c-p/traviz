@@ -1,13 +1,5 @@
-import { RuleTester } from "oxlint/plugins-dev";
-
 import { serverOnlyModuleRule } from "./server-only-module.ts";
-
-const repoRoot = "/repo";
-const tester = new RuleTester({ cwd: repoRoot });
-
-function at(path: string, code: string) {
-  return { code, filename: `${repoRoot}/${path}` };
-}
+import { at, tester } from "./rule-tester.ts";
 
 tester.run("boundaries/server-only-module", serverOnlyModuleRule, {
   valid: [
@@ -30,6 +22,13 @@ tester.run("boundaries/server-only-module", serverOnlyModuleRule, {
     at("src/features/countries/country-data.test.tsx", 'import { expect } from "bun:test";'),
     at("src/shared/testing/server-only-preload.ts", 'import { plugin } from "bun";'),
     at("scripts/check-gates.ts", 'import { z } from "zod";\nimport { $ } from "bun";'),
+    at("src/features/globe/tileset-feature.ts", 'import type { ZodType } from "zod";'),
+    at("src/features/marks/colors.ts", 'export type { Client } from "@libsql/client";'),
+    at("src/features/countries/countries.ts", 'import type { BunFile } from "bun";'),
+    at(
+      "src/features/marks/actions/set-mark.ts",
+      '"use server";\nimport "server-only";\nimport { z } from "zod";',
+    ),
   ],
   invalid: [
     {
@@ -81,6 +80,21 @@ tester.run("boundaries/server-only-module", serverOnlyModuleRule, {
       name: "a dynamic bun import in a route",
       ...at("src/app/(app)/page.tsx", 'const bun = await import("bun");'),
       errors: [{ messageId: "bunModule" }],
+    },
+    {
+      name: "server-only imported after the server package",
+      ...at("src/features/marks/colors.ts", 'import { z } from "zod";\nimport "server-only";'),
+      errors: [{ messageId: "serverPackage" }],
+    },
+    {
+      name: "an inline type specifier keeps the import at runtime",
+      ...at("src/features/globe/tileset-feature.ts", 'import { type ZodType } from "zod";'),
+      errors: [{ messageId: "serverPackage" }],
+    },
+    {
+      name: "a template literal dynamic import of zod",
+      ...at("src/features/globe/tileset-feature.ts", "const zod = await import(`zod`);"),
+      errors: [{ messageId: "serverPackage" }],
     },
   ],
 });

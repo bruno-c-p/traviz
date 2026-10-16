@@ -1,9 +1,11 @@
-import { relative, sep } from "node:path";
+import { posix, relative, resolve, sep } from "node:path";
 
 import type { Context, ESTree } from "@oxlint/plugins";
 
+export const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+
 export function projectPath(context: Context): string {
-  return relative(context.cwd, context.filename).split(sep).join("/");
+  return relative(repoRoot, context.filename).split(sep).join("/");
 }
 
 export function isTestPath(path: string): boolean {
@@ -16,16 +18,37 @@ export function hasDirective(program: ESTree.Program, directive: string): boolea
   );
 }
 
+export function firstStatement(program: ESTree.Program): ESTree.Node | undefined {
+  return program.body.find(
+    (statement) => statement.type !== "ExpressionStatement" || !statement.directive,
+  );
+}
+
 export type ModuleSourceNode =
   | ESTree.ImportDeclaration
   | ESTree.ExportNamedDeclaration
   | ESTree.ExportAllDeclaration
   | ESTree.ImportExpression;
 
+function sourceText(source: ESTree.Expression | null): string | null {
+  if (source?.type === "Literal") return String(source.value);
+
+  if (source?.type === "TemplateLiteral" && source.expressions.length === 0)
+    return source.quasis[0]?.value.cooked ?? null;
+
+  return null;
+}
+
 export function moduleSource(node: ModuleSourceNode): string | null {
-  const source = node.source;
+  const source = sourceText(node.source);
 
-  if (source === null || source.type !== "Literal") return null;
+  return source?.startsWith("@/") ? posix.normalize(source) : source;
+}
 
-  return String(source.value);
+export function isTypeOnly(node: ModuleSourceNode): boolean {
+  if (node.type === "ImportDeclaration") return node.importKind === "type";
+
+  if (node.type === "ImportExpression") return false;
+
+  return node.exportKind === "type";
 }

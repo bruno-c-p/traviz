@@ -1,13 +1,5 @@
-import { RuleTester } from "oxlint/plugins-dev";
-
 import { featureEntryRule } from "./feature-entry.ts";
-
-const repoRoot = "/repo";
-const tester = new RuleTester({ cwd: repoRoot });
-
-function at(path: string, code: string) {
-  return { code, filename: `${repoRoot}/${path}` };
-}
+import { at, tester } from "./rule-tester.ts";
 
 tester.run("boundaries/feature-entry", featureEntryRule, {
   valid: [
@@ -102,6 +94,27 @@ tester.run("boundaries/feature-entry", featureEntryRule, {
       name: "src/shared imports a feature",
       ...at("src/shared/brand-mark.tsx", 'import { STATE_COLORS } from "@/features/marks";'),
       errors: [{ messageId: "sharedImportsFeature" }],
+    },
+    {
+      name: "a dot segment that leaves the importer's feature",
+      ...at(
+        "src/features/auth/email-link-form.tsx",
+        'import { forgetStoredMarks } from "@/features/auth/../marks/marks-storage";',
+      ),
+      errors: [{ messageId: "deepImport" }],
+    },
+    {
+      name: "a template literal dynamic import of another feature's file",
+      ...at("src/app/(app)/page.tsx", "const store = import(`@/features/marks/marks-store`);"),
+      errors: [{ messageId: "deepImport" }],
+    },
+    {
+      name: "an action path with an extension",
+      ...at(
+        "src/features/globe/country-card.tsx",
+        'import { setMarkAction } from "@/features/marks/actions/set-mark.ts";',
+      ),
+      errors: [{ messageId: "deepImport" }],
     },
   ],
 });

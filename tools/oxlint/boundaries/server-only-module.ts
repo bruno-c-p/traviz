@@ -1,6 +1,13 @@
 import { defineRule } from "@oxlint/plugins";
 
-import { hasDirective, isTestPath, moduleSource, projectPath } from "./project-path.ts";
+import {
+  firstStatement,
+  hasDirective,
+  isTestPath,
+  isTypeOnly,
+  moduleSource,
+  projectPath,
+} from "./project-path.ts";
 
 import type { ESTree } from "@oxlint/plugins";
 import type { ModuleSourceNode } from "./project-path.ts";
@@ -9,12 +16,12 @@ const serverPackagePattern = /^(?:zod|@libsql\/client|@clerk\/nextjs\/server)(?:
 const bunModulePattern = /^bun(?::.*)?$/;
 
 function isServerModule(program: ESTree.Program, path: string): boolean {
-  const startsWithServerOnly = program.body.some(
-    (statement) =>
-      statement.type === "ImportDeclaration" &&
-      statement.specifiers.length === 0 &&
-      statement.source.value === "server-only",
-  );
+  const leadingStatement = firstStatement(program);
+
+  const startsWithServerOnly =
+    leadingStatement?.type === "ImportDeclaration" &&
+    leadingStatement.specifiers.length === 0 &&
+    leadingStatement.source.value === "server-only";
 
   return startsWithServerOnly || hasDirective(program, "use server") || path === "src/proxy.ts";
 }
@@ -40,7 +47,7 @@ export const serverOnlyModuleRule = defineRule({
     function checkSource(node: ModuleSourceNode) {
       const source = moduleSource(node);
 
-      if (source === null) return;
+      if (source === null || isTypeOnly(node)) return;
 
       if (bunModulePattern.test(source)) {
         context.report({ node, messageId: "bunModule", data: { source } });

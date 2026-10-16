@@ -1,13 +1,5 @@
-import { RuleTester } from "oxlint/plugins-dev";
-
 import { useServerPlacementRule } from "./use-server-placement.ts";
-
-const repoRoot = "/repo";
-const tester = new RuleTester({ cwd: repoRoot });
-
-function at(path: string, code: string) {
-  return { code, filename: `${repoRoot}/${path}` };
-}
+import { at, tester } from "./rule-tester.ts";
 
 tester.run("boundaries/use-server-placement", useServerPlacementRule, {
   valid: [
