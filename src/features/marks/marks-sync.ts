@@ -168,9 +168,9 @@ function requestChange(state: MarksSyncState, change: MarkChange): MarksSyncStat
 }
 
 function markSent(state: MarksSyncState, id: number): MarksSyncState {
-  const entry = state.pending.find((candidate) => candidate.id === id);
+  const oldestUnsaved = state.pending.find((candidate) => candidate.phase !== "saved");
 
-  if (entry?.phase !== "waiting") return state;
+  if (oldestUnsaved?.id !== id || oldestUnsaved.phase !== "waiting") return state;
 
   return { ...state, pending: withPhase(state.pending, id, "sending") };
 }

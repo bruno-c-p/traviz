@@ -66,6 +66,19 @@ describe("R-9, appeared and fixed inside 0a897af before commit", () => {
 
     expect(visibleMarks(state)).toEqual({ FRA: "want", DEU: "visited" });
   });
+
+  test("a tap in flight survives a second server snapshot", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({ FRA: "want" }),
+      setMark("DEU", "visited"),
+      sent(1),
+      snapshot({ FRA: "want" }),
+    ]);
+
+    expect(visibleMarks(state)).toEqual({ FRA: "want", DEU: "visited" });
+    expect(state.pending.map((entry) => entry.phase)).toEqual(["sending"]);
+  });
 });
 
 describe("F16.1, appeared in 0a897af, fixed in 6d38bf7", () => {
@@ -116,16 +129,16 @@ describe("F5.1, appeared in 81cc227 (PR #5), open on main in scheduleWrite", () 
     const state = play([
       started(OWNER),
       snapshot({}),
-      setMark("FRA", "visited"),
       setMark("DEU", "visited"),
       sent(1),
-      sent(2),
       failed(1, "unavailable"),
+      setMark("FRA", "visited"),
+      sent(2),
       saved(2),
     ]);
 
-    expect(state.problems).toEqual([{ scope: "FRA", reason: "unavailable" }]);
-    expect(visibleMarks(state)).toEqual({ DEU: "visited" });
+    expect(state.problems).toEqual([{ scope: "DEU", reason: "unavailable" }]);
+    expect(visibleMarks(state)).toEqual({ FRA: "visited" });
   });
 });
 
@@ -193,7 +206,7 @@ describe("marks sync", () => {
       snapshot({}),
       setMark("FRA", "visited"),
       clearMark("DEU"),
-      sent(2),
+      sent(1),
       snapshot({ DEU: "want", ITA: "want" }),
     ]);
 
@@ -248,6 +261,36 @@ describe("marks sync", () => {
 
     expect(sending.pending.map((entry) => entry.phase)).toEqual(["sending"]);
     expect(reduceMarksSync(sending, sent(7))).toBe(sending);
+  });
+
+  test("change-sent is ignored while another change is in flight", () => {
+    const sending = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("FRA", "visited"),
+      setMark("DEU", "want"),
+      sent(1),
+    ]);
+
+    expect(reduceMarksSync(sending, sent(2))).toBe(sending);
+    expect(reduceMarksSync(sending, sent(1))).toBe(sending);
+  });
+
+  test("change-sent is ignored for any change but the oldest unsent one", () => {
+    const waiting = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("FRA", "visited"),
+      reset(),
+      setMark("DEU", "want"),
+    ]);
+
+    expect(reduceMarksSync(waiting, sent(2))).toBe(waiting);
+    expect(reduceMarksSync(waiting, sent(3))).toBe(waiting);
+
+    const afterFirst = play([sent(1), saved(1), sent(2)], waiting);
+
+    expect(afterFirst.pending.map((entry) => entry.phase)).toEqual(["saved", "sending", "waiting"]);
   });
 
   test("settling the same change twice returns the same state", () => {
