@@ -13,7 +13,7 @@ export function CountryHeading({ country, headingId, onClose }: CountryHeadingPr
       <div className="flex min-w-0 flex-col gap-1">
         <span className="font-mono text-xs uppercase tracking-wider text-mute">
           {country.continent} · {country.code}
-          {!country.counted && " · Territory"}
+          {country.kind === "territory" && " · Territory"}
         </span>
         <h2 id={headingId} className="text-3xl font-bold tracking-tight text-ink">
           {country.name}

@@ -1,11 +1,9 @@
 import "server-only";
 import { z } from "zod";
-import { countriesData } from "@/features/countries";
+import { COUNTRIES_BY_CODE } from "@/features/countries";
 import { COUNTRY_STATES } from "@/features/marks/colors";
 
-const validCodes = new Set(countriesData.map((country) => country.code));
-
-export const countryCodeSchema = z.string().refine((code) => validCodes.has(code), {
+export const countryCodeSchema = z.string().refine((code) => COUNTRIES_BY_CODE.has(code), {
   message: "Unknown country code",
 });
 

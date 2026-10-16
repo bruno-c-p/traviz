@@ -11,7 +11,7 @@ export const CountryRow = memo(function CountryRow({ country }: { country: Count
       <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
         {country.name}
       </span>
-      {!country.counted && (
+      {country.kind === "territory" && (
         <span
           title="Territory, not counted toward the 195 headline"
           className="hidden shrink-0 rounded-full bg-canvas-soft px-2 py-1 font-mono text-[10px] uppercase leading-none tracking-wide text-mute lg:inline"

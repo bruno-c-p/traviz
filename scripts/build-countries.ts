@@ -3,156 +3,82 @@ import path from "path";
 import { fileURLToPath } from "url";
 import countries from "world-countries";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const outputPath = path.join(__dirname, "../src/features/countries/countries.json");
-const labelsOutputPath = path.join(__dirname, "../src/features/countries/country-labels.json");
+const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const outputRelativePath = "src/features/countries/countries.generated.ts";
+const outputPath = path.join(repoRoot, outputRelativePath);
 
-interface CountryData {
-  code: string;
-  name: string;
-  flag: string;
-  continent: string;
-  counted: boolean;
-}
+const COUNTED_OBSERVER_STATES = new Set(["PSE"]);
+const EXPECTED_SOVEREIGN_COUNT = 195;
+const LABEL_MIN_TERRITORY_AREA = 100000;
+const FALLBACK_FLAG = "🏳️";
 
-function mapRegionToContinent(
-  region: string | undefined,
-  subregion: string | undefined,
-): string | undefined {
-  if (region === "Americas") {
-    if (subregion === "South America") {
-      return "South America";
-    }
+type WorldCountry = (typeof countries)[number];
 
-    return "North America";
+function mapRegionToContinent(country: WorldCountry): string {
+  if (country.region === "Americas") {
+    return country.subregion === "South America" ? "South America" : "North America";
   }
 
-  if (region === "Antarctic") {
-    return "Antarctica";
-  }
+  if (country.region === "Antarctic") return "Antarctica";
 
-  if (region === "Africa") return "Africa";
+  if (["Africa", "Asia", "Europe", "Oceania"].includes(country.region)) return country.region;
 
-  if (region === "Asia") return "Asia";
-
-  if (region === "Europe") return "Europe";
-
-  if (region === "Oceania") return "Oceania";
-
-  return undefined;
-}
-
-const continents = [
-  "Africa",
-  "Asia",
-  "Europe",
-  "North America",
-  "South America",
-  "Oceania",
-  "Antarctica",
-];
-
-const continentCounts: Record<string, number> = Object.fromEntries(continents.map((c) => [c, 0]));
-let countedCount = 0;
-const flagFallbacks: string[] = [];
-
-const processed = countries
-  .map((country): CountryData => {
-    const continent = mapRegionToContinent(country.region, country.subregion);
-
-    if (!continent) {
-      throw new Error(
-        `Unmapped continent for ${country.name.common}: region="${country.region}", subregion="${country.subregion}"`,
-      );
-    }
-
-    const counted = country.unMember || country.cca3 === "PSE";
-
-    if (counted) {
-      countedCount++;
-      continentCounts[continent]++;
-    }
-
-    let flag = country.flag;
-
-    if (!flag || flag.trim() === "") {
-      flag = "🏳️";
-      flagFallbacks.push(country.cca3);
-    }
-
-    return {
-      code: country.cca3,
-      name: country.name.common,
-      flag,
-      continent,
-      counted,
-    };
-  })
-  .sort((a, b) => a.name.localeCompare(b.name));
-
-const emptyFlags = processed.filter((c) => !c.flag || c.flag.trim() === "");
-
-if (emptyFlags.length > 0) {
   throw new Error(
-    `Found ${emptyFlags.length} entries with empty flags: ${emptyFlags.map((c) => c.code).join(", ")}`,
+    `Unmapped continent for ${country.name.common}: region="${country.region}", subregion="${country.subregion}"`,
   );
 }
 
-if (countedCount !== 195) {
-  throw new Error(`Expected exactly 195 counted entries, got ${countedCount}`);
-}
+function toRecord(country: WorldCountry) {
+  const kind =
+    country.unMember || COUNTED_OBSERVER_STATES.has(country.cca3) ? "sovereign" : "territory";
 
-const vat = processed.find((c) => c.code === "VAT");
-const pse = processed.find((c) => c.code === "PSE");
+  const [latitude, longitude] = country.latlng;
 
-if (!vat) {
-  throw new Error("Vatican City (VAT) not found in data");
-}
-
-if (!vat.counted) {
-  throw new Error("Vatican City (VAT) must have counted=true");
-}
-
-if (!pse) {
-  throw new Error("Palestine (PSE) not found in data");
-}
-
-if (!pse.counted) {
-  throw new Error("Palestine (PSE) must have counted=true");
-}
-
-fs.writeFileSync(outputPath, JSON.stringify(processed, null, 2) + "\n");
-
-const LABEL_MIN_TERRITORY_AREA = 100000;
-
-const labels = countries
-  .filter((country) => country.independent || country.area >= LABEL_MIN_TERRITORY_AREA)
-  .map((country) => ({
+  return {
+    code: country.cca3,
     name: country.name.common,
-    coordinates: [country.latlng[1], country.latlng[0]],
+    flag: country.flag.trim() === "" ? FALLBACK_FLAG : country.flag,
+    continent: mapRegionToContinent(country),
+    kind,
+    center: [longitude, latitude],
     area: country.area,
-  }))
-  .sort((a, b) => b.area - a.area);
+    hasGlobeLabel: kind === "sovereign" || country.area >= LABEL_MIN_TERRITORY_AREA,
+  };
+}
 
-fs.writeFileSync(labelsOutputPath, JSON.stringify(labels) + "\n");
+const records = countries
+  .map(toRecord)
+  .sort((first, second) => first.name.localeCompare(second.name, "en"));
 
-const totalRows = processed.length;
-const fileSize = fs.statSync(outputPath).size;
+const sovereignCount = records.filter((record) => record.kind === "sovereign").length;
 
-console.log(`Generated ${outputPath}`);
+if (sovereignCount !== EXPECTED_SOVEREIGN_COUNT) {
+  throw new Error(`Expected ${EXPECTED_SOVEREIGN_COUNT} sovereign entries, got ${sovereignCount}`);
+}
 
-console.log(`Total rows: ${totalRows}`);
+const source = `export const COUNTRY_RECORDS = ${JSON.stringify(records)} as const;\n`;
 
-console.log(`Counted (counted=true): ${countedCount}`);
+const formatter = Bun.spawnSync(
+  [path.join(repoRoot, "node_modules/.bin/oxfmt"), `--stdin-filepath=${outputRelativePath}`],
+  { cwd: repoRoot, stdin: Buffer.from(source) },
+);
 
-console.log(`Per-continent breakdown:`);
+if (formatter.exitCode !== 0) {
+  throw new Error(`oxfmt failed: ${formatter.stderr.toString()}`);
+}
 
-continents.forEach((c) => {
-  console.log(`  ${c}: ${continentCounts[c]}`);
-});
+const formatted = formatter.stdout.toString();
 
-console.log(`File size: ${fileSize} bytes (~${Math.round(fileSize / 1024)}KB)`);
+if (process.argv.includes("--check")) {
+  const current = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, "utf8") : "";
 
-if (flagFallbacks.length > 0) {
-  console.log(`Flag fallbacks applied: ${flagFallbacks.join(", ")}`);
+  if (current !== formatted) {
+    console.error(`${outputRelativePath} is out of date. Run bun run gen:countries.`);
+    process.exit(1);
+  }
+
+  console.log(`${outputRelativePath} is up to date.`);
+} else {
+  fs.writeFileSync(outputPath, formatted);
+  console.log(`Generated ${outputRelativePath} with ${records.length} entries.`);
 }

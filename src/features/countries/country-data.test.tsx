@@ -1,73 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ContinentCard, computeStats } from "@/features/stats";
-import countryLabels from "@/features/countries/country-labels.json";
-import {
-  CONTINENT_ORDER,
-  countries,
-  countryCenter,
-  searchCountries,
-} from "@/features/countries/countries";
+import { CONTINENT_ORDER, countries, searchCountries } from "@/features/countries/countries";
 import type { Continent } from "@/features/countries/countries";
-
-const countriesWithoutLabelToday = ["PSE"];
-const countedCountriesWithoutCenterToday = ["PSE"];
-
-const searchableEntriesWithoutCenterToday = [
-  "ALA",
-  "ASM",
-  "AIA",
-  "ABW",
-  "BMU",
-  "BVT",
-  "IOT",
-  "VGB",
-  "BES",
-  "CYM",
-  "CXR",
-  "CCK",
-  "COK",
-  "CUW",
-  "FLK",
-  "FRO",
-  "GUF",
-  "PYF",
-  "ATF",
-  "GIB",
-  "GLP",
-  "GUM",
-  "GGY",
-  "HMD",
-  "HKG",
-  "IMN",
-  "JEY",
-  "UNK",
-  "MAC",
-  "MTQ",
-  "MYT",
-  "MSR",
-  "NCL",
-  "NIU",
-  "NFK",
-  "MNP",
-  "PSE",
-  "PCN",
-  "PRI",
-  "REU",
-  "BLM",
-  "SHN",
-  "MAF",
-  "SPM",
-  "SXM",
-  "SGS",
-  "SJM",
-  "TWN",
-  "TKL",
-  "TCA",
-  "UMI",
-  "VIR",
-  "WLF",
-];
 
 const continentsOverflowingToday: Continent[] = [
   "Africa",
@@ -78,33 +13,39 @@ const continentsOverflowingToday: Continent[] = [
   "Oceania",
 ];
 
-const labelNames = new Set(countryLabels.map((label) => label.name));
-const counted = countries.filter((country) => country.counted);
-const searchable = countries.filter((country) => searchCountries(country.name).includes(country));
+const sovereign = countries.filter((country) => country.kind === "sovereign");
 
 describe("country dataset invariants", () => {
-  test("only the known counted countries lack a label", () => {
-    const missingLabel = counted.flatMap((country) =>
-      labelNames.has(country.name) ? [] : [country.code],
-    );
+  test("195 entries are sovereign: the 193 UN members plus the observer states Vatican City, which world-countries already lists as a UN member, and Palestine, which the generator adds by code", () => {
+    const sovereignCodes = new Set(sovereign.map((country) => country.code));
 
-    expect(missingLabel).toEqual(countriesWithoutLabelToday);
+    expect(sovereign).toHaveLength(195);
+    expect(sovereignCodes.has("VAT")).toBe(true);
+    expect(sovereignCodes.has("PSE")).toBe(true);
   });
 
-  test("only the known counted countries lack a fly-to center", () => {
-    const cannotFly = counted.flatMap((country) =>
-      countryCenter(country.code) === null ? [country.code] : [],
+  test("every sovereign entry has a globe label, Palestine included", () => {
+    const missingLabel = sovereign.flatMap((country) =>
+      country.hasGlobeLabel ? [] : [country.code],
     );
 
-    expect(cannotFly).toEqual(countedCountriesWithoutCenterToday);
+    expect(missingLabel).toEqual([]);
   });
 
-  test("only the known searchable entries lack a fly-to center", () => {
-    const cannotFly = searchable.flatMap((country) =>
-      countryCenter(country.code) === null ? [country.code] : [],
+  test("every entry is found by searching its own name", () => {
+    const unsearchable = countries.flatMap((country) =>
+      searchCountries(country.name).includes(country) ? [] : [country.code],
     );
 
-    expect(cannotFly).toEqual(searchableEntriesWithoutCenterToday);
+    expect(unsearchable).toEqual([]);
+  });
+
+  test("every center is a longitude and latitude on the globe", () => {
+    const offGlobe = countries.flatMap(({ code, center: [longitude, latitude] }) =>
+      Math.abs(longitude) <= 180 && Math.abs(latitude) <= 90 ? [] : [code],
+    );
+
+    expect(offGlobe).toEqual([]);
   });
 
   test("only the known continents overflow 100% when every country is on the wish list", () => {

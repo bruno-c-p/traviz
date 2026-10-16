@@ -118,27 +118,27 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 
 ## Scripts
 
-| Command                 | What it does                                                                                                                           |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `bun run dev`           | Start the Next.js dev server                                                                                                           |
-| `bun run build`         | Build for production                                                                                                                   |
-| `bun run start`         | Serve the production build                                                                                                             |
-| `bun run setup`         | Fill in `.env.local` with development values, migrate `.data/dev.db` and create the development user                                   |
-| `bun run sign-in-token` | Print a sign-in token for the development user                                                                                         |
-| `bun run db:migrate`    | Create the `marks` table                                                                                                               |
-| `bun run gen:countries` | Regenerate `src/features/countries/countries.json` and `src/features/countries/country-labels.json` from the `world-countries` package |
-| `bun run lint`          | Lint with Oxlint                                                                                                                       |
-| `bun run format`        | Format with Oxfmt                                                                                                                      |
-| `bun run typecheck`     | Type-check with `tsc --noEmit`                                                                                                         |
-| `bun run check:docs`    | Check that the docs name only paths and scripts that exist                                                                             |
-| `bun run test`          | Run the bun tests under `src`                                                                                                          |
-| `bun run test:rules`    | Run the lint rule tests in `tools/oxlint` with Node 24                                                                                 |
-| `bun run check:bundle`  | Check the last build's first-load JS and preloads against `bundle-budget.json`                                                         |
-| `bun run check`         | Run CI's checks, except fallow and react-doctor, with a build                                                                          |
+| Command                 | What it does                                                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun run dev`           | Start the Next.js dev server                                                                                                          |
+| `bun run build`         | Build for production                                                                                                                  |
+| `bun run start`         | Serve the production build                                                                                                            |
+| `bun run setup`         | Fill in `.env.local` with development values, migrate `.data/dev.db` and create the development user                                  |
+| `bun run sign-in-token` | Print a sign-in token for the development user                                                                                        |
+| `bun run db:migrate`    | Create the `marks` table                                                                                                              |
+| `bun run gen:countries` | Regenerate `src/features/countries/countries.generated.ts` from the `world-countries` package. `--check` fails when it is out of date |
+| `bun run lint`          | Lint with Oxlint                                                                                                                      |
+| `bun run format`        | Format with Oxfmt                                                                                                                     |
+| `bun run typecheck`     | Type-check with `tsc --noEmit`                                                                                                        |
+| `bun run check:docs`    | Check that the docs name only paths and scripts that exist                                                                            |
+| `bun run test`          | Run the bun tests under `src`                                                                                                         |
+| `bun run test:rules`    | Run the lint rule tests in `tools/oxlint` with Node 24                                                                                |
+| `bun run check:bundle`  | Check the last build's first-load JS and preloads against `bundle-budget.json`                                                        |
+| `bun run check`         | Run CI's checks, except fallow and react-doctor, with a build                                                                         |
 
 ## Country data
 
-`src/features/countries/countries.json` has 250 entries generated from the `world-countries` package. 195 of them count toward the headline total. The other 55 are territories and dependencies: they appear on the map and in the list, but they aren't counted. The same script writes `src/features/countries/country-labels.json`, the name and position of each label on the globe. Both generated files are committed, so only run `bun run gen:countries` after you update that dependency.
+`src/features/countries/countries.generated.ts` has 250 entries generated from the `world-countries` package. Each entry has a `kind`. The 195 `sovereign` entries count toward the headline total. The 55 `territory` entries appear on the map and in the list, but they aren't counted. Each entry also has the `center` the globe flies to and a `hasGlobeLabel` flag for the label layer. The file is committed, so only run `bun run gen:countries` after you update that dependency. `bun run check` runs `bun run gen:countries --check`, which fails when the committed file differs from a fresh run.
 
 ## Project structure
 
@@ -150,7 +150,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
     ├── app/             Routes: / (globe), /list, /stats, and /sign-in
     ├── features/app-shell/ Globe shell, top bar, nav tabs, and the server-only session layer that loads marks
     ├── features/auth/   Email link sign-in, the account button and section, and the server-only session helpers
-    ├── features/countries/ Country dataset, generated country list and globe labels, and the country heading
+    ├── features/countries/ Generated country dataset, search, and the country heading
     ├── features/country-list/ Country list page, with its search, status and continent filters
     ├── features/globe/  Mapbox globe, its overlay, country card and sheet, search, and the selected-country store
     ├── features/marks/  Marks store, mark controls, and the Server Actions and services that save and load marks

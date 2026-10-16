@@ -265,7 +265,7 @@
     "check:gates": "bun scripts/check-gates.ts",
     "check:docs": "bun scripts/check-docs.ts",
     "check:bundle": "bun scripts/check-bundle.ts",
-    "check": "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run test && bun run test:rules && NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k NEXT_PUBLIC_MAPBOX_TOKEN=pk.check-bundle TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && bun run check:bundle"
+    "check": "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run gen:countries --check && bun run test && bun run test:rules && NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k NEXT_PUBLIC_MAPBOX_TOKEN=pk.check-bundle TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && bun run check:bundle"
   },
   "devEngines": {
     "packageManager": {
