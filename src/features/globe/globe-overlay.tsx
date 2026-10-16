@@ -2,14 +2,14 @@
 
 import { useEffect } from "react";
 import { AccountButton } from "@/components/account-button";
-import { CountryCard } from "@/components/country-card";
-import { CountrySearch } from "@/components/country-search";
-import { CountrySheet } from "@/components/country-sheet";
-import { GlobeHint } from "@/components/globe-hint";
-import { MapLegend } from "@/components/map-legend";
+import { CountryCard } from "@/features/globe/country-card";
+import { CountrySearch } from "@/features/globe/country-search";
+import { CountrySheet } from "@/features/globe/country-sheet";
+import { GlobeHint } from "@/features/globe/globe-hint";
+import { MapLegend } from "@/features/globe/map-legend";
 import { ProgressCard } from "@/features/stats";
 import { COUNTRIES_BY_CODE } from "@/features/countries";
-import { useSelectedCountryStore } from "@/store/selected-country";
+import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 export function GlobeOverlay() {
   const selectedCode = useSelectedCountryStore((state) => state.selectedCode);

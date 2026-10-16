@@ -4,9 +4,9 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { usePathname } from "next/navigation";
 import type { Map as MapboxMap } from "mapbox-gl";
 import { useEffect, useRef } from "react";
-import { ZoomControls } from "@/components/zoom-controls";
+import { ZoomControls } from "@/features/globe/zoom-controls";
 import { STATE_COLORS } from "@/features/marks";
-import { mountGlobe } from "@/lib/mount-globe";
+import { mountGlobe } from "@/features/globe/mount-globe";
 import { homePath } from "@/paths";
 
 const mapboxModulePromise =

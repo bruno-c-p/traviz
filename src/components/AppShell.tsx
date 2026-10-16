@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { MapCanvas } from "@/components/MapCanvas";
+import { MapCanvas } from "@/features/globe";
 import { homePath } from "@/paths";
 import { cn } from "@/shared/cn";
 

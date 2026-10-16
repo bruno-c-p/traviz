@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import type { PointerEvent } from "react";
-import { useSelectedCountryStore } from "@/store/selected-country";
+import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 const DRAG_START_DISTANCE = 4;
 const DISMISS_DISTANCE_RATIO = 0.25;

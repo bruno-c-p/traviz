@@ -1,4 +1,4 @@
-import { GlobeOverlay } from "@/components/globe-overlay";
+import { GlobeOverlay } from "@/features/globe";
 
 export default function MapPage() {
   return <GlobeOverlay />;
