@@ -9,6 +9,7 @@ const checkGatesScript = join(repoRoot, "scripts", "check-gates.ts");
 const fixtureRoots: string[] = [];
 
 const gateFiles = [
+  "gates.json",
   ".github/workflows/ci.yml",
   "tsconfig.json",
   ".oxlintrc.json",
@@ -112,18 +113,18 @@ test("check:gates fails on continue-on-error in any workflow, however it is spel
 
 test("check:gates fails when CI stops running a gate", () => {
   expectFailure(
-    'job check must run "bun run check" unconditionally',
+    ".github/workflows/ci.yml.jobs.check.steps differs from gates.json",
     edit(".github/workflows/ci.yml", "run: bun run check", "run: bun run check || true"),
   );
   expectFailure(
-    'job check must run "bun run fallow"',
+    ".github/workflows/ci.yml.jobs.check.steps differs from gates.json",
     edit(".github/workflows/ci.yml", "run: bun run fallow", "run: echo skipped"),
   );
 });
 
 test("check:gates fails when a gate script is loosened", () => {
   expectFailure(
-    "package.json script lint is",
+    "package.json script lint differs from gates.json",
     edit(
       "package.json",
       '"lint": "oxlint --type-aware --deny-warnings"',
@@ -131,7 +132,7 @@ test("check:gates fails when a gate script is loosened", () => {
     ),
   );
   expectFailure(
-    "package.json script check is",
+    "package.json script check differs from gates.json",
     edit("package.json", '"check": "bun run check:gates && ', '"check": "'),
   );
 });
@@ -142,11 +143,11 @@ test("check:gates fails when strict is off or weakened", () => {
     edit("tsconfig.json", '"strict": true', '"strict": false'),
   );
   expectFailure(
-    "tsconfig.json turns strictNullChecks off under strict",
+    "tsconfig.json.compilerOptions.strictNullChecks differs from gates.json",
     edit("tsconfig.json", '"strict": true', '"strict": true,\n    "strictNullChecks": false'),
   );
   expectFailure(
-    "tsconfig.json include is",
+    "tsconfig.json.include differs from gates.json",
     edit("tsconfig.json", '"include": ["src", ', '"include": ['),
   );
 });
@@ -186,16 +187,16 @@ test("check:gates fails on a rule turned off globally or in an unlisted override
 });
 
 test("check:gates fails on oxlint config that loosens rules from elsewhere", () => {
-  expectFailure("src/.oxlintrc.json is an extra oxlint config", [
+  expectFailure("src/.oxlintrc.json changes what oxlint checks outside .oxlintrc.json", [
     "src/.oxlintrc.json",
     '{ "rules": { "typescript/no-explicit-any": "off" } }',
   ]);
   expectFailure(
-    ".oxlintrc.json has a key or shape check:gates does not know",
+    ".oxlintrc.json.extends differs from gates.json",
     edit(".oxlintrc.json", '"plugins":', '"extends": ["./base.json"],\n  "plugins":'),
   );
   expectFailure(
-    ".oxlintrc.json ignorePatterns is",
+    ".oxlintrc.json.ignorePatterns differs from gates.json",
     edit(
       ".oxlintrc.json",
       '"ignorePatterns": ["tools/oxlint/anti-slop/**"]',
@@ -203,7 +204,7 @@ test("check:gates fails on oxlint config that loosens rules from elsewhere", () 
     ),
   );
   expectFailure(
-    ".oxlintrc.json plugins is",
+    ".oxlintrc.json.plugins differs from gates.json",
     edit(".oxlintrc.json", '"plugins": ["react", "typescript", "oxc"]', '"plugins": ["react"]'),
   );
 });
@@ -229,7 +230,7 @@ test("check:gates fails when fallow or react-doctor is loosened", () => {
     edit(".fallowrc.json", '"maxCrap": 73', '"maxCrap": 90'),
   );
   expectFailure(
-    ".fallowrc.json (besides health) is",
+    ".fallowrc.json.ignorePatterns differs from gates.json",
     edit(
       ".fallowrc.json",
       '"ignorePatterns": ["tools/**"]',
@@ -237,7 +238,7 @@ test("check:gates fails when fallow or react-doctor is loosened", () => {
     ),
   );
   expectFailure(
-    "doctor.config.json is",
+    'doctor.config.json must set blocking to "warning"',
     edit("doctor.config.json", '"blocking": "warning"', '"blocking": "error"'),
   );
 });
@@ -249,11 +250,60 @@ test("check:gates fails on a tracked foreign lockfile", () => {
 
 test("check:gates fails when the bun pin is missing or differs from CI", () => {
   expectFailure(
-    "package.json must pin bun in devEngines.packageManager",
+    "package.json devEngines differs from gates.json",
     edit("package.json", '"name": "bun",', '"name": "npm",'),
   );
   expectFailure(
     "CI sets bun-version latest, but devEngines.packageManager.version is 1.4.3",
     edit(".github/workflows/ci.yml", "bun-version: 1.4.3", "bun-version: latest"),
   );
+});
+
+test("check:gates fails on a removed rule, weaker rule options and noCheck", () => {
+  expectFailure(
+    ".oxlintrc.json.rules.typescript/no-explicit-any differs from gates.json",
+    edit(".oxlintrc.json", '"typescript/no-explicit-any": "error",', ""),
+  );
+  expectFailure(
+    ".oxlintrc.json.rules.typescript/consistent-type-assertions differs from gates.json",
+    edit(".oxlintrc.json", '{ "assertionStyle": "never" }', '{ "assertionStyle": "as" }'),
+  );
+  expectFailure(
+    "tsconfig.json.compilerOptions.noCheck differs from gates.json",
+    edit("tsconfig.json", '"strict": true', '"strict": true,\n    "noCheck": true'),
+  );
+});
+
+test("check:gates fails when CI skips the check job or the format gate", () => {
+  expectFailure(
+    ".github/workflows/ci.yml.jobs.check.if differs from gates.json",
+    edit(
+      ".github/workflows/ci.yml",
+      "runs-on: ubuntu-latest",
+      "runs-on: ubuntu-latest\n    if: false",
+    ),
+  );
+  expectFailure(
+    ".github/workflows/ci.yml.on.pull_request differs from gates.json",
+    edit(".github/workflows/ci.yml", "  pull_request:\n", ""),
+  );
+  expectFailure(
+    "package.json script format differs from gates.json",
+    edit("package.json", '"format": "oxfmt ."', '"format": "true"'),
+  );
+  expectFailure(
+    "package.json adds precheck, which runs around the check gate",
+    edit("package.json", '"scripts": {', '"scripts": {\n    "precheck": "true",'),
+  );
+});
+
+test("check:gates fails on lint switched off outside .oxlintrc.json", () => {
+  expectFailure(".eslintignore changes what oxlint checks outside .oxlintrc.json", [
+    ".eslintignore",
+    "src/**\n",
+  ]);
+  expectFailure("src/probe.ts disables lint inline; use lint-exemptions.json", [
+    "src/probe.ts",
+    `/* ${["oxlint", "disable"].join("-")} */\nexport const probe = 1;\n`,
+  ]);
 });

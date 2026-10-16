@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { join, matchesGlob, resolve } from "node:path";
+import { basename, join, matchesGlob, resolve } from "node:path";
 import { isDeepStrictEqual, parseArgs } from "node:util";
 import { z } from "zod";
 
@@ -18,65 +18,16 @@ const foreignLockfiles = [
 
 const errorSeverities = new Set(["error", "deny", 2]);
 const disabledSeverities = new Set(["off", "allow", 0]);
-const oxlintConfigFilePattern = /(^|\/)(\.?oxlintrc(\.[a-z]+)?|oxlint\.config\.[cm]?[jt]s)$/;
 
-const pinnedScripts = {
-  lint: "oxlint --type-aware --deny-warnings",
-  typecheck: "tsc --noEmit",
-  test: "bun test",
-  "test:rules":
-    "node --import ./tools/oxlint/node-test-setup.ts --test 'tools/oxlint/**/*.test.ts'",
-  fallow: "fallow",
-  "react-doctor": "react-doctor",
-  "check:gates": "bun scripts/check-gates.ts",
-  "check:docs": "bun scripts/check-docs.ts",
-  "check:bundle": "bun scripts/check-bundle.ts",
-  check:
-    "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run test && bun run test:rules && NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k NEXT_PUBLIC_MAPBOX_TOKEN=pk.check-bundle TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && bun run check:bundle",
-};
+const extraLintConfigPattern =
+  /(^|\/)(\.?oxlintrc(\.[a-z]+)?|oxlint\.config\.[cm]?[jt]s|\.eslintignore)$/;
 
-const afterInstall = "${{ !cancelled() && steps.install.outcome == 'success' }}";
+const inlineDisablePattern = /(?:es|ox)lint-disable/;
+const lintedSourcePattern = /\.(?:[cm]?[jt]sx?)$/;
 
-const pinnedCiSteps = [
-  { run: "bun run check" },
-  { run: "bun run fallow", if: afterInstall },
-  { run: "bun run react-doctor --no-telemetry", if: afterInstall },
-];
+const jsonSchema = z.json();
 
-const pinnedFallowConfig = {
-  $schema: "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  ignorePatterns: ["tools/**"],
-  ignoreDependencies: ["@oxlint/plugins"],
-};
-
-const pinnedDoctorConfig = {
-  adoptExistingLintConfig: false,
-  blocking: "warning",
-  ignore: { files: ["tools/**"] },
-};
-
-const pinnedOxlintPlugins = ["react", "typescript", "oxc"];
-const pinnedOxlintIgnorePatterns = ["tools/oxlint/anti-slop/**"];
-
-const pinnedTsconfigInclude = [
-  "src",
-  "scripts",
-  "next-env.d.ts",
-  ".next/types/**/*.ts",
-  ".next/dev/types/**/*.ts",
-];
-
-const strictFamilyFlags = [
-  "noImplicitAny",
-  "noImplicitThis",
-  "strictNullChecks",
-  "strictFunctionTypes",
-  "strictBindCallApply",
-  "strictPropertyInitialization",
-  "strictBuiltinIteratorReturn",
-  "alwaysStrict",
-  "useUnknownInCatchVariables",
-];
+type JsonValue = z.infer<typeof jsonSchema>;
 
 const failures: string[] = [];
 
@@ -84,38 +35,152 @@ function readText(relativePath: string): string {
   return readFileSync(join(root, relativePath), "utf8");
 }
 
-function readJsonc(relativePath: string) {
-  return Bun.JSONC.parse(readText(relativePath));
+function readConfig(relativePath: string): JsonValue {
+  const text = readText(relativePath);
+
+  return jsonSchema.parse(
+    /\.ya?ml$/.test(relativePath) ? Bun.YAML.parse(text) : Bun.JSONC.parse(text),
+  );
 }
 
-function expectPinned<T>(label: string, actual: T, expected: NoInfer<T>) {
-  if (!isDeepStrictEqual(actual, expected))
+function differingPaths(actual: JsonValue, expected: JsonValue, path: string): string[] {
+  if (isDeepStrictEqual(actual, expected)) return [];
+
+  const actualRecord = z.record(z.string(), jsonSchema).safeParse(actual);
+  const expectedRecord = z.record(z.string(), jsonSchema).safeParse(expected);
+
+  if (!actualRecord.success || !expectedRecord.success || Array.isArray(actual)) return [path];
+
+  const keys = new Set([...Object.keys(actualRecord.data), ...Object.keys(expectedRecord.data)]);
+
+  return [...keys].flatMap((key) => {
+    const actualValue = actualRecord.data[key];
+    const expectedValue = expectedRecord.data[key];
+
+    if (actualValue === undefined || expectedValue === undefined) return [`${path}.${key}`];
+
+    return differingPaths(actualValue, expectedValue, `${path}.${key}`);
+  });
+}
+
+const gatesSchema = z.strictObject({
+  files: z.record(z.string(), jsonSchema),
+  scripts: z.record(z.string(), z.string()),
+  devEngines: jsonSchema,
+});
+
+const gates = gatesSchema.parse(JSON.parse(readText("gates.json")));
+
+const pinnedBunVersion = z
+  .object({ packageManager: z.object({ name: z.literal("bun"), version: z.string() }) })
+  .parse(gates.devEngines).packageManager.version;
+
+const trackedFiles = execFileSync("git", ["ls-files", "--cached"], { cwd: root, encoding: "utf8" })
+  .split("\n")
+  .filter((filePath) => filePath !== "");
+
+for (const [filePath, expected] of Object.entries(gates.files)) {
+  for (const differingPath of differingPaths(readConfig(filePath), expected, filePath))
     failures.push(
-      `${label} is ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}. A tightening also updates scripts/check-gates.ts`,
+      `${differingPath} differs from gates.json. A tightening updates gates.json in the same change`,
     );
 }
+
+const packageManifest = z
+  .object({
+    scripts: z.record(z.string(), z.string()),
+    devEngines: jsonSchema.optional(),
+  })
+  .parse(JSON.parse(readText("package.json")));
+
+for (const [scriptName, command] of Object.entries(gates.scripts)) {
+  if (packageManifest.scripts[scriptName] !== command)
+    failures.push(`package.json script ${scriptName} differs from gates.json`);
+
+  for (const hookName of [`pre${scriptName}`, `post${scriptName}`]) {
+    if (hookName in packageManifest.scripts)
+      failures.push(`package.json adds ${hookName}, which runs around the ${scriptName} gate`);
+  }
+}
+
+if (!isDeepStrictEqual(packageManifest.devEngines, gates.devEngines))
+  failures.push("package.json devEngines differs from gates.json");
+
+const workflowFiles = trackedFiles.filter(
+  (filePath) =>
+    /^\.github\/.*\.ya?ml$/.test(filePath) || /^action\.ya?ml$/.test(basename(filePath)),
+);
+
+const workflowStepsSchema = z.object({
+  jobs: z.record(
+    z.string(),
+    z.object({
+      steps: z
+        .array(
+          z.object({
+            uses: z.string().optional(),
+            with: z.record(z.string(), z.unknown()).optional(),
+          }),
+        )
+        .optional(),
+    }),
+  ),
+});
+
+const ciBunVersions: string[] = [];
+
+for (const workflowFile of workflowFiles) {
+  const workflow = readConfig(workflowFile);
+
+  if (JSON.stringify(workflow).includes('"continue-on-error":'))
+    failures.push(`${workflowFile} uses continue-on-error, so a failing step would not fail CI`);
+
+  for (const job of Object.values(workflowStepsSchema.safeParse(workflow).data?.jobs ?? {})) {
+    for (const step of job.steps ?? []) {
+      if (step.uses?.startsWith("oven-sh/setup-bun"))
+        ciBunVersions.push(String(step.with?.["bun-version"]));
+    }
+  }
+}
+
+if (ciBunVersions.length === 0)
+  failures.push("no workflow step sets up bun with oven-sh/setup-bun");
+
+for (const ciBunVersion of ciBunVersions) {
+  if (ciBunVersion !== pinnedBunVersion)
+    failures.push(
+      `CI sets bun-version ${ciBunVersion}, but devEngines.packageManager.version is ${pinnedBunVersion}`,
+    );
+}
+
+const tsconfig = z
+  .object({ compilerOptions: z.object({ strict: z.boolean().optional() }) })
+  .parse(readConfig("tsconfig.json"));
+
+if (tsconfig.compilerOptions.strict !== true)
+  failures.push("tsconfig.json must set compilerOptions.strict to true");
 
 const severitySchema = z.union([z.string(), z.number()]);
 const ruleSettingSchema = z.union([severitySchema, z.tuple([severitySchema], z.unknown())]);
 const rulesSchema = z.record(z.string(), ruleSettingSchema);
 
-const oxlintConfigSchema = z.strictObject({
-  $schema: z.string().optional(),
-  plugins: z.array(z.string()),
-  jsPlugins: z.array(z.object({ name: z.string(), specifier: z.string() })),
-  categories: z.record(z.string(), severitySchema).default({}),
-  rules: rulesSchema,
-  overrides: z.array(z.strictObject({ files: z.array(z.string()), rules: rulesSchema })),
-  ignorePatterns: z.array(z.string()),
-});
+const oxlintConfig = z
+  .object({
+    categories: z.record(z.string(), severitySchema).default({}),
+    rules: rulesSchema.default({}),
+    overrides: z.array(z.object({ files: z.array(z.string()), rules: rulesSchema })).default([]),
+  })
+  .parse(readConfig(".oxlintrc.json"));
 
-const exemptionsSchema = z.array(
-  z.strictObject({
-    files: z.array(z.string()).min(1),
-    rule: z.string(),
-    reason: z.string().min(1),
-  }),
-);
+const exemptions = z
+  .array(
+    z.strictObject({
+      files: z.array(z.string()).min(1),
+      rule: z.string(),
+      reason: z.string().min(1),
+    }),
+  )
+  .parse(JSON.parse(readText("lint-exemptions.json")));
 
 function severityOf(setting: z.infer<typeof ruleSettingSchema>) {
   return Array.isArray(setting) ? setting[0] : setting;
@@ -125,152 +190,52 @@ function filesKey(files: string[]): string {
   return JSON.stringify(files);
 }
 
-const trackedFiles = execFileSync("git", ["ls-files", "--cached"], { cwd: root, encoding: "utf8" })
-  .split("\n")
-  .filter((filePath) => filePath !== "");
+if (oxlintConfig.categories.correctness !== "error")
+  failures.push('.oxlintrc.json must set categories.correctness to "error"');
 
-const workflowFiles = trackedFiles.filter((filePath) => /^\.github\/.*\.ya?ml$/.test(filePath));
-
-const workflowStepSchema = z.object({
-  uses: z.string().optional(),
-  run: z.string().optional(),
-  if: z.string().optional(),
-  with: z.record(z.string(), z.unknown()).optional(),
-});
-
-const workflowJobsSchema = z.object({
-  jobs: z.record(z.string(), z.object({ steps: z.array(workflowStepSchema).optional() })),
-});
-
-const parsedWorkflows = workflowFiles.map((workflowFile) => {
-  const workflow = Bun.YAML.parse(readText(workflowFile));
-
-  return { workflowFile, workflow, jobs: workflowJobsSchema.safeParse(workflow).data?.jobs ?? {} };
-});
-
-for (const { workflowFile, workflow } of parsedWorkflows) {
-  if (JSON.stringify(workflow).includes('"continue-on-error":'))
-    failures.push(`${workflowFile} uses continue-on-error, so a failing step would not fail CI`);
+for (const [category, severity] of Object.entries(oxlintConfig.categories)) {
+  if (!errorSeverities.has(severity))
+    failures.push(`.oxlintrc.json sets category ${category} to ${severity}`);
 }
 
-const ciSteps =
-  parsedWorkflows.find(({ workflowFile }) => workflowFile === ".github/workflows/ci.yml")?.jobs
-    .check?.steps ?? [];
+for (const [rule, setting] of Object.entries(oxlintConfig.rules)) {
+  const severity = severityOf(setting);
 
-for (const pinnedStep of pinnedCiSteps) {
-  const hasStep = ciSteps.some((step) => step.run === pinnedStep.run && step.if === pinnedStep.if);
-
-  if (!hasStep)
+  if (!errorSeverities.has(severity))
     failures.push(
-      `.github/workflows/ci.yml job check must run "${pinnedStep.run}"${pinnedStep.if ? ` with if: ${pinnedStep.if}` : " unconditionally"}`,
+      `.oxlintrc.json sets ${rule} to ${severity}; every configured rule must be error`,
     );
 }
 
-const packageManifest = z
-  .object({
-    scripts: z.record(z.string(), z.string()),
-    devEngines: z
-      .object({ packageManager: z.object({ name: z.string(), version: z.string() }).optional() })
-      .optional(),
-  })
-  .parse(JSON.parse(readText("package.json")));
-
-for (const [scriptName, command] of Object.entries(pinnedScripts)) {
-  expectPinned(`package.json script ${scriptName}`, packageManifest.scripts[scriptName], command);
-}
-
-const tsconfig = z
-  .object({
-    extends: z.unknown().optional(),
-    compilerOptions: z.record(z.string(), z.unknown()),
-    include: z.array(z.string()),
-    exclude: z.array(z.string()).optional(),
-  })
-  .parse(readJsonc("tsconfig.json"));
-
-if (tsconfig.compilerOptions.strict !== true)
-  failures.push("tsconfig.json must set compilerOptions.strict to true");
-
-for (const flag of strictFamilyFlags) {
-  if (tsconfig.compilerOptions[flag] === false)
-    failures.push(`tsconfig.json turns ${flag} off under strict`);
-}
-
-if (tsconfig.extends !== undefined) failures.push("tsconfig.json must not use extends");
-
-expectPinned("tsconfig.json include", tsconfig.include, pinnedTsconfigInclude);
-
-expectPinned("tsconfig.json exclude", tsconfig.exclude, ["node_modules"]);
-
-for (const filePath of trackedFiles) {
-  if (oxlintConfigFilePattern.test(filePath) && filePath !== ".oxlintrc.json")
-    failures.push(`${filePath} is an extra oxlint config; keep every rule in .oxlintrc.json`);
-}
-
-const oxlintConfig = oxlintConfigSchema.safeParse(readJsonc(".oxlintrc.json"));
-
-if (!oxlintConfig.success)
-  failures.push(
-    `.oxlintrc.json has a key or shape check:gates does not know, such as extends: ${oxlintConfig.error.message}`,
-  );
-
-const exemptions = exemptionsSchema.parse(JSON.parse(readText("lint-exemptions.json")));
-
-if (oxlintConfig.success) {
-  const { categories, rules, overrides, plugins, ignorePatterns } = oxlintConfig.data;
-
-  expectPinned(".oxlintrc.json plugins", plugins, pinnedOxlintPlugins);
-  expectPinned(".oxlintrc.json ignorePatterns", ignorePatterns, pinnedOxlintIgnorePatterns);
-
-  if (categories.correctness !== "error")
-    failures.push('.oxlintrc.json must set categories.correctness to "error"');
-
-  for (const [category, severity] of Object.entries(categories)) {
-    if (!errorSeverities.has(severity))
-      failures.push(`.oxlintrc.json sets category ${category} to ${severity}`);
-  }
-
-  for (const [rule, setting] of Object.entries(rules)) {
+for (const override of oxlintConfig.overrides) {
+  for (const [rule, setting] of Object.entries(override.rules)) {
     const severity = severityOf(setting);
 
-    if (!errorSeverities.has(severity))
-      failures.push(
-        `.oxlintrc.json sets ${rule} to ${severity}; every configured rule must be error`,
-      );
-  }
-
-  for (const override of overrides) {
-    for (const [rule, setting] of Object.entries(override.rules)) {
-      const severity = severityOf(setting);
-
-      const isExempt = exemptions.some(
-        (exemption) =>
-          exemption.rule === rule && filesKey(exemption.files) === filesKey(override.files),
-      );
-
-      if (errorSeverities.has(severity) || (disabledSeverities.has(severity) && isExempt)) continue;
-
-      failures.push(
-        `.oxlintrc.json sets ${rule} to ${severity} for ${override.files.join(", ")} without an entry in lint-exemptions.json`,
-      );
-    }
-  }
-
-  for (const exemption of exemptions) {
-    const hasOverride = overrides.some(
-      (override) =>
-        filesKey(override.files) === filesKey(exemption.files) &&
-        disabledSeverities.has(severityOf(override.rules[exemption.rule] ?? "error")),
+    const isExempt = exemptions.some(
+      (exemption) =>
+        exemption.rule === rule && filesKey(exemption.files) === filesKey(override.files),
     );
 
-    if (!hasOverride)
-      failures.push(
-        `lint-exemptions.json lists ${exemption.rule} for ${exemption.files.join(", ")}, but .oxlintrc.json has no matching override`,
-      );
+    if (errorSeverities.has(severity) || (disabledSeverities.has(severity) && isExempt)) continue;
+
+    failures.push(
+      `.oxlintrc.json sets ${rule} to ${severity} for ${override.files.join(", ")} without an entry in lint-exemptions.json`,
+    );
   }
 }
 
 for (const exemption of exemptions) {
+  const hasOverride = oxlintConfig.overrides.some(
+    (override) =>
+      filesKey(override.files) === filesKey(exemption.files) &&
+      disabledSeverities.has(severityOf(override.rules[exemption.rule] ?? "error")),
+  );
+
+  if (!hasOverride)
+    failures.push(
+      `lint-exemptions.json lists ${exemption.rule} for ${exemption.files.join(", ")}, but .oxlintrc.json has no matching override`,
+    );
+
   for (const filePattern of exemption.files) {
     const pattern = filePattern.replace(/^\.\//, "");
 
@@ -279,50 +244,34 @@ for (const exemption of exemptions) {
   }
 }
 
-const {
-  health: { maxCrap, ...otherHealthSettings },
-  ...otherFallowSettings
-} = z
-  .object({ health: z.object({ maxCrap: z.number() }).catchall(z.unknown()) })
-  .catchall(z.unknown())
-  .parse(readJsonc(".fallowrc.json"));
-
-if (maxCrap > maxCrapCeiling)
-  failures.push(`.fallowrc.json must set health.maxCrap to ${maxCrapCeiling} or lower`);
-
-expectPinned(".fallowrc.json health (besides maxCrap)", otherHealthSettings, {});
-
-expectPinned(".fallowrc.json (besides health)", otherFallowSettings, pinnedFallowConfig);
-
-expectPinned("doctor.config.json", readJsonc("doctor.config.json"), pinnedDoctorConfig);
-
 for (const filePath of trackedFiles) {
-  if (foreignLockfiles.includes(filePath.split("/").at(-1) ?? ""))
+  if (extraLintConfigPattern.test(filePath) && filePath !== ".oxlintrc.json")
+    failures.push(`${filePath} changes what oxlint checks outside .oxlintrc.json`);
+
+  if (
+    lintedSourcePattern.test(filePath) &&
+    !filePath.startsWith("tools/") &&
+    inlineDisablePattern.test(readText(filePath))
+  )
+    failures.push(`${filePath} disables lint inline; use lint-exemptions.json`);
+
+  if (foreignLockfiles.includes(basename(filePath)))
     failures.push(`${filePath} is tracked; traviz installs with bun only`);
 }
 
-const pinnedBun = packageManifest.devEngines?.packageManager;
+const fallowConfig = z
+  .object({ health: z.object({ maxCrap: z.number() }) })
+  .parse(readConfig(".fallowrc.json"));
 
-const ciBunVersions = parsedWorkflows.flatMap(({ jobs }) =>
-  Object.values(jobs).flatMap((job) =>
-    (job.steps ?? []).flatMap((step) =>
-      step.uses?.startsWith("oven-sh/setup-bun") ? [String(step.with?.["bun-version"])] : [],
-    ),
-  ),
-);
+if (fallowConfig.health.maxCrap > maxCrapCeiling)
+  failures.push(`.fallowrc.json must set health.maxCrap to ${maxCrapCeiling} or lower`);
 
-if (pinnedBun?.name !== "bun")
-  failures.push("package.json must pin bun in devEngines.packageManager");
+const doctorConfig = z
+  .object({ blocking: z.string().optional() })
+  .parse(readConfig("doctor.config.json"));
 
-if (ciBunVersions.length === 0)
-  failures.push("no workflow step sets up bun with oven-sh/setup-bun");
-
-for (const ciBunVersion of ciBunVersions) {
-  if (ciBunVersion !== pinnedBun?.version)
-    failures.push(
-      `CI sets bun-version ${ciBunVersion}, but devEngines.packageManager.version is ${pinnedBun?.version ?? "missing"}`,
-    );
-}
+if (doctorConfig.blocking !== "warning")
+  failures.push('doctor.config.json must set blocking to "warning"');
 
 for (const failure of failures) console.error(failure);
 
