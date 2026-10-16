@@ -156,7 +156,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
     ├── features/marks/  Marks store, mark controls, and the Server Actions and services that save and load marks
     ├── features/stats/  Stats page, progress card, and the totals by continent
     ├── shared/          Class name helper, brand mark, server-only database and env code, and test helpers
-    └── proxy.ts         Sends signed-out users to /sign-in
+    └── proxy.ts         Gates each request by its ROUTES row in paths.ts
 ```
 
 ## Deployment
