@@ -3,12 +3,6 @@ import countryLabels from "@/data/country-labels.json";
 import type { Marks, StateColorKey } from "@/lib/colors";
 import type { Continent, Country } from "@/lib/stats";
 
-export const countries: readonly Country[] = countriesData as Country[];
-
-export const COUNTRIES_BY_CODE = new Map<string, Country>(
-  countries.map((country) => [country.code, country]),
-);
-
 export const CONTINENT_ORDER: readonly Continent[] = [
   "Africa",
   "Asia",
@@ -18,6 +12,23 @@ export const CONTINENT_ORDER: readonly Continent[] = [
   "Oceania",
   "Antarctica",
 ];
+
+function toContinent(name: string): Continent {
+  const continent = CONTINENT_ORDER.find((candidate) => candidate === name);
+
+  if (!continent) throw new Error(`Unknown continent in countries.json: ${name}`);
+
+  return continent;
+}
+
+export const countries: readonly Country[] = countriesData.map((country) => ({
+  ...country,
+  continent: toContinent(country.continent),
+}));
+
+export const COUNTRIES_BY_CODE = new Map<string, Country>(
+  countries.map((country) => [country.code, country]),
+);
 
 const LABEL_COORDINATES = new Map<string, number[]>(
   countryLabels.map((label) => [label.name, label.coordinates]),

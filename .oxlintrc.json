@@ -11,6 +11,16 @@
       }
     ],
     "oxc/no-accumulating-spread": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-assertions": ["error", { "assertionStyle": "never" }],
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/ban-ts-comment": ["error", { "ts-expect-error": true }],
     "anti-slop/no-array-filter-map": "error",
     "anti-slop/no-reduce-accumulator-copy": "error",
     "anti-slop/no-chained-type-assertions": "error",
@@ -30,6 +40,12 @@
     "anti-slop/require-readable-spacing": "error",
     "anti-slop/require-safety-comment-for-type-assertion": "off"
   },
+  "overrides": [
+    {
+      "files": ["./paths.ts"],
+      "rules": { "typescript/consistent-type-assertions": "off" }
+    }
+  ],
   "ignorePatterns": ["tools/oxlint/anti-slop/**"],
   "jsPlugins": [
     {

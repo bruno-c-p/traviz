@@ -27,8 +27,8 @@ function omit(marks: Marks, code: string): Marks {
   return next;
 }
 
-function errorMessage(error: Partial<Error>): string {
-  return error instanceof Error ? error.message : "Something went wrong syncing your data.";
+function errorMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : "Something went wrong syncing your data.";
 }
 
 const pendingWrites = new Map<string, Promise<void>>();
@@ -43,7 +43,7 @@ function scheduleWrite(code: string, write: () => Promise<void>): void {
     .then(() => {
       useCountriesStore.setState({ syncError: null });
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       if (pendingWrites.get(code) === next) editsBeforeSync.delete(code);
 
       useCountriesStore.setState({ syncError: errorMessage(error) });
@@ -93,7 +93,7 @@ export const useCountriesStore = create<CountriesState>()(
         }
 
         set({ marks: {} });
-        clearMarksAction().catch((error) => {
+        clearMarksAction().catch((error: unknown) => {
           isResetBeforeSync = false;
           set({ syncError: errorMessage(error) });
         });

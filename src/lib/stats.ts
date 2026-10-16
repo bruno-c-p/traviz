@@ -17,16 +17,6 @@ export interface Country {
   counted: boolean;
 }
 
-const CONTINENTS: readonly Continent[] = [
-  "Africa",
-  "Asia",
-  "Europe",
-  "North America",
-  "South America",
-  "Oceania",
-  "Antarctica",
-];
-
 export interface StateCounts {
   visited: number;
   want: number;
@@ -49,15 +39,22 @@ function emptyStateCounts(): StateCounts {
   return { visited: 0, want: 0, not_interested: 0 };
 }
 
+function emptyContinentStats(): ContinentStats {
+  return { ...emptyStateCounts(), total: 0, countedTotal: 0, countedVisited: 0 };
+}
+
 export function computeStats(marks: Marks, countries: readonly Country[]): Stats {
   const totals = emptyStateCounts();
 
-  const byContinent = Object.fromEntries(
-    CONTINENTS.map((continent) => [
-      continent,
-      { ...emptyStateCounts(), total: 0, countedTotal: 0, countedVisited: 0 },
-    ]),
-  ) as Record<Continent, ContinentStats>;
+  const byContinent: Record<Continent, ContinentStats> = {
+    Africa: emptyContinentStats(),
+    Asia: emptyContinentStats(),
+    Europe: emptyContinentStats(),
+    "North America": emptyContinentStats(),
+    "South America": emptyContinentStats(),
+    Oceania: emptyContinentStats(),
+    Antarctica: emptyContinentStats(),
+  };
 
   let headlineVisited = 0;
   let headlineTotal = 0;
