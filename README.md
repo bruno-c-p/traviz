@@ -105,6 +105,8 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 | `bun run check:docs`    | Check that the docs name only paths and scripts that exist                                                 |
 | `bun run test`          | Run the bun tests under `src`                                                                              |
 | `bun run test:rules`    | Run the lint rule tests in `tools/oxlint` with Node 24                                                     |
+| `bun run check:bundle`  | Check the last build's first-load JS and preloads against `bundle-budget.json`                             |
+| `bun run check`         | Run every CI check in order, including a build                                                             |
 
 ## Country data
 
@@ -115,7 +117,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 ```text
 .
 ├── docs/    Screenshots for this README
-├── scripts/ Database migration, country generation, and the docs check
+├── scripts/ Database migration, country generation, and the docs and bundle checks
 └── src/
     ├── app/             Routes: / (globe), /list, /stats, and /sign-in
     ├── components/      Shell, globe, list, stats, account, and sign-in components
