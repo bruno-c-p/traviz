@@ -39,10 +39,16 @@ function sourceText(source: ESTree.Expression | null): string | null {
   return null;
 }
 
+function normalizeAliasedSource(source: string): string {
+  const sourcePath = posix.normalize(`src/${source.slice("@/".length)}`);
+
+  return sourcePath.startsWith("src/") ? `@/${sourcePath.slice("src/".length)}` : sourcePath;
+}
+
 export function moduleSource(node: ModuleSourceNode): string | null {
   const source = sourceText(node.source);
 
-  return source?.startsWith("@/") ? posix.normalize(source) : source;
+  return source?.startsWith("@/") ? normalizeAliasedSource(source) : source;
 }
 
 export function isTypeOnly(node: ModuleSourceNode): boolean {

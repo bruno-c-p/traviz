@@ -104,6 +104,14 @@ tester.run("boundaries/feature-entry", featureEntryRule, {
       errors: [{ messageId: "deepImport" }],
     },
     {
+      name: "a dot segment right after the alias",
+      ...at(
+        "src/features/globe/country-card.tsx",
+        'import { useCountriesStore } from "@/../src/features/marks/marks-store";',
+      ),
+      errors: [{ messageId: "deepImport" }],
+    },
+    {
       name: "a template literal dynamic import of another feature's file",
       ...at("src/app/(app)/page.tsx", "const store = import(`@/features/marks/marks-store`);"),
       errors: [{ messageId: "deepImport" }],
