@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "oxlint --type-aware",
+    "lint": "oxlint --type-aware --deny-warnings",
     "format": "oxfmt .",
     "fallow": "fallow",
     "react-doctor": "react-doctor",

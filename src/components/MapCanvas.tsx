@@ -9,15 +9,11 @@ import { STATE_COLORS } from "@/lib/colors";
 import { mountGlobe } from "@/lib/mount-globe";
 import { homePath } from "@/paths";
 
-function reportMapLoadFailure(cause: unknown) {
-  console.error("The map could not load.", cause);
-}
-
 const mapboxModulePromise =
   typeof window === "undefined"
     ? null
     : import("mapbox-gl").catch((cause: unknown) => {
-        reportMapLoadFailure(cause);
+        console.error("The map could not load.", cause);
 
         return null;
       });
@@ -53,7 +49,9 @@ export function MapCanvas() {
           globe.unmount();
         };
       })
-      .catch(reportMapLoadFailure);
+      .catch((cause: unknown) => {
+        console.error("The map could not start.", cause);
+      });
 
     return () => {
       isCancelled = true;
