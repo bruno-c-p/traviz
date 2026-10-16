@@ -113,8 +113,19 @@
         ],
         "oxc/no-accumulating-spread": "error",
         "react/no-multi-comp": "error",
-        "unicorn/filename-case": ["error", { "case": "kebabCase" }],
+        "unicorn/filename-case": [
+          "error",
+          {
+            "case": "kebabCase"
+          }
+        ],
         "import/no-relative-parent-imports": "error",
+        "import/no-unassigned-import": [
+          "error",
+          {
+            "allow": ["**/*.css", "server-only", "client-only"]
+          }
+        ],
         "typescript/no-explicit-any": "error",
         "typescript/consistent-type-assertions": [
           "error",
@@ -152,6 +163,10 @@
         "anti-slop/no-unsafe-dictionary-type": "error",
         "anti-slop/no-widen-then-assert": "error",
         "anti-slop/require-readable-spacing": "error",
+        "boundaries/feature-entry": "error",
+        "boundaries/no-comments": "error",
+        "boundaries/server-only-module": "error",
+        "boundaries/use-server-placement": "error",
         "no-restricted-globals": [
           "error",
           {
@@ -194,6 +209,10 @@
         {
           "name": "anti-slop",
           "specifier": "./tools/oxlint/anti-slop/index.ts"
+        },
+        {
+          "name": "boundaries",
+          "specifier": "./tools/oxlint/boundaries/index.ts"
         }
       ]
     },
