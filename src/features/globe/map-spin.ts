@@ -11,10 +11,7 @@ export type SpinnableMap = {
   on: (type: SpinStopEvent, listener: (event: { originalEvent?: unknown }) => void) => void;
 };
 
-export type FrameScheduler = {
-  request: (callback: (now: number) => void) => number;
-  cancel: (frameId: number) => void;
-};
+type FrameScheduler = Pick<Window, "requestAnimationFrame" | "cancelAnimationFrame">;
 
 type GlobeSpinOptions = {
   isSpinAllowed: () => boolean;
@@ -35,7 +32,7 @@ export function createGlobeSpin(
       lastFrameTime === null ? 0 : Math.min((now - lastFrameTime) / 1000, MAX_SPIN_FRAME_SECONDS);
 
     lastFrameTime = now;
-    spinFrameId = frames.request(spinFrame);
+    spinFrameId = frames.requestAnimationFrame(spinFrame);
 
     if (isSpinAllowed() && elapsedSeconds > 0) {
       const center = map.getCenter();
@@ -45,7 +42,9 @@ export function createGlobeSpin(
   }
 
   function start() {
-    if (!stopped) spinFrameId = frames.request(spinFrame);
+    if (stopped || spinFrameId !== null) return;
+
+    spinFrameId = frames.requestAnimationFrame(spinFrame);
   }
 
   function stop() {
@@ -53,7 +52,7 @@ export function createGlobeSpin(
     stopped = true;
 
     if (spinFrameId !== null) {
-      frames.cancel(spinFrameId);
+      frames.cancelAnimationFrame(spinFrameId);
       spinFrameId = null;
     }
   }

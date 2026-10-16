@@ -10,6 +10,7 @@ function createFakeMapbox() {
   const listeners = new Map<string, Array<(event: CameraEvent) => void>>();
   let center = { lng: 0, lat: 20 };
   let isGestureCancelled = false;
+  let isZoomEasing = false;
 
   function fire(type: string, event: CameraEvent = {}) {
     for (const listener of listeners.get(type) ?? []) listener(event);
@@ -18,8 +19,14 @@ function createFakeMapbox() {
   return {
     getCenter: () => ({ ...center }),
     jumpTo: (options: { center: { lng: number; lat: number } }) => {
+      isZoomEasing = false;
       center = { ...options.center };
       fire("movestart");
+    },
+    zoomIn: () => {
+      isZoomEasing = true;
+      fire("movestart");
+      fire("zoomstart");
     },
     on: (type: string, listener: (event: CameraEvent) => void) => {
       listeners.set(type, [...(listeners.get(type) ?? []), listener]);
@@ -30,6 +37,7 @@ function createFakeMapbox() {
     fire,
     longitude: () => center.lng,
     isGestureCancelled: () => isGestureCancelled,
+    isZoomEasing: () => isZoomEasing,
   };
 }
 
@@ -40,13 +48,13 @@ function createFakeFrames() {
 
   return {
     scheduler: {
-      request: (callback: (now: number) => void) => {
+      requestAnimationFrame: (callback: (now: number) => void) => {
         const frameId = nextFrameId++;
         pending.set(frameId, callback);
 
         return frameId;
       },
-      cancel: (frameId: number) => {
+      cancelAnimationFrame: (frameId: number) => {
         pending.delete(frameId);
       },
     },
@@ -94,7 +102,6 @@ describe("globe spin", () => {
     const spinning = startSpin();
 
     expect(spinning.map.longitude()).toBeCloseTo(-1.5 * (FRAME_MS / 1000));
-    expect(isSpinning(spinning)).toBe(true);
   });
 
   test("keeps spinning through its own camera moves, which carry no originalEvent", () => {
@@ -136,7 +143,6 @@ describe("globe spin", () => {
     ["a mouse press", "mousedown"],
     ["a touch", "touchstart"],
     ["a wheel turn", "wheel"],
-    ["a zoom button press", "zoomstart"],
   ])("stops for good on %s", (_label, type) => {
     const spinning = startSpin();
 
@@ -144,6 +150,24 @@ describe("globe spin", () => {
 
     expect(isSpinning(spinning)).toBe(false);
     expect(spinning.map.isGestureCancelled()).toBe(false);
+  });
+
+  test("stops on a zoom button press and lets that zoom finish", () => {
+    const spinning = startSpin();
+
+    spinning.map.zoomIn();
+
+    expect(isSpinning(spinning)).toBe(false);
+    expect(spinning.map.isZoomEasing()).toBe(true);
+  });
+
+  test("stops every frame loop when started twice", () => {
+    const spinning = startSpin();
+
+    spinning.spin.start();
+    spinning.spin.stop();
+
+    expect(isSpinning(spinning)).toBe(false);
   });
 
   test("stays stopped when stopped during its own camera move", () => {

@@ -29,10 +29,7 @@ export function mountGlobe(
   const spin = createGlobeSpin(map, {
     isSpinAllowed,
     prefersReducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    frames: {
-      request: (callback) => requestAnimationFrame(callback),
-      cancel: (frameId) => cancelAnimationFrame(frameId),
-    },
+    frames: window,
   });
 
   let unsubscribeStores: (() => void) | undefined;
