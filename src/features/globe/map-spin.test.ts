@@ -161,7 +161,7 @@ describe("globe spin", () => {
     expect(spinning.map.isZoomEasing()).toBe(true);
   });
 
-  test("stops every frame loop when started twice", () => {
+  test("ignores a second start while already spinning", () => {
     const spinning = startSpin();
 
     spinning.spin.start();
