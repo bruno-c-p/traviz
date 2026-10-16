@@ -4,7 +4,7 @@ import { useClerk } from "@clerk/nextjs";
 import { EmailLinkErrorCodeStatus, isEmailLinkError } from "@clerk/nextjs/errors";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { forgetStoredMarks } from "@/lib/marks-storage";
+import { forgetStoredMarks } from "@/features/marks";
 import { homePath, signInPath } from "@/paths";
 
 const MESSAGES = {

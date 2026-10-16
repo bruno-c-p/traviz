@@ -1,6 +1,6 @@
 import countriesData from "@/features/countries/countries.json";
 import countryLabels from "@/features/countries/country-labels.json";
-import type { Marks, StateColorKey } from "@/lib/colors";
+import type { Marks, StateColorKey } from "@/features/marks";
 
 export type Continent =
   | "Africa"

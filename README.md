@@ -122,10 +122,10 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
     ├── app/             Routes: / (globe), /list, /stats, and /sign-in
     ├── components/      Shell, globe, list, stats, account, and sign-in components
     ├── features/auth/   Email link sign-in form
-    ├── features/marks/  Server Actions and services that save and load marks
+    ├── features/marks/  Marks store, mark controls, and the Server Actions and services that save and load marks
     ├── hooks/           Shared React hooks
     ├── lib/             Shared helpers, plus server-only auth and database code
-    ├── store/           Zustand store for marks: updates instantly, then syncs
+    ├── store/           Zustand store for the selected country
     ├── data/            Generated country list and globe labels
     └── proxy.ts         Sends signed-out users to /sign-in
 ```

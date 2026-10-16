@@ -1,13 +1,13 @@
 import type { Map as MapboxMap } from "mapbox-gl";
 import { countryCenter } from "@/features/countries";
-import type { Marks } from "@/lib/colors";
+import type { Marks } from "@/features/marks";
 import {
   FILL_LAYER_ID,
   SELECTED_LAYER_ID,
   buildFillColorExpression,
   buildSelectedFilter,
 } from "@/lib/mapStyle";
-import { useCountriesStore } from "@/store/countries";
+import { useCountriesStore } from "@/features/marks";
 import { useSelectedCountryStore } from "@/store/selected-country";
 
 const FLY_TO_ZOOM = 3;

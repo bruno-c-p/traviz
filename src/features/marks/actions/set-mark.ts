@@ -2,7 +2,7 @@
 
 import { countryCodeSchema, countryStateSchema } from "@/features/marks/schemas";
 import { upsertMarkForUser } from "@/features/marks/services/marks";
-import type { CountryState } from "@/lib/colors";
+import type { CountryState } from "@/features/marks/colors";
 import { requireUserId } from "@/lib/server/session";
 
 export async function setMarkAction(code: string, state: CountryState): Promise<void> {

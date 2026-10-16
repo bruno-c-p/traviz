@@ -5,7 +5,7 @@ import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/shared/cn";
 import { signInPath } from "@/paths";
-import { useCountriesStore } from "@/store/countries";
+import { useCountriesStore } from "@/features/marks";
 
 export function AccountSection({ className }: { className?: string }) {
   const { user } = useUser();

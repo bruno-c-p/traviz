@@ -1,4 +1,4 @@
-import type { Marks } from "@/lib/colors";
+import type { Marks } from "@/features/marks";
 import type { Continent, Country } from "@/features/countries";
 
 export interface StateCounts {

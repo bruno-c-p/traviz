@@ -3,7 +3,7 @@
 import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/shared/cn";
-import { useCountriesStore } from "@/store/countries";
+import { useCountriesStore } from "@/features/marks/marks-store";
 
 const DANGER_BUTTON_CLASS =
   "pressable min-h-11 rounded-full bg-negative px-5 text-sm font-semibold text-canvas hover:bg-negative-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2";

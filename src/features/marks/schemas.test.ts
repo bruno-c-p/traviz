@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { countryCodeSchema, countryStateSchema } from "@/features/marks/schemas";
-import { COUNTRY_STATES } from "@/lib/colors";
+import { COUNTRY_STATES } from "@/features/marks/colors";
 
 describe("mark schemas", () => {
   test("countryCodeSchema accepts a known country code", () => {

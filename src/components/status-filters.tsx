@@ -1,5 +1,5 @@
-import { STATE_COLORS } from "@/lib/colors";
-import type { StateColorKey } from "@/lib/colors";
+import { STATE_COLORS } from "@/features/marks";
+import type { StateColorKey } from "@/features/marks";
 import { cn } from "@/shared/cn";
 
 const FILTERS: readonly { value: StateColorKey; label: string }[] = [

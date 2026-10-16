@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { Map as MapboxMap } from "mapbox-gl";
 import { useEffect, useRef } from "react";
 import { ZoomControls } from "@/components/zoom-controls";
-import { STATE_COLORS } from "@/lib/colors";
+import { STATE_COLORS } from "@/features/marks";
 import { mountGlobe } from "@/lib/mount-globe";
 import { homePath } from "@/paths";
 

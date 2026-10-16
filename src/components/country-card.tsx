@@ -1,9 +1,8 @@
 "use client";
 
 import { useId } from "react";
-import { ClearMarkButton } from "@/components/clear-mark-button";
+import { ClearMarkButton, MarkChoices } from "@/features/marks";
 import { CountryHeading } from "@/features/countries";
-import { MarkChoices } from "@/components/mark-choices";
 import type { Country } from "@/features/countries";
 import { useSelectedCountryStore } from "@/store/selected-country";
 

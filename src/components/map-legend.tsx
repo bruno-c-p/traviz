@@ -1,4 +1,4 @@
-import { COUNTRY_STATES, STATE_COLORS, STATE_LABELS } from "@/lib/colors";
+import { COUNTRY_STATES, STATE_COLORS, STATE_LABELS } from "@/features/marks";
 import { cn } from "@/shared/cn";
 
 export function MapLegend({ className }: { className?: string }) {

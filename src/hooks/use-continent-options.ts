@@ -1,7 +1,7 @@
 import { CONTINENT_ORDER, countries } from "@/features/countries";
 import { computeStats } from "@/lib/stats";
 import type { Continent } from "@/features/countries";
-import { useCountriesStore } from "@/store/countries";
+import { useCountriesStore } from "@/features/marks";
 
 export type ContinentOption = {
   continent: Continent | null;

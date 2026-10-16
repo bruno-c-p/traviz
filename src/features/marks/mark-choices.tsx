@@ -6,11 +6,11 @@ import {
   STATE_HINTS,
   STATE_LABELS,
   STATE_ON_COLORS,
-} from "@/lib/colors";
-import type { CountryState } from "@/lib/colors";
-import { STATE_ICONS } from "@/lib/state-icons";
+} from "@/features/marks/colors";
+import type { CountryState } from "@/features/marks/colors";
+import { STATE_ICONS } from "@/features/marks/state-icons";
 import { cn } from "@/shared/cn";
-import { useCountriesStore } from "@/store/countries";
+import { useCountriesStore } from "@/features/marks/marks-store";
 
 const TILE_LABELS: Record<CountryState, string> = {
   visited: "Visited",
