@@ -1,15 +1,8 @@
+import { createMarksTableSql } from "@/shared/server/marks-table";
 import { turso } from "@/shared/server/database";
 
 async function main(): Promise<void> {
-  await turso.execute(`
-    CREATE TABLE IF NOT EXISTS marks (
-      user_id TEXT NOT NULL,
-      code TEXT NOT NULL,
-      state TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      PRIMARY KEY (user_id, code)
-    )
-  `);
+  await turso.execute(createMarksTableSql);
   console.log("marks table ensured");
 }
 
