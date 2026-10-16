@@ -36,6 +36,32 @@ Screenshots show a demo account with sample marks, captured from a local product
 
 ## Getting started
 
+### Quick setup for local development
+
+```bash
+bun install
+bun run setup
+bun run dev
+```
+
+`bun run setup` fills in `.env.local` for this worktree and keeps any value already there. It needs the `clerk` CLI logged in and linked to this app through the git remote, and the `vercel` CLI logged in. It does the following:
+
+- Pulls the Clerk development keys with `clerk env pull --instance dev`. It refuses to write a `pk_live_` or `sk_live_` key.
+- Pulls only `NEXT_PUBLIC_MAPBOX_TOKEN` from the Vercel development environment. It refuses a token that does not start with `pk.`, because a `NEXT_PUBLIC_` value ships to every browser. Without a token the globe shows a flat placeholder, and the list, stats and sign-in still work.
+- Sets `TURSO_DATABASE_URL=file:.data/dev.db` and runs `bun run db:migrate`. Marks live in `.data/dev.db` inside each worktree, so no worktree writes a shared database. Setup refuses to run when `.env.local` or the process environment (shell or `.env`) names a remote database, a database file outside this worktree's `.data/` or a live Clerk key.
+- Creates the Clerk development user `agent+clerk_test@example.com` if it does not exist yet.
+
+`.env.example` lists the same variables.
+
+To get a signed-in session without opening an email, run `bun run sign-in-token`. It prints a sign-in token for the development user that lasts 10 minutes. Open `/sign-in`, then run this in the browser console with the token as `ticket`, after `window.Clerk.loaded` is true:
+
+```js
+const signIn = await window.Clerk.client.signIn.create({ strategy: "ticket", ticket });
+await window.Clerk.setActive({ session: signIn.createdSessionId });
+```
+
+The steps below set up the app by hand, for production or for a remote database.
+
 ### Prerequisites
 
 - Node.js 20.9 or later (required by Next.js 16)
@@ -97,6 +123,8 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 | `bun run dev`           | Start the Next.js dev server                                                                                                           |
 | `bun run build`         | Build for production                                                                                                                   |
 | `bun run start`         | Serve the production build                                                                                                             |
+| `bun run setup`         | Fill in `.env.local` with development values, migrate `.data/dev.db` and create the development user                                   |
+| `bun run sign-in-token` | Print a sign-in token for the development user                                                                                         |
 | `bun run db:migrate`    | Create the `marks` table                                                                                                               |
 | `bun run gen:countries` | Regenerate `src/features/countries/countries.json` and `src/features/countries/country-labels.json` from the `world-countries` package |
 | `bun run lint`          | Lint with Oxlint                                                                                                                       |
@@ -117,7 +145,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 ```text
 .
 ├── docs/    Screenshots for this README
-├── scripts/ Database migration, country generation, and the docs and bundle checks
+├── scripts/ Local setup, sign-in tokens, database migration, country generation, and the docs and bundle checks
 └── src/
     ├── app/             Routes: / (globe), /list, /stats, and /sign-in
     ├── features/app-shell/ Globe shell, top bar, nav tabs, and the server-only session layer that loads marks

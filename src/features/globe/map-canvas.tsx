@@ -10,7 +10,7 @@ import { mountGlobe } from "@/features/globe/mount-globe";
 import { homePath } from "@/paths";
 
 const mapboxModulePromise =
-  typeof window === "undefined"
+  typeof window === "undefined" || !process.env.NEXT_PUBLIC_MAPBOX_TOKEN
     ? null
     : import("mapbox-gl").catch((cause: unknown) => {
         console.error("The map could not load.", cause);
