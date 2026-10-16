@@ -36,6 +36,7 @@ export type MarksSyncState = {
   readonly pending: readonly PendingChange[];
   readonly problems: readonly SyncProblem[];
   readonly lastChangeId: number;
+  readonly sessionEnded: boolean;
 };
 
 export type MarksSyncEvent =
@@ -56,6 +57,7 @@ export const INITIAL_MARKS_SYNC_STATE: MarksSyncState = {
   pending: [],
   problems: [],
   lastChangeId: 0,
+  sessionEnded: false,
 };
 
 export function applyChange(marks: Marks, change: MarkChange): Marks {
@@ -120,11 +122,11 @@ function startSession(
 
   const pending = state.ownerId === null ? state.pending : [];
 
-  return { ...state, ownerId, base, pending, problems: [] };
+  return { ...state, ownerId, base, pending, problems: [], sessionEnded: false };
 }
 
 function endSession(state: MarksSyncState): MarksSyncState {
-  return { ...INITIAL_MARKS_SYNC_STATE, lastChangeId: state.lastChangeId };
+  return { ...INITIAL_MARKS_SYNC_STATE, lastChangeId: state.lastChangeId, sessionEnded: true };
 }
 
 function receiveSnapshot(state: MarksSyncState, snapshot: MarksSnapshot): MarksSyncState {
@@ -148,6 +150,8 @@ function receiveSnapshot(state: MarksSyncState, snapshot: MarksSnapshot): MarksS
 }
 
 function requestChange(state: MarksSyncState, change: MarkChange): MarksSyncState {
+  if (state.sessionEnded) return state;
+
   const id = state.lastChangeId + 1;
 
   return {
@@ -168,7 +172,8 @@ function markSent(state: MarksSyncState, id: number): MarksSyncState {
 function settleChange(state: MarksSyncState, id: number, result: MarkChangeResult): MarksSyncState {
   const entry = state.pending.find((candidate) => candidate.id === id);
 
-  if (entry === undefined) return state;
+  if (entry?.phase !== "sending") return state;
+
   const scope = changeScope(entry.change);
 
   if (!result.ok) {
@@ -179,18 +184,11 @@ function settleChange(state: MarksSyncState, id: number, result: MarkChangeResul
     };
   }
 
-  const problems = withoutProblem(state.problems, scope);
-
-  if (state.base.source === "server") {
-    return {
-      ...state,
-      base: { source: "server", marks: applyChange(state.base.marks, entry.change) },
-      pending: withoutChange(state.pending, id),
-      problems,
-    };
-  }
-
-  return { ...state, pending: withPhase(state.pending, id, "saved"), problems };
+  return {
+    ...state,
+    pending: withPhase(state.pending, id, "saved"),
+    problems: withoutProblem(state.problems, scope),
+  };
 }
 
 export function reduceMarksSync(state: MarksSyncState, event: MarksSyncEvent): MarksSyncState {

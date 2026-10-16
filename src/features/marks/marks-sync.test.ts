@@ -177,11 +177,9 @@ describe("marks sync", () => {
   test("a settle for a change from an ended session is ignored", () => {
     const beforeEnd = play([started(OWNER), snapshot({}), setMark("FRA", "visited"), sent(1)]);
 
-    const nextSession = play(
-      [ended(), started(OWNER), snapshot({}), setMark("DEU", "want")],
-      beforeEnd,
-    );
+    const queued = play([ended(), started(OWNER), snapshot({}), setMark("DEU", "want")], beforeEnd);
 
+    const nextSession = play([sent(queued.lastChangeId)], queued);
     const state = play([failed(1, "unavailable")], nextSession);
 
     expect(state).toBe(nextSession);
@@ -263,5 +261,44 @@ describe("marks sync", () => {
 
     expect(visibleMarks(settled)).toEqual({ FRA: "visited" });
     expect(reduceMarksSync(settled, saved(1))).toBe(settled);
+    expect(reduceMarksSync(settled, failed(1, "unavailable"))).toBe(settled);
+  });
+
+  test("a late failure for a change the server already saved is ignored", () => {
+    const presync = play([started(OWNER), setMark("FRA", "visited"), sent(1), saved(1)]);
+
+    expect(reduceMarksSync(presync, failed(1, "unavailable"))).toBe(presync);
+  });
+
+  test("a settle for a change that was never sent is ignored", () => {
+    const waiting = play([started(OWNER), snapshot({}), setMark("FRA", "visited")]);
+
+    expect(reduceMarksSync(waiting, saved(1))).toBe(waiting);
+  });
+
+  test("a stale snapshot after sync keeps a change the server already saved", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("FRA", "visited"),
+      sent(1),
+      saved(1),
+      snapshot({}),
+    ]);
+
+    expect(visibleMarks(state)).toEqual({ FRA: "visited" });
+  });
+
+  test("a tap after the session ended is not carried into the next session", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({ FRA: "visited" }),
+      ended(),
+      setMark("DEU", "want"),
+      started(OTHER_OWNER),
+    ]);
+
+    expect(state.pending).toEqual([]);
+    expect(visibleMarks(state)).toEqual({});
   });
 });
