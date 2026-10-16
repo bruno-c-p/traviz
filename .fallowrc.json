@@ -2,5 +2,5 @@
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "ignorePatterns": ["tools/**"],
   "ignoreDependencies": ["@oxlint/plugins"],
-  "health": { "maxCrap": 90 }
+  "health": { "maxCrap": 73 }
 }
