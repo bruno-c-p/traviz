@@ -1,17 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ContinentCard, computeStats } from "@/features/stats";
-import { CONTINENT_ORDER, countries, searchCountries } from "@/features/countries/countries";
-import type { Continent } from "@/features/countries/countries";
-
-const continentsOverflowingToday: Continent[] = [
-  "Africa",
-  "Asia",
-  "Europe",
-  "North America",
-  "South America",
-  "Oceania",
-];
+import { CONTINENT_POOLS, ContinentCard } from "@/features/stats";
+import { tallyMarks } from "@/features/marks";
+import type { Marks } from "@/features/marks";
+import { countries, searchCountries } from "@/features/countries/countries";
+import type { Country } from "@/features/countries/countries";
 
 const sovereign = countries.filter((country) => country.kind === "sovereign");
 
@@ -48,16 +41,32 @@ describe("country dataset invariants", () => {
     expect(offGlobe).toEqual([]);
   });
 
-  test("only the known continents overflow 100% when every country is on the wish list", () => {
-    const allWanted = Object.fromEntries(
-      countries.map((country) => [country.code, "want" as const]),
+  test("the continent cards that count toward the headline add up to the 195 sovereign entries", () => {
+    const headlinePools = CONTINENT_POOLS.filter((pool) => !pool.isTerritoriesOnly);
+
+    expect(headlinePools.reduce((sum, pool) => sum + pool.countries.length, 0)).toBe(195);
+  });
+
+  test.each([
+    ["every entry is on the wish list", () => "want" as const],
+    ["every entry is visited", () => "visited" as const],
+    ["every entry is skipped", () => "not_interested" as const],
+    [
+      "sovereign entries are visited and territories are on the wish list",
+      (country: Country) => (country.kind === "sovereign" ? "visited" : "want"),
+    ],
+  ] as const)("no continent bar fills past 100%% when %s", (_scenario, stateFor) => {
+    const marks: Marks = Object.fromEntries(
+      countries.map((country) => [country.code, stateFor(country)]),
     );
 
-    const stats = computeStats(allWanted, countries);
-
-    const overflowing = CONTINENT_ORDER.flatMap((continent) => {
+    const overflowing = CONTINENT_POOLS.flatMap((pool) => {
       const markup = renderToStaticMarkup(
-        <ContinentCard continent={continent} stats={stats.byContinent[continent]} />,
+        <ContinentCard
+          continent={pool.continent}
+          tally={tallyMarks(pool.countries, marks)}
+          isTerritoriesOnly={pool.isTerritoriesOnly}
+        />,
       );
 
       const filled = [...markup.matchAll(/width:\s*([\d.]+)%/g)].reduce(
@@ -65,9 +74,9 @@ describe("country dataset invariants", () => {
         0,
       );
 
-      return filled > 100.0001 ? [continent] : [];
+      return filled > 100.0001 ? [`${pool.continent} ${filled.toFixed(1)}%`] : [];
     });
 
-    expect(overflowing).toEqual(continentsOverflowingToday);
+    expect(overflowing).toEqual([]);
   });
 });

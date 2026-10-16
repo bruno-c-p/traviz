@@ -1,4 +1,4 @@
-export { computeStats } from "@/features/stats/stats";
+export { CONTINENT_POOLS } from "@/features/stats/continent-pools";
 
 export { ContinentCard } from "@/features/stats/continent-card";
 
