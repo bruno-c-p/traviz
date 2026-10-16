@@ -136,6 +136,16 @@ describe("globe search fly-to", () => {
     expect(flights).toEqual([[138, 36]]);
   });
 
+  test("of two searches made before the style loads, only the latest flies once the sync binds", () => {
+    const { map, flights } = recordingMap();
+
+    searchAndChoose("japan", "JPN");
+    searchAndChoose("france", "FRA");
+    bindStoreSync(map, {}, () => undefined)();
+
+    expect(flights).toEqual([[2, 46]]);
+  });
+
   test("a search closed before the style loads does not fly", () => {
     const { map, flights } = recordingMap();
 
