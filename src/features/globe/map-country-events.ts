@@ -2,6 +2,7 @@ import type { Map as MapboxMap } from "mapbox-gl";
 import { COUNTRIES_BY_CODE } from "@/features/countries";
 import { FILL_LAYER_ID, SOURCE_ID } from "@/features/globe/map-style";
 import { readTilesetFeature } from "@/features/globe/tileset-feature";
+import type { TilesetFeature } from "@/features/globe/tileset-feature";
 import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 const KNOWN_CODES = new Set(COUNTRIES_BY_CODE.keys());
@@ -15,24 +16,26 @@ function bindPointerCursor(map: MapboxMap) {
   });
 }
 
+export function selectClickedCountry(feature: TilesetFeature) {
+  const { code, name } = readTilesetFeature(feature);
+  const country = code ? COUNTRIES_BY_CODE.get(code) : undefined;
+
+  if (!code || !country) {
+    console.warn(
+      `[MapCanvas] Unmatched country code "${code || "?"}" (tileset name: "${name}") has no entry in countries.generated.ts — ignoring the click.`,
+    );
+
+    return;
+  }
+
+  useSelectedCountryStore.getState().select(country.code);
+}
+
 function bindCountryClick(map: MapboxMap) {
   map.on("click", FILL_LAYER_ID, (event) => {
     const feature = event.features?.[0];
 
-    if (!feature) return;
-
-    const { code, name } = readTilesetFeature(feature);
-    const country = code ? COUNTRIES_BY_CODE.get(code) : undefined;
-
-    if (!code || !country) {
-      console.warn(
-        `[MapCanvas] Unmatched country code "${code || "?"}" (tileset name: "${name}") has no entry in countries.generated.ts — ignoring the click.`,
-      );
-
-      return;
-    }
-
-    useSelectedCountryStore.getState().select(country.code);
+    if (feature) selectClickedCountry(feature);
   });
 }
 
