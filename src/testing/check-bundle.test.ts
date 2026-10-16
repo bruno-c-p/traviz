@@ -219,7 +219,7 @@ test("check:bundle fails when the stats file lists no routes", () => {
 
   const { exitCode, output } = runCheckBundle(fixtureRoot);
 
-  expect(output).toContain("is not a list of routes with first-load chunks");
+  expect(output).toContain("route-bundle-stats.json is invalid. It should be a list of routes");
   expect(exitCode).toBe(1);
 });
 
@@ -247,5 +247,28 @@ test("check:bundle fails on a script preload whose URL has no .js extension", ()
   const { exitCode, output } = runCheckBundle(fixtureRoot);
 
   expect(output).toContain("/list preloads https://www.googletagmanager.com/gtag/js?id=G-1");
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails with a hint when the stats file is not JSON", () => {
+  const fixtureRoot = createBuildFixture();
+  writeFileSync(join(fixtureRoot, ".next", "diagnostics", "route-bundle-stats.json"), "");
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain("route-bundle-stats.json is not valid JSON");
+  expect(output).toContain("update scripts/check-bundle.ts");
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails when a chunk in the stats file is missing on disk", () => {
+  const fixtureRoot = createBuildFixture();
+  rmSync(join(fixtureRoot, ".next", "static", "chunks", "home.js"));
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain(
+    ".next/static/chunks/home.js is in route-bundle-stats.json but not on disk",
+  );
   expect(exitCode).toBe(1);
 });

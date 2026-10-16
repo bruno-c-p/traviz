@@ -39,15 +39,28 @@ function fail(message: string): never {
 if (!existsSync(statsPath))
   fail(`${statsPath} not found. Run bun run build first. ${statsChangedHint}`);
 
-const parsedStats = routeStatsSchema.safeParse(JSON.parse(readFileSync(statsPath, "utf8")));
+function readJson<T>(path: string, schema: z.ZodType<T>, problem: string): T {
+  let json: unknown;
 
-if (!parsedStats.success) {
-  fail(
-    `${statsPath} is not a list of routes with first-load chunks. ${statsChangedHint}\n${z.prettifyError(parsedStats.error)}`,
-  );
+  try {
+    json = JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    fail(`${path} is not valid JSON. ${problem}`);
+  }
+
+  const parsed = schema.safeParse(json);
+
+  if (!parsed.success) fail(`${path} is invalid. ${problem}\n${z.prettifyError(parsed.error)}`);
+
+  return parsed.data;
 }
 
-const routeStats = parsedStats.data;
+const routeStats = readJson(
+  statsPath,
+  routeStatsSchema,
+  `It should be a list of routes with first-load chunks. ${statsChangedHint}`,
+);
+
 const gzipBytesByPath = new Map<string, number>();
 
 function gzipBytesOf(chunkPath: string): number {
@@ -76,19 +89,14 @@ const firstLoadGzipBytesByRoute = new Map(
 function readBudget(): Budget | null {
   if (!existsSync(budgetPath)) return null;
 
-  const parsedBudget = budgetSchema.safeParse(JSON.parse(readFileSync(budgetPath, "utf8")));
-
-  if (!parsedBudget.success)
-    fail(`${budgetPath} is invalid.\n${z.prettifyError(parsedBudget.error)}`);
-
-  return parsedBudget.data;
+  return readJson(budgetPath, budgetSchema, "Fix it, or run bun run check:bundle --write.");
 }
 
 function writeBudget(previous: Budget | null): Budget {
   const routes = Object.fromEntries(
     [...firstLoadGzipBytesByRoute].map(([route, firstLoadGzipBytes]) => [
       route,
-      { firstLoadGzipBytes },
+      { ...previous?.routes[route], firstLoadGzipBytes },
     ]),
   );
 
@@ -204,8 +212,10 @@ for (const { route, firstLoadChunkPaths } of routeStats) {
     const chunkPath = localChunkPath(url);
 
     if (chunkPath !== null && !firstLoadChunkPaths.includes(chunkPath)) {
+      const hint = chunkPath.startsWith(".next/static/") ? ` ${statsChangedHint}` : "";
+
       failures.push(
-        `${route} HTML loads ${chunkPath}, which route-bundle-stats.json leaves out of its first-load JS. ${statsChangedHint}`,
+        `${route} HTML loads ${chunkPath}, which route-bundle-stats.json leaves out of its first-load JS.${hint}`,
       );
     }
   }

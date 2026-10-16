@@ -43,7 +43,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 | `bun run db:migrate`    | Create the `marks` table                                                      |
 | `bun run gen:countries` | Regenerate `src/data/countries.json` and `src/data/country-labels.json`       |
 
-`bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. `src/lib/server/env.ts` parses them once and throws an error that names any missing one. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk and Mapbox values in README.md. `bun run check` sets its own build values, including a fixed `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, a fake `pk_live_` Clerk key and a fake Mapbox token, so its bundle bytes match CI's even when `.env.local` exists.
+`bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. `src/lib/server/env.ts` parses them once and throws an error that names any missing one. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk and Mapbox values in README.md. `bun run check` sets its own build values, including a fixed `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, a fake `pk_live_` Clerk key and a fake Mapbox token, so its bundle bytes match CI's unless `.env.local` sets other `NEXT_PUBLIC_` values.
 
 ## Rules
 
