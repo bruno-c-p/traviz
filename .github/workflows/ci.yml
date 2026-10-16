@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  ci:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -22,30 +22,10 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - run: bun install --frozen-lockfile
-      - run: bun run format --check
-      - run: bun run lint
-      - run: bun run typecheck
-      - run: bun run check:docs
-      - run: bun run test
-      - run: bun run test:rules
-      - run: bun run build
-        env:
-          TURSO_DATABASE_URL: libsql://ci-placeholder.turso.io
-          TURSO_AUTH_TOKEN: ci
-
-  fallow:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-      - run: bun run fallow
-
-  react-doctor:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-      - run: bun run react-doctor --no-telemetry
+      - id: install
+        run: bun install --frozen-lockfile
+      - run: bun run check
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun run fallow
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun run react-doctor --no-telemetry

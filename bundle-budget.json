@@ -1,0 +1,26 @@
+{
+  "tolerance": {
+    "percent": 1,
+    "minBytes": 1024
+  },
+  "routes": {
+    "/list": {
+      "firstLoadGzipBytes": 229497
+    },
+    "/": {
+      "firstLoadGzipBytes": 221685
+    },
+    "/stats": {
+      "firstLoadGzipBytes": 220566
+    },
+    "/sign-in": {
+      "firstLoadGzipBytes": 199419
+    },
+    "/sign-in/verify": {
+      "firstLoadGzipBytes": 192001
+    },
+    "/_not-found": {
+      "firstLoadGzipBytes": 187409
+    }
+  }
+}

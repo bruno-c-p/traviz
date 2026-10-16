@@ -26,22 +26,24 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Commands
 
-| Command                 | What it does                                                                |
-| ----------------------- | --------------------------------------------------------------------------- |
-| `bun run dev`           | Dev server. Needs the `.env.local` values in README.md.                     |
-| `bun run format`        | Format with oxfmt                                                           |
-| `bun run lint`          | oxlint with type-aware rules, plus the local `anti-slop` plugin in `tools/` |
-| `bun run typecheck`     | `tsc --noEmit`                                                              |
-| `bun run check:docs`    | Fail when AGENTS.md, README.md or `docs/` names a missing path or script    |
-| `bun run test`          | bun tests under `src`                                                       |
-| `bun run test:rules`    | Lint rule tests in `tools/oxlint`, run with Node 24                         |
-| `bun run build`         | Production build                                                            |
-| `bun run fallow`        | Dead code and complexity report                                             |
-| `bun run react-doctor`  | React rules                                                                 |
-| `bun run db:migrate`    | Create the `marks` table                                                    |
-| `bun run gen:countries` | Regenerate `src/data/countries.json` and `src/data/country-labels.json`     |
+| Command                 | What it does                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `bun run dev`           | Dev server. Needs the `.env.local` values in README.md.                       |
+| `bun run format`        | Format with oxfmt                                                             |
+| `bun run lint`          | oxlint with type-aware rules, plus the local `anti-slop` plugin in `tools/`   |
+| `bun run typecheck`     | `tsc --noEmit`                                                                |
+| `bun run check:docs`    | Fail when AGENTS.md, README.md or `docs/` names a missing path or script      |
+| `bun run test`          | bun tests under `src`                                                         |
+| `bun run test:rules`    | Lint rule tests in `tools/oxlint`, run with Node 24                           |
+| `bun run build`         | Production build                                                              |
+| `bun run check:bundle`  | Compare the last build's first-load JS and preloads with `bundle-budget.json` |
+| `bun run check`         | CI's checks except fallow and react-doctor, in CI's order, with a build       |
+| `bun run fallow`        | Dead code and complexity report                                               |
+| `bun run react-doctor`  | React rules                                                                   |
+| `bun run db:migrate`    | Create the `marks` table                                                      |
+| `bun run gen:countries` | Regenerate `src/data/countries.json` and `src/data/country-labels.json`       |
 
-`bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. `src/lib/server/env.ts` parses them once and throws an error that names any missing one. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk and Mapbox values in README.md.
+`bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. `src/lib/server/env.ts` parses them once and throws an error that names any missing one. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk and Mapbox values in README.md. `bun run check` sets its own build values, including a fixed `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, a fake `pk_live_` Clerk key and a fake Mapbox token, so its bundle bytes match CI's unless `.env.local` sets other `NEXT_PUBLIC_` values.
 
 ## Rules
 
@@ -63,8 +65,9 @@ Some older code still breaks these rules, with comments, PascalCase file names a
 - Put tests next to the code they test, as `*.test.ts` or `*.test.tsx` under `src`, and run them with `bun run test`. `bun run test` only runs tests under `src`, so tests for `scripts` go in `src/testing`. Tests can import modules that import `server-only`, because `bunfig.toml` preloads a stub for it. Run `bun run test:rules` after you change a rule in `tools/oxlint`. Bun's test runner cannot run those rule tests.
 - Do not mock modules in tests. Pass dependencies in as arguments.
 - Use Bun APIs only in tests, `src/testing` and `scripts`. The app runs on Node in production.
+- Keep each route's gzipped first-load JS within its entry in `bundle-budget.json`, plus 1% or 1 KB, whichever is larger. When a change needs more, run `bun run check`, then `bun run check:bundle --write`, and commit the new numbers, so the growth shows in the diff. Never preload JS in a route's HTML that the route does not load at first, such as the lazy `mapbox-gl` chunk. The check reads only the prerendered static shell, so it cannot see a preload inside a `<Suspense>` boundary that renders at request time.
 - After a UI change, open every affected page in the dev server and screenshot it at 375, 768 and 1440 px. Fix layout breakage, overlap, clipped text and low contrast, then screenshot again. If you cannot run the dev server, say so instead of skipping this.
-- Before you report a task as done, run `bun run format`, `bun run lint`, `bun run typecheck`, `bun run test` and `bun run check:docs`, and fix what they report.
+- Before you report a task as done, run `bun run format`, then `bun run check`, and fix what they report.
 
 ## Who enforces each rule
 
@@ -90,5 +93,7 @@ Some older code still breaks these rules, with comments, PascalCase file names a
 | No module mocking                                   | `anti-slop/no-module-mocking` in `bun run lint` covers `vi`, `jest` and `mock` called by name. Namespace imports, destructured methods and aliases such as `const r = mock`: none yet |
 | Bun APIs only in tests, `src/testing` and `scripts` | `no-restricted-globals` and `no-restricted-properties` in `bun run lint` cover `Bun` and `globalThis.Bun`. `import.meta.dir`, other Bun globals and imports from `bun`: none yet      |
 | Screenshots after UI changes                        | review only                                                                                                                                                                           |
+| First-load JS within `bundle-budget.json`           | `bun run check:bundle` in CI                                                                                                                                                          |
+| No preloaded JS outside a route's first load        | `bun run check:bundle` in CI, for the static shell of each route. Preloads streamed at request time: none yet                                                                         |
 | Format, lint, typecheck (`strict` on), tests        | CI                                                                                                                                                                                    |
 | Docs name only real paths and scripts               | `bun run check:docs` in CI                                                                                                                                                            |
