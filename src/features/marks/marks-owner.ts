@@ -50,9 +50,7 @@ export function createMarksOwner(transport: MarksTransport, cache: MarksCache): 
 
     try {
       cache.write({ ownerId, marks: base.marks });
-    } catch {
-      return;
-    }
+    } catch {}
   };
 
   const dispatch = (event: MarksSyncEvent) => {

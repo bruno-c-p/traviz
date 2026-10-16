@@ -152,7 +152,7 @@ describe("write, reset, write, appeared in 81cc227, open on main: resetAll calls
   });
 
   test("a reset after signing back in to the same account waits for the tap still on the wire", async () => {
-    const { owner, sent, answer } = setup();
+    const { owner, sent, answer, writes } = setup();
     owner.startSession(OWNER);
     owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
     owner.requestChange(tapDeu);
@@ -167,6 +167,9 @@ describe("write, reset, write, appeared in 81cc227, open on main: resetAll calls
 
     await answer(0);
 
+    expect(visibleMarks(owner.getState())).toEqual({});
+    expect(owner.getState().problems).toEqual([]);
+    expect(writes).toEqual([{ ownerId: OWNER, marks: {} }]);
     expect(sent()).toEqual([
       [OWNER, tapDeu],
       [OWNER, resetAll],
@@ -178,10 +181,10 @@ describe("F5.2 and F5.3, appeared in 81cc227 (PR #5), open on main: clearLocal c
   const previousAccountReplies = [
     { kind: "saved", reply: (fake: FakeTransport) => fake.answer(0) },
     {
-      kind: "failed",
+      kind: "refused",
       reply: (fake: FakeTransport) => fake.answer(0, { ok: false, reason: "rejected" }),
     },
-    { kind: "rejected", reply: (fake: FakeTransport) => fake.fail(0) },
+    { kind: "thrown", reply: (fake: FakeTransport) => fake.fail(0) },
   ];
 
   for (const { kind, reply } of previousAccountReplies) {
