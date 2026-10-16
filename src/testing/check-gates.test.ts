@@ -10,6 +10,9 @@ const fixtureRoots: string[] = [];
 
 const gateFiles = [
   "gates.json",
+  ".oxfmtrc.json",
+  "bunfig.toml",
+  ".gitignore",
   ".github/workflows/ci.yml",
   "tsconfig.json",
   ".oxlintrc.json",
@@ -62,7 +65,7 @@ function runCheckGates(...changes: [string, string | null][]) {
   }
 
   execFileSync("git", ["init", "--quiet"], { cwd: fixtureRoot });
-  execFileSync("git", ["add", "."], { cwd: fixtureRoot });
+  execFileSync("git", ["add", "--force", "."], { cwd: fixtureRoot });
 
   const result = spawnSync(process.execPath, [checkGatesScript, "--root", fixtureRoot], {
     encoding: "utf8",
@@ -187,7 +190,7 @@ test("check:gates fails on a rule turned off globally or in an unlisted override
 });
 
 test("check:gates fails on oxlint config that loosens rules from elsewhere", () => {
-  expectFailure("src/.oxlintrc.json changes what oxlint checks outside .oxlintrc.json", [
+  expectFailure("src/.oxlintrc.json changes what oxlint or oxfmt checks outside gates.json", [
     "src/.oxlintrc.json",
     '{ "rules": { "typescript/no-explicit-any": "off" } }',
   ]);
@@ -298,12 +301,35 @@ test("check:gates fails when CI skips the check job or the format gate", () => {
 });
 
 test("check:gates fails on lint switched off outside .oxlintrc.json", () => {
-  expectFailure(".eslintignore changes what oxlint checks outside .oxlintrc.json", [
+  expectFailure(".eslintignore changes what oxlint or oxfmt checks outside gates.json", [
     ".eslintignore",
     "src/**\n",
   ]);
   expectFailure("src/probe.ts disables lint inline; use lint-exemptions.json", [
     "src/probe.ts",
+    `/* ${["oxlint", "disable"].join("-")} */\nexport const probe = 1;\n`,
+  ]);
+});
+
+test("check:gates fails when the format, test or ignore config narrows a gate", () => {
+  expectFailure(
+    ".oxfmtrc.json.ignorePatterns differs from gates.json",
+    edit(".oxfmtrc.json", '"tools/oxlint/anti-slop/**"', '"tools/oxlint/anti-slop/**", "src/**"'),
+  );
+  expectFailure(
+    "bunfig.toml.test.pathIgnorePatterns differs from gates.json",
+    edit("bunfig.toml", 'root = "src"', 'root = "src"\npathIgnorePatterns = ["**/probe.test.ts"]'),
+  );
+  expectFailure(
+    "src/example.test.ts is tracked but matches .gitignore, so lint and format skip it",
+    [".gitignore", `${repoFile(".gitignore")}\nsrc/example.test.ts\n`],
+  );
+  expectFailure(".prettierignore changes what oxlint or oxfmt checks outside gates.json", [
+    ".prettierignore",
+    "src/**\n",
+  ]);
+  expectFailure("tools/oxlint/probe.ts disables lint inline; use lint-exemptions.json", [
+    "tools/oxlint/probe.ts",
     `/* ${["oxlint", "disable"].join("-")} */\nexport const probe = 1;\n`,
   ]);
 });

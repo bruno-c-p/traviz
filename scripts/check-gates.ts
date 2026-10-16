@@ -20,7 +20,7 @@ const errorSeverities = new Set(["error", "deny", 2]);
 const disabledSeverities = new Set(["off", "allow", 0]);
 
 const extraLintConfigPattern =
-  /(^|\/)(\.?oxlintrc(\.[a-z]+)?|oxlint\.config\.[cm]?[jt]s|\.eslintignore)$/;
+  /(^|\/)(\.?oxlintrc(\.[a-z]+)?|oxlint\.config\.[cm]?[jt]s|\.eslintignore|\.prettierignore)$/;
 
 const inlineDisablePattern = /(?:es|ox)lint-disable/;
 const lintedSourcePattern = /\.(?:[cm]?[jt]sx?)$/;
@@ -38,9 +38,11 @@ function readText(relativePath: string): string {
 function readConfig(relativePath: string): JsonValue {
   const text = readText(relativePath);
 
-  return jsonSchema.parse(
-    /\.ya?ml$/.test(relativePath) ? Bun.YAML.parse(text) : Bun.JSONC.parse(text),
-  );
+  if (/\.ya?ml$/.test(relativePath)) return jsonSchema.parse(Bun.YAML.parse(text));
+
+  if (relativePath.endsWith(".toml")) return jsonSchema.parse(Bun.TOML.parse(text));
+
+  return jsonSchema.parse(Bun.JSONC.parse(text));
 }
 
 function differingPaths(actual: JsonValue, expected: JsonValue, path: string): string[] {
@@ -244,13 +246,24 @@ for (const exemption of exemptions) {
   }
 }
 
+const ignoredTrackedFiles = execFileSync(
+  "git",
+  ["ls-files", "--cached", "--ignored", "--exclude-standard"],
+  { cwd: root, encoding: "utf8" },
+)
+  .split("\n")
+  .filter((filePath) => filePath !== "");
+
+for (const filePath of ignoredTrackedFiles)
+  failures.push(`${filePath} is tracked but matches .gitignore, so lint and format skip it`);
+
 for (const filePath of trackedFiles) {
   if (extraLintConfigPattern.test(filePath) && filePath !== ".oxlintrc.json")
-    failures.push(`${filePath} changes what oxlint checks outside .oxlintrc.json`);
+    failures.push(`${filePath} changes what oxlint or oxfmt checks outside gates.json`);
 
   if (
     lintedSourcePattern.test(filePath) &&
-    !filePath.startsWith("tools/") &&
+    !filePath.startsWith("tools/oxlint/anti-slop/") &&
     inlineDisablePattern.test(readText(filePath))
   )
     failures.push(`${filePath} disables lint inline; use lint-exemptions.json`);

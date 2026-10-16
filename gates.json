@@ -208,6 +208,15 @@
       "ignore": {
         "files": ["tools/**"]
       }
+    },
+    ".oxfmtrc.json": {
+      "ignorePatterns": ["tools/oxlint/anti-slop/**"]
+    },
+    "bunfig.toml": {
+      "test": {
+        "root": "src",
+        "preload": ["./src/testing/server-only-preload.ts"]
+      }
     }
   },
   "scripts": {
