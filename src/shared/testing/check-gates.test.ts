@@ -15,6 +15,7 @@ const gateFiles = [
   ".gitignore",
   ".github/workflows/ci.yml",
   "tsconfig.json",
+  "tsconfig.pure.json",
   ".oxlintrc.json",
   "lint-exemptions.json",
   ".fallowrc.json",
