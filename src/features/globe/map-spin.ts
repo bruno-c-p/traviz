@@ -1,12 +1,34 @@
-import type { Map as MapboxMap } from "mapbox-gl";
-
 const SPIN_DEGREES_PER_SECOND = 1.5;
 const MAX_SPIN_FRAME_SECONDS = 0.1;
 
-export function createGlobeSpin(map: MapboxMap, isSpinAllowed: () => boolean) {
+type SpinCenter = { lng: number; lat: number };
+
+type SpinStopEvent = "click" | "mousedown" | "touchstart" | "wheel" | "zoomstart" | "movestart";
+
+export type SpinnableMap = {
+  getCenter: () => SpinCenter;
+  jumpTo: (options: { center: SpinCenter }) => void;
+  on: (type: SpinStopEvent, listener: (event: { originalEvent?: unknown }) => void) => void;
+};
+
+export type FrameScheduler = {
+  request: (callback: (now: number) => void) => number;
+  cancel: (frameId: number) => void;
+};
+
+type GlobeSpinOptions = {
+  isSpinAllowed: () => boolean;
+  prefersReducedMotion: boolean;
+  frames: FrameScheduler;
+};
+
+export function createGlobeSpin(
+  map: SpinnableMap,
+  { isSpinAllowed, prefersReducedMotion, frames }: GlobeSpinOptions,
+) {
   let spinFrameId: number | null = null;
   let lastFrameTime: number | null = null;
-  let stopped = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let stopped = prefersReducedMotion;
 
   function spinFrame(now: number) {
     const elapsedSeconds =
@@ -20,11 +42,11 @@ export function createGlobeSpin(map: MapboxMap, isSpinAllowed: () => boolean) {
       map.jumpTo({ center });
     }
 
-    spinFrameId = requestAnimationFrame(spinFrame);
+    spinFrameId = frames.request(spinFrame);
   }
 
   function start() {
-    if (!stopped) spinFrameId = requestAnimationFrame(spinFrame);
+    if (!stopped) spinFrameId = frames.request(spinFrame);
   }
 
   function stop() {
@@ -32,7 +54,7 @@ export function createGlobeSpin(map: MapboxMap, isSpinAllowed: () => boolean) {
     stopped = true;
 
     if (spinFrameId !== null) {
-      cancelAnimationFrame(spinFrameId);
+      frames.cancel(spinFrameId);
       spinFrameId = null;
     }
   }
@@ -42,6 +64,7 @@ export function createGlobeSpin(map: MapboxMap, isSpinAllowed: () => boolean) {
     map.on("mousedown", stop);
     map.on("touchstart", stop);
     map.on("wheel", stop);
+    map.on("zoomstart", stop);
     map.on("movestart", (event) => {
       if (!event.originalEvent) return;
       stop();

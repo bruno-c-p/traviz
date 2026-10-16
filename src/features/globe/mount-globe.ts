@@ -26,7 +26,15 @@ export function mountGlobe(
     maxZoom: 8,
   });
 
-  const spin = createGlobeSpin(map, isSpinAllowed);
+  const spin = createGlobeSpin(map, {
+    isSpinAllowed,
+    prefersReducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    frames: {
+      request: (callback) => requestAnimationFrame(callback),
+      cancel: (frameId) => cancelAnimationFrame(frameId),
+    },
+  });
+
   let unsubscribeStores: (() => void) | undefined;
 
   spin.stopOnUserInteraction();
