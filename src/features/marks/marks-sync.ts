@@ -110,6 +110,12 @@ function withPhase(
   return pending.map((entry) => (entry.id === id ? { ...entry, phase } : entry));
 }
 
+function withConfirmedChange(base: MarkBase, change: MarkChange): MarkBase {
+  return base.source === "empty"
+    ? base
+    : { source: base.source, marks: applyChange(base.marks, change) };
+}
+
 function startSession(
   state: MarksSyncState,
   ownerId: string,
@@ -186,6 +192,7 @@ function settleChange(state: MarksSyncState, id: number, result: MarkChangeResul
 
   return {
     ...state,
+    base: withConfirmedChange(state.base, entry.change),
     pending: withPhase(state.pending, id, "saved"),
     problems: withoutProblem(state.problems, scope),
   };

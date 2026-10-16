@@ -289,6 +289,26 @@ describe("marks sync", () => {
     expect(visibleMarks(state)).toEqual({ FRA: "visited" });
   });
 
+  test("the base holds every server-confirmed change and the screen adds the unsaved ones", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({ ITA: "want" }),
+      setMark("FRA", "visited"),
+      sent(1),
+      saved(1),
+      reset(),
+      sent(2),
+      saved(2),
+      setMark("DEU", "want"),
+      sent(3),
+      saved(3),
+      setMark("ESP", "visited"),
+    ]);
+
+    expect(state.base).toEqual({ source: "server", marks: { DEU: "want" } });
+    expect(visibleMarks(state)).toEqual({ DEU: "want", ESP: "visited" });
+  });
+
   test("a tap after the session ended is not carried into the next session", () => {
     const state = play([
       started(OWNER),
