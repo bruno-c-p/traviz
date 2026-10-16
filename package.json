@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "gen:countries": "bun scripts/build-countries.ts",
+    "setup": "bun scripts/setup.ts",
+    "sign-in-token": "bun scripts/sign-in-token.ts",
     "db:migrate": "bun --conditions=react-server --env-file=.env.local scripts/migrate.ts",
     "dev": "next dev",
     "build": "next build",

@@ -28,7 +28,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 | Command                 | What it does                                                                                        |
 | ----------------------- | --------------------------------------------------------------------------------------------------- |
-| `bun run dev`           | Dev server. Needs the `.env.local` values in README.md.                                             |
+| `bun run dev`           | Dev server. Needs the `.env.local` values that `bun run setup` writes.                              |
 | `bun run format`        | Format with oxfmt                                                                                   |
 | `bun run lint`          | oxlint with type-aware rules, plus the local `anti-slop` plugin in `tools/`                         |
 | `bun run typecheck`     | `tsc --noEmit`                                                                                      |
@@ -41,10 +41,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 | `bun run check`         | CI's checks except fallow and react-doctor, in CI's order, with a build                             |
 | `bun run fallow`        | Dead code and complexity report                                                                     |
 | `bun run react-doctor`  | React rules                                                                                         |
+| `bun run setup`         | Fill in `.env.local` with development values, migrate `.data/dev.db` and create the dev test user   |
+| `bun run sign-in-token` | Print a sign-in token for the dev test user                                                         |
 | `bun run db:migrate`    | Create the `marks` table                                                                            |
 | `bun run gen:countries` | Regenerate `src/features/countries/countries.json` and `src/features/countries/country-labels.json` |
 
-`bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. `src/shared/server/env.ts` parses them once and throws an error that names any missing one. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk and Mapbox values in README.md. `bun run check` sets its own build values, including a fixed `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, a fake `pk_live_` Clerk key and a fake Mapbox token, so its bundle bytes match CI's unless `.env.local` sets other `NEXT_PUBLIC_` values.
+`bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. `src/shared/server/env.ts` parses them once and throws an error that names any missing one. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk and Mapbox values in README.md. Run `bun run setup` to write them to `.env.local`. It pulls the Clerk development keys and the Mapbox token, points `TURSO_DATABASE_URL` at `file:.data/dev.db` in this worktree, migrates it and creates the dev test user `agent+clerk_test@example.com`. It refuses a remote database URL and `pk_live_` or `sk_live_` keys. For a signed-in session, run `bun run sign-in-token`, open `/sign-in`, and after `window.Clerk.loaded` run `const signIn = await window.Clerk.client.signIn.create({ strategy: "ticket", ticket }); await window.Clerk.setActive({ session: signIn.createdSessionId });` with the printed token as `ticket`. `bun run check` sets its own build values, including a fixed `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, a fake `pk_live_` Clerk key and a fake Mapbox token, so its bundle bytes match CI's unless `.env.local` sets other `NEXT_PUBLIC_` values.
 
 ## Rules
 
