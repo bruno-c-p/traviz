@@ -36,22 +36,25 @@ describe("continent cards", () => {
       "sovereign entries are visited and territories are on the wish list",
       (country: Country) => (country.kind === "sovereign" ? "visited" : "want"),
     ],
-  ] as const)("every continent bar fills exactly 100%% when %s", (_scenario, stateFor) => {
-    const marks: Marks = Object.fromEntries(
-      countries.map((country) => [country.code, stateFor(country)]),
-    );
-
-    const misfilled = CONTINENT_POOLS.flatMap((pool) => {
-      const markup = renderToStaticMarkup(<ContinentCard pool={pool} marks={marks} />);
-
-      const filled = [...markup.matchAll(/width:\s*([\d.]+)%/g)].reduce(
-        (sum, match) => sum + Number(match[1]),
-        0,
+  ] as const)(
+    "F9.1 (introduced ead9d76): every continent bar fills exactly 100%% when %s",
+    (_scenario, stateFor) => {
+      const marks: Marks = Object.fromEntries(
+        countries.map((country) => [country.code, stateFor(country)]),
       );
 
-      return Math.abs(filled - 100) > 0.0001 ? [`${pool.continent} ${filled.toFixed(1)}%`] : [];
-    });
+      const misfilled = CONTINENT_POOLS.flatMap((pool) => {
+        const markup = renderToStaticMarkup(<ContinentCard pool={pool} marks={marks} />);
 
-    expect(misfilled).toEqual([]);
-  });
+        const filled = [...markup.matchAll(/width:\s*([\d.]+)%/g)].reduce(
+          (sum, match) => sum + Number(match[1]),
+          0,
+        );
+
+        return Math.abs(filled - 100) > 0.0001 ? [`${pool.continent} ${filled.toFixed(1)}%`] : [];
+      });
+
+      expect(misfilled).toEqual([]);
+    },
+  );
 });

@@ -13,6 +13,13 @@ describe("tallyMarks", () => {
     expect(tallyTotal(tally)).toBe(3);
   });
 
+  test("counts an entry whose stored state is unknown, such as one left in stale localStorage, as unmarked", () => {
+    const tally = tallyMarks([{ code: "FRA" }, { code: "PRT" }], { FRA: "been", PRT: "visited" });
+
+    expect(tally).toEqual({ visited: 1, want: 0, not_interested: 0, unmarked: 1 });
+    expect(tallyTotal(tally)).toBe(2);
+  });
+
   test("an empty pool totals zero", () => {
     expect(tallyTotal(tallyMarks([], { FRA: "visited" }))).toBe(0);
   });

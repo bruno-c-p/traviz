@@ -1,8 +1,15 @@
-import type { Marks, StateColorKey } from "@/features/marks/colors";
+import type { StateColorKey } from "@/features/marks/colors";
 
 export type Tally = Record<StateColorKey, number>;
 
-export function tallyMarks(pool: readonly { code: string }[], marks: Marks): Tally {
+function isTallyKey(tally: Tally, key: string): key is StateColorKey {
+  return Object.hasOwn(tally, key);
+}
+
+export function tallyMarks(
+  pool: readonly { code: string }[],
+  marks: Readonly<Record<string, string>>,
+): Tally {
   const tally: Tally = {
     visited: 0,
     want: 0,
@@ -11,7 +18,9 @@ export function tallyMarks(pool: readonly { code: string }[], marks: Marks): Tal
   };
 
   for (const country of pool) {
-    tally[marks[country.code] ?? "unmarked"] += 1;
+    const state = marks[country.code];
+
+    tally[state !== undefined && isTallyKey(tally, state) ? state : "unmarked"] += 1;
   }
 
   return tally;
