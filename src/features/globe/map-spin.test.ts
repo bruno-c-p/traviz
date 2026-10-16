@@ -146,6 +146,15 @@ describe("globe spin", () => {
     expect(spinning.map.isGestureCancelled()).toBe(false);
   });
 
+  test("stays stopped when stopped during its own camera move", () => {
+    const spinning = startSpin();
+
+    spinning.map.on("movestart", spinning.spin.stop);
+    spinning.frames.runFrames(1);
+
+    expect(isSpinning(spinning)).toBe(false);
+  });
+
   test("stays stopped when started again after a stop", () => {
     const spinning = startSpin();
 
