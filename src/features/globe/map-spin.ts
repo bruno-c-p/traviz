@@ -35,14 +35,13 @@ export function createGlobeSpin(
       lastFrameTime === null ? 0 : Math.min((now - lastFrameTime) / 1000, MAX_SPIN_FRAME_SECONDS);
 
     lastFrameTime = now;
+    spinFrameId = frames.request(spinFrame);
 
     if (isSpinAllowed() && elapsedSeconds > 0) {
       const center = map.getCenter();
       center.lng -= SPIN_DEGREES_PER_SECOND * elapsedSeconds;
       map.jumpTo({ center });
     }
-
-    spinFrameId = frames.request(spinFrame);
   }
 
   function start() {
