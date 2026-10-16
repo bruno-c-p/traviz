@@ -43,12 +43,7 @@ export function StatsPanel() {
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {CONTINENT_POOLS.map((pool) => (
-            <ContinentCard
-              key={pool.continent}
-              continent={pool.continent}
-              tally={tallyMarks(pool.countries, marks)}
-              isTerritoriesOnly={pool.isTerritoriesOnly}
-            />
+            <ContinentCard key={pool.continent} pool={pool} marks={marks} />
           ))}
         </div>
       </section>

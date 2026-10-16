@@ -1,12 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CONTINENT_POOLS, ContinentCard } from "@/features/stats";
-import { tallyMarks } from "@/features/marks";
 import type { Marks } from "@/features/marks";
-import { countries, searchCountries } from "@/features/countries/countries";
+import { SOVEREIGN_COUNTRIES, countries, searchCountries } from "@/features/countries/countries";
 import type { Country } from "@/features/countries/countries";
 
-const sovereign = countries.filter((country) => country.kind === "sovereign");
+const sovereign = SOVEREIGN_COUNTRIES;
 
 describe("country dataset invariants", () => {
   test("195 entries are sovereign: the 193 UN members plus the observer states Vatican City, which world-countries already lists as a UN member, and Palestine, which the generator adds by code", () => {
@@ -41,11 +40,26 @@ describe("country dataset invariants", () => {
     expect(offGlobe).toEqual([]);
   });
 
-  test("the continent cards that count toward the headline add up to the 195 sovereign entries", () => {
-    const headlinePools = CONTINENT_POOLS.filter((pool) => !pool.isTerritoriesOnly);
+  test.each([
+    ["Africa", "0 / 54", false],
+    ["Asia", "0 / 47", false],
+    ["Europe", "0 / 45", false],
+    ["North America", "0 / 23", false],
+    ["South America", "0 / 12", false],
+    ["Oceania", "0 / 14", false],
+    ["Antarctica", "0 / 5", true],
+  ] as const)(
+    "the %s card counts %s, territories only: %p",
+    (continent, fraction, isTerritoriesOnly) => {
+      const pool = CONTINENT_POOLS.find((candidate) => candidate.continent === continent);
 
-    expect(headlinePools.reduce((sum, pool) => sum + pool.countries.length, 0)).toBe(195);
-  });
+      expect(pool?.isTerritoriesOnly).toBe(isTerritoriesOnly);
+
+      const markup = pool ? renderToStaticMarkup(<ContinentCard pool={pool} marks={{}} />) : "";
+
+      expect(markup).toContain(fraction);
+    },
+  );
 
   test.each([
     ["every entry is on the wish list", () => "want" as const],
@@ -55,28 +69,22 @@ describe("country dataset invariants", () => {
       "sovereign entries are visited and territories are on the wish list",
       (country: Country) => (country.kind === "sovereign" ? "visited" : "want"),
     ],
-  ] as const)("no continent bar fills past 100%% when %s", (_scenario, stateFor) => {
+  ] as const)("every continent bar fills exactly 100%% when %s", (_scenario, stateFor) => {
     const marks: Marks = Object.fromEntries(
       countries.map((country) => [country.code, stateFor(country)]),
     );
 
-    const overflowing = CONTINENT_POOLS.flatMap((pool) => {
-      const markup = renderToStaticMarkup(
-        <ContinentCard
-          continent={pool.continent}
-          tally={tallyMarks(pool.countries, marks)}
-          isTerritoriesOnly={pool.isTerritoriesOnly}
-        />,
-      );
+    const misfilled = CONTINENT_POOLS.flatMap((pool) => {
+      const markup = renderToStaticMarkup(<ContinentCard pool={pool} marks={marks} />);
 
       const filled = [...markup.matchAll(/width:\s*([\d.]+)%/g)].reduce(
         (sum, match) => sum + Number(match[1]),
         0,
       );
 
-      return filled > 100.0001 ? [`${pool.continent} ${filled.toFixed(1)}%`] : [];
+      return Math.abs(filled - 100) > 0.0001 ? [`${pool.continent} ${filled.toFixed(1)}%`] : [];
     });
 
-    expect(overflowing).toEqual([]);
+    expect(misfilled).toEqual([]);
   });
 });

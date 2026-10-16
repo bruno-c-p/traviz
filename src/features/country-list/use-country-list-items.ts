@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { StateColorKey } from "@/features/marks";
 import { buildListItems } from "@/features/country-list/country-list-items";
-import { countries, searchCountries } from "@/features/countries";
+import { countries, countriesInContinent, searchCountries } from "@/features/countries";
 import type { Continent } from "@/features/countries";
 import { tallyMarks, useCountriesStore } from "@/features/marks";
 
@@ -13,10 +13,7 @@ export function useCountryListItems(
   const marks = useCountriesStore((state) => state.marks);
 
   const continentPool = useMemo(
-    () =>
-      selectedContinent
-        ? countries.filter((country) => country.continent === selectedContinent)
-        : countries,
+    () => (selectedContinent ? countriesInContinent(selectedContinent) : countries),
     [selectedContinent],
   );
 

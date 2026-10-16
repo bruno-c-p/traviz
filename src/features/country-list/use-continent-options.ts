@@ -1,4 +1,4 @@
-import { CONTINENT_ORDER, countries } from "@/features/countries";
+import { CONTINENT_ORDER, countries, countriesInContinent } from "@/features/countries";
 import type { Continent } from "@/features/countries";
 import { tallyMarks, useCountriesStore } from "@/features/marks";
 
@@ -20,7 +20,7 @@ export function useContinentOptions(): ContinentOption[] {
       total: countries.length,
     },
     ...CONTINENT_ORDER.map((continent) => {
-      const continentCountries = countries.filter((country) => country.continent === continent);
+      const continentCountries = countriesInContinent(continent);
 
       return {
         continent,

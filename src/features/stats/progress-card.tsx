@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { STATE_COLORS, tallyMarks, tallyTotal, useCountriesStore } from "@/features/marks";
-import { countries } from "@/features/countries";
-import { sovereignCountries } from "@/features/stats/continent-pools";
+import { SOVEREIGN_COUNTRIES, countries } from "@/features/countries";
 import { cn } from "@/shared/cn";
 import { statsPath } from "@/paths";
 
@@ -40,7 +39,7 @@ type ProgressCardProps = {
 
 export function ProgressCard({ variant, className }: ProgressCardProps) {
   const marks = useCountriesStore((state) => state.marks);
-  const headline = tallyMarks(sovereignCountries, marks);
+  const headline = tallyMarks(SOVEREIGN_COUNTRIES, marks);
   const allEntries = tallyMarks(countries, marks);
   const visited = headline.visited;
   const total = tallyTotal(headline);
