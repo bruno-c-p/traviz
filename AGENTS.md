@@ -75,7 +75,7 @@ Some older code still breaks these rules, with comments, PascalCase file names a
 
 | Rule                                                | Enforcer                                                                                                                                                                              |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| bun only                                            | CI runs `bun install --frozen-lockfile`. Lockfile and version guard: none yet                                                                                                         |
+| bun only                                            | CI installs bun 1.4.3, the `devEngines` version, and runs `bun install --frozen-lockfile`. Lockfile and version guard: none yet                                                       |
 | `@/` imports                                        | `../`: none yet. `./`: review only                                                                                                                                                    |
 | Route paths from `paths.ts`                         | review only                                                                                                                                                                           |
 | `cn` for conditional classes                        | review only                                                                                                                                                                           |
