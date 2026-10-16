@@ -45,6 +45,14 @@
         "name": "Bun",
         "message": "The app runs on Node in production. Use Bun APIs only in tests, src/testing and scripts."
       }
+    ],
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "globalThis",
+        "property": "Bun",
+        "message": "The app runs on Node in production. Use Bun APIs only in tests, src/testing and scripts."
+      }
     ]
   },
   "overrides": [
@@ -55,7 +63,8 @@
     {
       "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/testing/**", "scripts/**"],
       "rules": {
-        "no-restricted-globals": "off"
+        "no-restricted-globals": "off",
+        "no-restricted-properties": "off"
       }
     }
   ],
