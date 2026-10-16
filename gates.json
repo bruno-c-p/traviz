@@ -240,11 +240,22 @@
         "root": "src",
         "preload": ["./src/shared/testing/server-only-preload.ts"]
       }
+    },
+    "tsconfig.pure.json": {
+      "extends": "./tsconfig.json",
+      "compilerOptions": {
+        "lib": ["ES2023"],
+        "types": [],
+        "incremental": false,
+        "jsx": "preserve"
+      },
+      "include": [],
+      "files": ["src/features/marks/marks-sync.ts"]
     }
   },
   "scripts": {
     "lint": "oxlint --type-aware --deny-warnings",
-    "typecheck": "next typegen && tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.pure.json",
     "test": "bun test",
     "test:rules": "node --import ./tools/oxlint/node-test-setup.ts --test 'tools/oxlint/**/*.test.ts'",
     "format": "oxfmt .",
