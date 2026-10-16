@@ -52,6 +52,7 @@ type FakeBehaviour = {
   users?: string;
   vercelFails?: boolean;
   envLocal?: string;
+  shellDatabaseUrl?: string;
 };
 
 function createFixture(envLocal: string | undefined): string {
@@ -81,6 +82,7 @@ function runSetup(behaviour: FakeBehaviour) {
     encoding: "utf8",
     env: {
       ...process.env,
+      TURSO_DATABASE_URL: behaviour.shellDatabaseUrl,
       PATH: `${join(fixtureRoot, "bin")}:${process.env.PATH ?? ""}`,
       FAKE_LOG: logPath,
       FAKE_PUBLISHABLE_KEY: behaviour.publishableKey ?? "pk_test_pulled",
@@ -171,6 +173,18 @@ test("refuses a remote database in .env.local", () => {
   expect(run.exitCode).not.toBe(0);
   expect(run.output).toContain("TURSO_DATABASE_URL in .env.local is not a file: database");
   expect(run.envLocal).toBe(envLocal);
+  expect(run.calls).toEqual([]);
+  expect(run.migrated).toBe(false);
+});
+
+test("refuses a remote database in the shell environment", () => {
+  const run = runSetup({ shellDatabaseUrl: "libsql://x.turso.io" });
+
+  expect(run.exitCode).not.toBe(0);
+  expect(run.output).toContain(
+    "TURSO_DATABASE_URL in the shell environment is not a file: database",
+  );
+  expect(run.envLocal).toBeNull();
   expect(run.calls).toEqual([]);
   expect(run.migrated).toBe(false);
 });

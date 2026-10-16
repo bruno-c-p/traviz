@@ -58,12 +58,16 @@ function pullEnvFile(fileName: string, pull: (filePath: string) => void): Map<st
 }
 
 function refuseRemoteDatabase(existing: Map<string, string>): void {
-  const databaseUrl = existing.get("TURSO_DATABASE_URL");
+  const sources = [
+    [".env.local", existing.get("TURSO_DATABASE_URL")],
+    ["the shell environment", process.env.TURSO_DATABASE_URL],
+  ] as const;
 
-  if (databaseUrl !== undefined && !databaseUrl.startsWith("file:"))
-    fail(
-      "Refusing: TURSO_DATABASE_URL in .env.local is not a file: database. Setup never touches a remote database.",
-    );
+  for (const [source, databaseUrl] of sources)
+    if (databaseUrl !== undefined && !databaseUrl.startsWith("file:"))
+      fail(
+        `Refusing: TURSO_DATABASE_URL in ${source} is not a file: database. Setup never touches a remote database.`,
+      );
 }
 
 function pullClerkKeys(existing: Map<string, string>, additions: Map<string, string>): void {
