@@ -1,5 +1,7 @@
 import { plugin } from "bun";
 
+process.env.TURSO_DATABASE_URL ??= "file::memory:";
+
 plugin({
   name: "server-only-in-tests",
   setup(build) {
