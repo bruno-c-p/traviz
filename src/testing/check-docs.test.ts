@@ -37,10 +37,10 @@ afterAll(() => {
 test("check:docs passes when every path and script exists", () => {
   const fixtureRoot = createDocsFixture("Run `bun run test` and read `README.md`.\n");
 
-  expect(runCheckDocs(fixtureRoot)).toMatchObject({
-    exitCode: 0,
-    output: expect.stringContaining("0 broken"),
-  });
+  const { exitCode, output } = runCheckDocs(fixtureRoot);
+
+  expect(output).toContain("0 broken");
+  expect(exitCode).toBe(0);
 });
 
 test("check:docs fails on a missing path and a missing script", () => {
