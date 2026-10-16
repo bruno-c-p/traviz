@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { MapCanvas } from "@/components/MapCanvas";
 import { homePath } from "@/paths";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

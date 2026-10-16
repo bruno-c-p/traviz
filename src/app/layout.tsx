@@ -2,7 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Instrument_Sans } from "next/font/google";
 import { preconnect } from "react-dom";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({

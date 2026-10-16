@@ -1,7 +1,23 @@
-import countriesData from "@/data/countries.json";
-import countryLabels from "@/data/country-labels.json";
+import countriesData from "@/features/countries/countries.json";
+import countryLabels from "@/features/countries/country-labels.json";
 import type { Marks, StateColorKey } from "@/lib/colors";
-import type { Continent, Country } from "@/lib/stats";
+
+export type Continent =
+  | "Africa"
+  | "Asia"
+  | "Europe"
+  | "North America"
+  | "South America"
+  | "Oceania"
+  | "Antarctica";
+
+export interface Country {
+  code: string;
+  name: string;
+  flag: string;
+  continent: Continent;
+  counted: boolean;
+}
 
 export const CONTINENT_ORDER: readonly Continent[] = [
   "Africa",

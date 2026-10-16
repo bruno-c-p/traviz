@@ -14,8 +14,8 @@ import { fileURLToPath } from "url";
 import countries from "world-countries";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const outputPath = path.join(__dirname, "../src/data/countries.json");
-const labelsOutputPath = path.join(__dirname, "../src/data/country-labels.json");
+const outputPath = path.join(__dirname, "../src/features/countries/countries.json");
+const labelsOutputPath = path.join(__dirname, "../src/features/countries/country-labels.json");
 
 interface CountryData {
   code: string;

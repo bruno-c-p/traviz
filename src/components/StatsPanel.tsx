@@ -6,7 +6,7 @@ import { DangerZone } from "@/components/danger-zone";
 import { ProgressCard } from "@/components/progress-card";
 import { TotalTile } from "@/components/total-tile";
 import { STATE_COLORS } from "@/lib/colors";
-import { CONTINENT_ORDER, countries } from "@/lib/countries";
+import { CONTINENT_ORDER, countries } from "@/features/countries";
 import { computeStats } from "@/lib/stats";
 import { useCountriesStore } from "@/store/countries";
 

@@ -1,7 +1,7 @@
 import { useContinentOptions } from "@/hooks/use-continent-options";
 import { STATE_COLORS } from "@/lib/colors";
-import type { Continent } from "@/lib/stats";
-import { cn } from "@/lib/utils";
+import type { Continent } from "@/features/countries";
+import { cn } from "@/shared/cn";
 
 type ContinentSidebarProps = {
   selectedContinent: Continent | null;

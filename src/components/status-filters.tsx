@@ -1,6 +1,6 @@
 import { STATE_COLORS } from "@/lib/colors";
 import type { StateColorKey } from "@/lib/colors";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 
 const FILTERS: readonly { value: StateColorKey; label: string }[] = [
   { value: "visited", label: "Visited" },

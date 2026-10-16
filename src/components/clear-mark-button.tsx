@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 import { useCountriesStore } from "@/store/countries";
 
 export function ClearMarkButton({ code, className }: { code: string; className?: string }) {

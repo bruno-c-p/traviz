@@ -2,9 +2,9 @@
 
 import { useId } from "react";
 import { ClearMarkButton } from "@/components/clear-mark-button";
-import { CountryHeading } from "@/components/country-heading";
+import { CountryHeading } from "@/features/countries";
 import { MarkChoices } from "@/components/mark-choices";
-import type { Country } from "@/lib/stats";
+import type { Country } from "@/features/countries";
 import { useSelectedCountryStore } from "@/store/selected-country";
 
 export function CountryCard({ country }: { country: Country }) {

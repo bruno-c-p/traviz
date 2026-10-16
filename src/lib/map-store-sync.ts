@@ -1,5 +1,5 @@
 import type { Map as MapboxMap } from "mapbox-gl";
-import { countryCenter } from "@/lib/countries";
+import { countryCenter } from "@/features/countries";
 import type { Marks } from "@/lib/colors";
 import {
   FILL_LAYER_ID,

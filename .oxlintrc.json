@@ -43,7 +43,7 @@
       "error",
       {
         "name": "Bun",
-        "message": "The app runs on Node in production. Use Bun APIs only in tests, src/testing and scripts."
+        "message": "The app runs on Node in production. Use Bun APIs only in tests, src/shared/testing and scripts."
       }
     ],
     "no-restricted-properties": [
@@ -51,7 +51,7 @@
       {
         "object": "globalThis",
         "property": "Bun",
-        "message": "The app runs on Node in production. Use Bun APIs only in tests, src/testing and scripts."
+        "message": "The app runs on Node in production. Use Bun APIs only in tests, src/shared/testing and scripts."
       }
     ]
   },
@@ -65,7 +65,7 @@
       "rules": { "typescript/consistent-type-assertions": "off" }
     },
     {
-      "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/testing/**", "scripts/**"],
+      "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/shared/testing/**", "scripts/**"],
       "rules": {
         "no-restricted-globals": "off",
         "no-restricted-properties": "off"

@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import type { Country } from "@/lib/stats";
+import type { Country } from "@/features/countries/countries";
 
 type CountryHeadingProps = {
   country: Country;

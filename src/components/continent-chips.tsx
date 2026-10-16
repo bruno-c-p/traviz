@@ -1,6 +1,6 @@
 import { useContinentOptions } from "@/hooks/use-continent-options";
-import type { Continent } from "@/lib/stats";
-import { cn } from "@/lib/utils";
+import type { Continent } from "@/features/countries";
+import { cn } from "@/shared/cn";
 
 type ContinentChipsProps = {
   selectedContinent: Continent | null;

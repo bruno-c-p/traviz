@@ -8,7 +8,7 @@ import { CountrySheet } from "@/components/country-sheet";
 import { GlobeHint } from "@/components/globe-hint";
 import { MapLegend } from "@/components/map-legend";
 import { ProgressCard } from "@/components/progress-card";
-import { COUNTRIES_BY_CODE } from "@/lib/countries";
+import { COUNTRIES_BY_CODE } from "@/features/countries";
 import { useSelectedCountryStore } from "@/store/selected-country";
 
 export function GlobeOverlay() {

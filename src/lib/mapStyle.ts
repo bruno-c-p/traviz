@@ -5,7 +5,7 @@ import type {
   SourceSpecification,
   StyleSpecification,
 } from "mapbox-gl";
-import countryLabels from "@/data/country-labels.json";
+import { countryLabels } from "@/features/countries";
 import { COUNTRY_STATES, STATE_COLORS } from "@/lib/colors";
 import type { Marks } from "@/lib/colors";
 

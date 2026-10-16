@@ -1,6 +1,6 @@
-import { CONTINENT_ORDER, countries } from "@/lib/countries";
+import { CONTINENT_ORDER, countries } from "@/features/countries";
 import { computeStats } from "@/lib/stats";
-import type { Continent } from "@/lib/stats";
+import type { Continent } from "@/features/countries";
 import { useCountriesStore } from "@/store/countries";
 
 export type ContinentOption = {

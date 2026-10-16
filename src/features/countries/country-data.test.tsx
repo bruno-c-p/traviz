@@ -1,9 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ContinentCard } from "@/components/continent-card";
-import countryLabels from "@/data/country-labels.json";
-import { CONTINENT_ORDER, countries, countryCenter, searchCountries } from "@/lib/countries";
-import { computeStats, type Continent } from "@/lib/stats";
+import countryLabels from "@/features/countries/country-labels.json";
+import {
+  CONTINENT_ORDER,
+  countries,
+  countryCenter,
+  searchCountries,
+} from "@/features/countries/countries";
+import { computeStats } from "@/lib/stats";
+import type { Continent } from "@/features/countries/countries";
 
 const countriesWithoutLabelToday = ["PSE"];
 const countedCountriesWithoutCenterToday = ["PSE"];

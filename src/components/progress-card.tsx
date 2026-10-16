@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { STATE_COLORS } from "@/lib/colors";
-import { countries } from "@/lib/countries";
+import { countries } from "@/features/countries";
 import { computeStats } from "@/lib/stats";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 import { statsPath } from "@/paths";
 import { useCountriesStore } from "@/store/countries";
 

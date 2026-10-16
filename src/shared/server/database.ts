@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@libsql/client";
-import { env } from "@/lib/server/env";
+import { env } from "@/shared/server/env";
 
 export const turso = createClient({
   url: env.TURSO_DATABASE_URL,

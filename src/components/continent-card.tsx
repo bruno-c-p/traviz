@@ -1,5 +1,6 @@
 import { COUNTRY_STATES, STATE_COLORS } from "@/lib/colors";
-import type { Continent, ContinentStats } from "@/lib/stats";
+import type { ContinentStats } from "@/lib/stats";
+import type { Continent } from "@/features/countries";
 
 type ContinentCardProps = {
   continent: Continent;

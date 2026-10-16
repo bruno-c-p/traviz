@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const checkDocsScript = join(import.meta.dir, "..", "..", "scripts", "check-docs.ts");
+const checkDocsScript = join(import.meta.dir, "..", "..", "..", "scripts", "check-docs.ts");
 const fixtureRoots: string[] = [];
 
 function createDocsFixture(agentsText: string): string {
