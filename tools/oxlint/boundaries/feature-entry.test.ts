@@ -104,6 +104,11 @@ tester.run("boundaries/feature-entry", featureEntryRule, {
       errors: [{ messageId: "deepImport" }],
     },
     {
+      name: "a TypeScript import type of another feature's file",
+      ...at("src/features/stats/stats.ts", 'type Marks = import("@/features/marks/colors").Marks;'),
+      errors: [{ messageId: "deepImport" }],
+    },
+    {
       name: "a dot segment right after the alias",
       ...at(
         "src/features/globe/country-card.tsx",

@@ -28,7 +28,8 @@ export type ModuleSourceNode =
   | ESTree.ImportDeclaration
   | ESTree.ExportNamedDeclaration
   | ESTree.ExportAllDeclaration
-  | ESTree.ImportExpression;
+  | ESTree.ImportExpression
+  | ESTree.TSImportType;
 
 function sourceText(source: ESTree.Expression | null): string | null {
   if (source?.type === "Literal") return String(source.value);
@@ -53,6 +54,8 @@ export function moduleSource(node: ModuleSourceNode): string | null {
 
 export function isTypeOnly(node: ModuleSourceNode): boolean {
   if (node.type === "ImportDeclaration") return node.importKind === "type";
+
+  if (node.type === "TSImportType") return true;
 
   if (node.type === "ImportExpression") return false;
 

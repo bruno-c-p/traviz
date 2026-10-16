@@ -69,6 +69,7 @@ export const featureEntryRule = defineRule({
       ExportNamedDeclaration: checkSource,
       ExportAllDeclaration: checkSource,
       ImportExpression: checkSource,
+      TSImportType: checkSource,
     };
   },
 });
