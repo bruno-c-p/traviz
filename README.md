@@ -39,7 +39,7 @@ Screenshots show a demo account with sample marks, captured from a local product
 ### Prerequisites
 
 - Node.js 20.9 or later (required by Next.js 16)
-- Bun 1.4.3, the version CI uses
+- Bun 1.4.3, the version CI pins. Bun does not check the `devEngines` version, so another version installs without a warning
 - A Mapbox public access token
 - A Turso database
 - A Clerk application set up for email link sign-in only

@@ -1,5 +1,6 @@
 {
   "adoptExistingLintConfig": false,
+  "blocking": "warning",
   "ignore": {
     "files": ["tools/**"]
   }
