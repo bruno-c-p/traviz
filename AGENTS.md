@@ -60,7 +60,7 @@ Some older code still breaks these rules, with comments, PascalCase file names a
 - Each action checks the user with `requireUserId`, validates its input with zod, and only changes rows the user owns.
 - Never put `"use server"` on a services or lib module. It turns every export into a public endpoint. Keep the modules that import `server-only` out of client code.
 - The marks actions must not call `revalidatePath` or `refresh`. That would rerun `HydrateMarks`, drop pending writes and load an older snapshot.
-- Put one React component in each file. Name the file after it in kebab-case (`src/components/country-row.tsx` exports `CountryRow`).
+- Put one React component in each file. Name the file after it in kebab-case (`src/features/country-list/country-row.tsx` exports `CountryRow`).
 - Model each business operation once (single write path). Prefer one configurable component over near-copies, once a third copy appears.
 - Write no comments. Use descriptive names instead of one-letter names, and use `T` for a single generic.
 - Put tests next to the code they test, as `*.test.ts` or `*.test.tsx` under `src`, and run them with `bun run test`. `bun run test` only runs tests under `src`, so tests for `scripts` go in `src/shared/testing`. Tests can import modules that import `server-only`, because `bunfig.toml` preloads a stub for it. Run `bun run test:rules` after you change a rule in `tools/oxlint`. Bun's test runner cannot run those rule tests.

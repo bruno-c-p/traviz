@@ -1,4 +1,4 @@
-import { useContinentOptions } from "@/hooks/use-continent-options";
+import { useContinentOptions } from "@/features/country-list/use-continent-options";
 import type { Continent } from "@/features/countries";
 import { cn } from "@/shared/cn";
 

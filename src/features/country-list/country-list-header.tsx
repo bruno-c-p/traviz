@@ -1,7 +1,7 @@
 import type { Ref } from "react";
-import { ContinentFilter } from "@/components/continent-filter";
-import { ListSearchInput } from "@/components/list-search-input";
-import { StatusFilters } from "@/components/status-filters";
+import { ContinentFilter } from "@/features/country-list/continent-filter";
+import { ListSearchInput } from "@/features/country-list/list-search-input";
+import { StatusFilters } from "@/features/country-list/status-filters";
 import type { StateColorKey } from "@/features/marks";
 import type { Continent } from "@/features/countries";
 

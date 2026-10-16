@@ -24,7 +24,7 @@ const gateFiles = [
 
 const exemptedFiles = [
   "paths.ts",
-  "src/components/virtual-country-list.tsx",
+  "src/features/country-list/virtual-country-list.tsx",
   "src/example.test.ts",
   "src/example.test.tsx",
   "src/shared/testing/example.ts",
@@ -180,7 +180,7 @@ test("check:gates fails on a rule turned off globally or in an unlisted override
     ),
   );
   expectFailure(
-    "sets no-debugger to off for src/components/virtual-country-list.tsx without an entry",
+    "sets no-debugger to off for src/features/country-list/virtual-country-list.tsx without an entry",
     edit(
       ".oxlintrc.json",
       '"react/incompatible-library": "off" }',
@@ -214,11 +214,11 @@ test("check:gates fails on oxlint config that loosens rules from elsewhere", () 
 
 test("check:gates fails on an exemption whose file or override is gone", () => {
   expectFailure(
-    "lint-exemptions.json names src/components/virtual-country-list.tsx, which matches no tracked file",
-    ["src/components/virtual-country-list.tsx", null],
+    "lint-exemptions.json names src/features/country-list/virtual-country-list.tsx, which matches no tracked file",
+    ["src/features/country-list/virtual-country-list.tsx", null],
   );
   expectFailure(
-    "lists react/incompatible-library for src/components/virtual-country-list.tsx, but .oxlintrc.json has no matching override",
+    "lists react/incompatible-library for src/features/country-list/virtual-country-list.tsx, but .oxlintrc.json has no matching override",
     edit(
       ".oxlintrc.json",
       '"react/incompatible-library": "off"',
