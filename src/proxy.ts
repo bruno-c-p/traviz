@@ -1,17 +1,13 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { homePath, signInPath } from "@/paths";
+import { redirectFor } from "@/shared/route-gate";
 
 export default clerkMiddleware(async (auth, request) => {
   const { isAuthenticated } = await auth();
-  const isSignInRoute = request.nextUrl.pathname.startsWith(signInPath());
+  const redirectPath = redirectFor(request.nextUrl.pathname, isAuthenticated);
 
-  if (!isAuthenticated && !isSignInRoute) {
-    return NextResponse.redirect(new URL(signInPath(), request.url));
-  }
-
-  if (isAuthenticated && isSignInRoute) {
-    return NextResponse.redirect(new URL(homePath(), request.url));
+  if (redirectPath !== undefined) {
+    return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 });
 
