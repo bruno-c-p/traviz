@@ -48,6 +48,7 @@
     "anti-slop/require-readable-spacing": "error",
     "boundaries/feature-entry": "error",
     "boundaries/no-comments": "error",
+    "boundaries/no-empty-import": "error",
     "boundaries/server-only-module": "error",
     "boundaries/use-server-placement": "error",
     "no-restricted-globals": [

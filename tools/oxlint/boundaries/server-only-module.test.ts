@@ -82,6 +82,16 @@ tester.run("boundaries/server-only-module", serverOnlyModuleRule, {
       errors: [{ messageId: "bunModule" }],
     },
     {
+      name: "a star re-export of zod",
+      ...at("src/features/marks/colors.ts", 'export * from "zod";'),
+      errors: [{ messageId: "serverPackage" }],
+    },
+    {
+      name: "a star re-export of bun",
+      ...at("src/features/countries/countries.ts", 'export * from "bun";'),
+      errors: [{ messageId: "bunModule" }],
+    },
+    {
       name: "server-only imported after the server package",
       ...at("src/features/marks/colors.ts", 'import { z } from "zod";\nimport "server-only";'),
       errors: [{ messageId: "serverPackage" }],

@@ -387,6 +387,7 @@ test("check:gates fails when a boundaries rule or the bare-import rule is remove
   for (const rule of [
     "boundaries/feature-entry",
     "boundaries/no-comments",
+    "boundaries/no-empty-import",
     "boundaries/server-only-module",
     "boundaries/use-server-placement",
   ])

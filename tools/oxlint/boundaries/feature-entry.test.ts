@@ -25,6 +25,7 @@ tester.run("boundaries/feature-entry", featureEntryRule, {
       "src/features/marks/marks-provider.tsx",
       'const services = await import("@/features/marks/services/marks");',
     ),
+    at("src/features/stats/stats.ts", 'import type { Marks } from "@/features/marks";'),
     at("src/proxy.ts", 'import { signInPath } from "@/paths";'),
     at("src/shared/cn.ts", 'import { clsx } from "clsx";'),
     at("src/shared/testing/check-docs.test.ts", 'import { expect } from "bun:test";'),
@@ -101,6 +102,11 @@ tester.run("boundaries/feature-entry", featureEntryRule, {
         "src/features/auth/email-link-form.tsx",
         'import { forgetStoredMarks } from "@/features/auth/../marks/marks-storage";',
       ),
+      errors: [{ messageId: "deepImport" }],
+    },
+    {
+      name: "an import type of another feature's file",
+      ...at("src/features/stats/stats.ts", 'import type { Marks } from "@/features/marks/colors";'),
       errors: [{ messageId: "deepImport" }],
     },
     {
