@@ -120,9 +120,10 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 ├── scripts/ Database migration, country generation, and the docs and bundle checks
 └── src/
     ├── app/             Routes: / (globe), /list, /stats, and /sign-in
-    ├── components/      Shell, globe, list, stats, account, and sign-in components
+    ├── components/      Shell, globe, list, account, and sign-in components
     ├── features/auth/   Email link sign-in form
     ├── features/marks/  Marks store, mark controls, and the Server Actions and services that save and load marks
+    ├── features/stats/  Stats page, progress card, and the totals by continent
     ├── hooks/           Shared React hooks
     ├── lib/             Shared helpers, plus server-only auth and database code
     ├── store/           Zustand store for the selected country

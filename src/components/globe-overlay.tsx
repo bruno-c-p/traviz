@@ -7,7 +7,7 @@ import { CountrySearch } from "@/components/country-search";
 import { CountrySheet } from "@/components/country-sheet";
 import { GlobeHint } from "@/components/globe-hint";
 import { MapLegend } from "@/components/map-legend";
-import { ProgressCard } from "@/components/progress-card";
+import { ProgressCard } from "@/features/stats";
 import { COUNTRIES_BY_CODE } from "@/features/countries";
 import { useSelectedCountryStore } from "@/store/selected-country";
 

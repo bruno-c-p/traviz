@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { STATE_COLORS, useCountriesStore } from "@/features/marks";
 import { countries } from "@/features/countries";
-import { computeStats } from "@/lib/stats";
+import { computeStats } from "@/features/stats/stats";
 import { cn } from "@/shared/cn";
 import { statsPath } from "@/paths";
 
