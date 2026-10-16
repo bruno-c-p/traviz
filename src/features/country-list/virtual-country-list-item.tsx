@@ -1,5 +1,5 @@
-import { CountryRow } from "@/components/country-row";
-import type { ListItem } from "@/lib/country-list-items";
+import { CountryRow } from "@/features/country-list/country-row";
+import type { ListItem } from "@/features/country-list/country-list-items";
 
 type VirtualCountryListItemProps = {
   item: ListItem;

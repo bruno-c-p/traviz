@@ -1,10 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ContinentFilter } from "@/components/continent-filter";
-import { CountryListHeader } from "@/components/country-list-header";
-import { VirtualCountryList } from "@/components/virtual-country-list";
-import { useCountryListItems, useStateFilters } from "@/hooks/use-country-list-items";
+import { ContinentFilter } from "@/features/country-list/continent-filter";
+import { CountryListHeader } from "@/features/country-list/country-list-header";
+import { VirtualCountryList } from "@/features/country-list/virtual-country-list";
+import {
+  useCountryListItems,
+  useStateFilters,
+} from "@/features/country-list/use-country-list-items";
 import type { Continent } from "@/features/countries";
 
 export function CountryList() {

@@ -15,7 +15,7 @@
     "reason": "Tests, src/shared/testing and scripts run on bun and may use globalThis.Bun, per AGENTS.md."
   },
   {
-    "files": ["src/components/virtual-country-list.tsx"],
+    "files": ["src/features/country-list/virtual-country-list.tsx"],
     "rule": "react/incompatible-library",
     "reason": "React Compiler is not enabled; remove when reactCompiler is turned on or @tanstack/react-virtual becomes compatible."
   }

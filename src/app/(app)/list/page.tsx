@@ -1,4 +1,4 @@
-import { CountryList } from "@/components/CountryList";
+import { CountryList } from "@/features/country-list";
 
 export default function ListPage() {
   return <CountryList />;

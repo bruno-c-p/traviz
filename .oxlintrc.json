@@ -57,7 +57,7 @@
   },
   "overrides": [
     {
-      "files": ["src/components/virtual-country-list.tsx"],
+      "files": ["src/features/country-list/virtual-country-list.tsx"],
       "rules": { "react/incompatible-library": "off" }
     },
     {

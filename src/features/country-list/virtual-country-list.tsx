@@ -4,8 +4,8 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import type { Range } from "@tanstack/react-virtual";
-import { VirtualCountryListItem } from "@/components/virtual-country-list-item";
-import type { ListItem } from "@/lib/country-list-items";
+import { VirtualCountryListItem } from "@/features/country-list/virtual-country-list-item";
+import type { ListItem } from "@/features/country-list/country-list-items";
 
 const ROW_HEIGHT = 60;
 const HEADER_HEIGHT = 40;

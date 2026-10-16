@@ -1,7 +1,7 @@
 "use client";
 
-import { ContinentChips } from "@/components/continent-chips";
-import { ContinentSidebar } from "@/components/continent-sidebar";
+import { ContinentChips } from "@/features/country-list/continent-chips";
+import { ContinentSidebar } from "@/features/country-list/continent-sidebar";
 import type { Continent } from "@/features/countries";
 
 type ContinentFilterProps = {

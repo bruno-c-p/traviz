@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { StateColorKey } from "@/features/marks";
-import { buildListItems } from "@/lib/country-list-items";
+import { buildListItems } from "@/features/country-list/country-list-items";
 import { countByState, countries, searchCountries } from "@/features/countries";
 import type { Continent } from "@/features/countries";
 import { useCountriesStore } from "@/features/marks";
