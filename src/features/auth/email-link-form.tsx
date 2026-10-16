@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useId } from "react";
-import { EmailLinkSent } from "@/features/auth/components/email-link-sent";
-import { useEmailLinkSignIn } from "@/features/auth/hooks/use-email-link-sign-in";
+import { EmailLinkSent } from "@/features/auth/email-link-sent";
+import { useEmailLinkSignIn } from "@/features/auth/use-email-link-sign-in";
 import { forgetStoredMarks } from "@/features/marks";
 import { cn } from "@/shared/cn";
 

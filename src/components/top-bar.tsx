@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AccountButton } from "@/components/account-button";
+import { AccountButton } from "@/features/auth";
 import { BrandMark } from "@/shared/brand-mark";
 import { CountrySearch } from "@/features/globe";
 import { MainNav } from "@/components/main-nav";
