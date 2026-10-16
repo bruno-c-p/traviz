@@ -333,3 +333,37 @@ test("check:gates fails when the format, test or ignore config narrows a gate", 
     `/* ${["oxlint", "disable"].join("-")} */\nexport const probe = 1;\n`,
   ]);
 });
+
+test("check:gates exempts a rule only for the files its exemption lists", () => {
+  expectFailure(
+    "sets react/incompatible-library to off for src/example.test.ts without an entry in lint-exemptions.json",
+    edit(
+      ".oxlintrc.json",
+      '"overrides": [',
+      '"overrides": [\n    { "files": ["src/example.test.ts"], "rules": { "react/incompatible-library": "off" } },',
+    ),
+  );
+});
+
+test("check:gates fails on a category below error, a CI without setup-bun and a root action.yml", () => {
+  expectFailure(
+    ".oxlintrc.json sets category suspicious to warn",
+    edit(
+      ".oxlintrc.json",
+      '"categories": { "correctness": "error" }',
+      '"categories": { "correctness": "error", "suspicious": "warn" }',
+    ),
+  );
+  expectFailure(
+    "no workflow step sets up bun with oven-sh/setup-bun",
+    edit(
+      ".github/workflows/ci.yml",
+      "      - uses: oven-sh/setup-bun@v2\n        with:\n          bun-version: 1.4.3\n",
+      "",
+    ),
+  );
+  expectFailure("action.yml uses continue-on-error", [
+    "action.yml",
+    "runs:\n  using: composite\n  steps:\n    - run: bun install\n      continue-on-error: true\n",
+  ]);
+});
