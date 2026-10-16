@@ -303,3 +303,33 @@ test("check:bundle points to a working recovery when the budget is invalid", () 
   );
   expect(exitCode).toBe(1);
 });
+
+test("check:bundle uses 1% as the tolerance once it is larger than the 1 KB floor", () => {
+  const fixtureRoot = createBuildFixture();
+  const homeChunk = join(fixtureRoot, ".next", "static", "chunks", "home.js");
+  writeFileSync(homeChunk, randomBytes(200_000));
+  runCheckBundle(fixtureRoot, "--write");
+
+  appendFileSync(homeChunk, randomBytes(1500));
+  expect(runCheckBundle(fixtureRoot).exitCode).toBe(0);
+
+  appendFileSync(homeChunk, randomBytes(1500));
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toMatch(/^\/ first-load JS is \d+ B gzipped, over its limit/m);
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails when a route preloads a chunk only another route loads at first", () => {
+  const fixtureRoot = createBuildFixture();
+  runCheckBundle(fixtureRoot, "--write");
+  writeFileSync(
+    join(fixtureRoot, ".next", "server", "app", "index.html"),
+    preloadTag("/_next/static/chunks/list.js"),
+  );
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain("/ preloads .next/static/chunks/list.js");
+  expect(exitCode).toBe(1);
+});

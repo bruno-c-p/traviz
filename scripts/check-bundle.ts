@@ -101,7 +101,7 @@ function writeBudget(previous: Budget | null): Budget {
   const routes = Object.fromEntries(
     [...firstLoadGzipBytesByRoute].map(([route, firstLoadGzipBytes]) => [
       route,
-      { ...previous?.routes[route], firstLoadGzipBytes },
+      { firstLoadGzipBytes },
     ]),
   );
 
