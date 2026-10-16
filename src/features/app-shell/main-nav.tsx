@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAVIGATION_ITEMS } from "@/lib/navigation";
+import { NAVIGATION_ITEMS } from "@/features/app-shell/navigation";
 import { cn } from "@/shared/cn";
 
 export function MainNav() {

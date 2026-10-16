@@ -120,13 +120,12 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 ├── scripts/ Database migration, country generation, and the docs and bundle checks
 └── src/
     ├── app/             Routes: / (globe), /list, /stats, and /sign-in
-    ├── components/      Shell components
+    ├── features/app-shell/ Globe shell, top bar, nav tabs, and the server-only session layer that loads marks
     ├── features/auth/   Email link sign-in, the account button and section, and the server-only session helpers
     ├── features/country-list/ Country list page, with its search, status and continent filters
     ├── features/globe/  Mapbox globe, its overlay, country card and sheet, search, and the selected-country store
     ├── features/marks/  Marks store, mark controls, and the Server Actions and services that save and load marks
     ├── features/stats/  Stats page, progress card, and the totals by continent
-    ├── lib/             Nav tab list
     ├── data/            Generated country list and globe labels
     └── proxy.ts         Sends signed-out users to /sign-in
 ```

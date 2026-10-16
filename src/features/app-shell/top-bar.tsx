@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { AccountButton } from "@/features/auth";
 import { BrandMark } from "@/shared/brand-mark";
 import { CountrySearch } from "@/features/globe";
-import { MainNav } from "@/components/main-nav";
+import { MainNav } from "@/features/app-shell/main-nav";
 import { cn } from "@/shared/cn";
 import { homePath } from "@/paths";
 
