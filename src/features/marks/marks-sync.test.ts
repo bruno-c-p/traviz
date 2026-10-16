@@ -263,6 +263,88 @@ describe("marks sync", () => {
     expect(reduceMarksSync(sending, sent(7))).toBe(sending);
   });
 
+  test("two countries that fail keep a problem each", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("BRA", "visited"),
+      sent(1),
+      failed(1, "rejected"),
+      setMark("ARG", "visited"),
+      sent(2),
+      failed(2, "rejected"),
+    ]);
+
+    expect(state.problems).toEqual([
+      { scope: "BRA", reason: "rejected" },
+      { scope: "ARG", reason: "rejected" },
+    ]);
+  });
+
+  test("a problem keeps the reason the server gave", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("BRA", "visited"),
+      sent(1),
+      failed(1, "signed-out"),
+    ]);
+
+    expect(state.problems).toEqual([{ scope: "BRA", reason: "signed-out" }]);
+  });
+
+  test("a later snapshot keeps a country's write problem until a save on that country succeeds", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("BRA", "visited"),
+      sent(1),
+      failed(1, "rejected"),
+      snapshot({}),
+    ]);
+
+    expect(state.problems).toEqual([{ scope: "BRA", reason: "rejected" }]);
+  });
+
+  test("a session for another owner drops the previous owner's problems", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("BRA", "visited"),
+      sent(1),
+      failed(1, "rejected"),
+      started(OTHER_OWNER),
+    ]);
+
+    expect(state.problems).toEqual([]);
+  });
+
+  test("a snapshot folds saved changes out of the queue", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("BRA", "visited"),
+      sent(1),
+      saved(1),
+      snapshot({ BRA: "visited" }),
+    ]);
+
+    expect(state.pending).toEqual([]);
+    expect(state.base).toEqual({ source: "server", marks: { BRA: "visited" } });
+  });
+
+  test("change-sent moves only the change it names", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("BRA", "visited"),
+      setMark("ARG", "visited"),
+      sent(1),
+    ]);
+
+    expect(state.pending.map((entry) => entry.phase)).toEqual(["sending", "waiting"]);
+  });
+
   test("change-sent is ignored while another change is in flight", () => {
     const sending = play([
       started(OWNER),
