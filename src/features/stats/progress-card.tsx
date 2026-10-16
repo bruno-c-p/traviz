@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { STATE_COLORS, tallyMarks, tallyTotal, useCountriesStore } from "@/features/marks";
+import {
+  STATE_COLORS,
+  tallyMarks,
+  tallyShare,
+  tallyTotal,
+  useCountriesStore,
+} from "@/features/marks";
 import { SOVEREIGN_COUNTRIES, countries } from "@/features/countries";
 import { cn } from "@/shared/cn";
 import { statsPath } from "@/paths";
@@ -43,7 +49,7 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
   const allEntries = tallyMarks(countries, marks);
   const visited = headline.visited;
   const total = tallyTotal(headline);
-  const percent = total > 0 ? (visited / total) * 100 : 0;
+  const percent = tallyShare(headline, "visited");
   const variantClasses = VARIANT_CLASSES[variant];
 
   const content = (

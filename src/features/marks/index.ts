@@ -2,7 +2,7 @@ export { COUNTRY_STATES, STATE_COLORS, STATE_LABELS } from "@/features/marks/col
 
 export type { Marks, StateColorKey } from "@/features/marks/colors";
 
-export { tallyMarks, tallyTotal } from "@/features/marks/tally";
+export { tallyMarks, tallyShare, tallyTotal } from "@/features/marks/tally";
 
 export { useCountriesStore } from "@/features/marks/marks-store";
 

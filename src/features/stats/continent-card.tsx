@@ -1,4 +1,4 @@
-import { COUNTRY_STATES, STATE_COLORS, tallyMarks, tallyTotal } from "@/features/marks";
+import { COUNTRY_STATES, STATE_COLORS, tallyMarks, tallyShare, tallyTotal } from "@/features/marks";
 import type { Marks } from "@/features/marks";
 import type { ContinentPool } from "@/features/stats/continent-pools";
 
@@ -24,7 +24,7 @@ export function ContinentCard({ pool, marks }: ContinentCardProps) {
           <div
             key={countryState}
             style={{
-              width: `${denominator > 0 ? (tally[countryState] / denominator) * 100 : 0}%`,
+              width: `${tallyShare(tally, countryState)}%`,
               backgroundColor: STATE_COLORS[countryState],
             }}
           />

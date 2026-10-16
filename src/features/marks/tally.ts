@@ -29,3 +29,9 @@ export function tallyMarks(
 export function tallyTotal(tally: Tally): number {
   return tally.visited + tally.want + tally.not_interested + tally.unmarked;
 }
+
+export function tallyShare(tally: Tally, key: StateColorKey): number {
+  const total = tallyTotal(tally);
+
+  return total > 0 ? (tally[key] / total) * 100 : 0;
+}
