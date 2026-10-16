@@ -4,7 +4,7 @@ import { useId } from "react";
 import { ClearMarkButton, MarkChoices } from "@/features/marks";
 import { CountryHeading } from "@/features/countries";
 import type { Country } from "@/features/countries";
-import { useSelectedCountryStore } from "@/store/selected-country";
+import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 export function CountryCard({ country }: { country: Country }) {
   const headingId = useId();

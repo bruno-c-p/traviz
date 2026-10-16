@@ -1,8 +1,8 @@
 import type { Map as MapboxMap } from "mapbox-gl";
 import { COUNTRIES_BY_CODE } from "@/features/countries";
-import { FILL_LAYER_ID, SOURCE_ID } from "@/lib/mapStyle";
-import { readTilesetFeature } from "@/lib/tileset-feature";
-import { useSelectedCountryStore } from "@/store/selected-country";
+import { FILL_LAYER_ID, SOURCE_ID } from "@/features/globe/map-style";
+import { readTilesetFeature } from "@/features/globe/tileset-feature";
+import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 const KNOWN_CODES = new Set(COUNTRIES_BY_CODE.keys());
 

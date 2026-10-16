@@ -1,10 +1,10 @@
 import type mapboxgl from "mapbox-gl";
-import { bindCountryEvents } from "@/lib/map-country-events";
-import { createGlobeSpin } from "@/lib/map-spin";
-import { bindStoreSync } from "@/lib/map-store-sync";
-import { buildMapStyle } from "@/lib/mapStyle";
+import { bindCountryEvents } from "@/features/globe/map-country-events";
+import { createGlobeSpin } from "@/features/globe/map-spin";
+import { bindStoreSync } from "@/features/globe/map-store-sync";
+import { buildMapStyle } from "@/features/globe/map-style";
 import { useCountriesStore } from "@/features/marks";
-import { useSelectedCountryStore } from "@/store/selected-country";
+import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 export function mountGlobe(
   mapbox: typeof mapboxgl,

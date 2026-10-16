@@ -6,9 +6,9 @@ import {
   SELECTED_LAYER_ID,
   buildFillColorExpression,
   buildSelectedFilter,
-} from "@/lib/mapStyle";
+} from "@/features/globe/map-style";
 import { useCountriesStore } from "@/features/marks";
-import { useSelectedCountryStore } from "@/store/selected-country";
+import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 const FLY_TO_ZOOM = 3;
 

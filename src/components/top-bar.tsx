@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AccountButton } from "@/components/account-button";
 import { BrandMark } from "@/shared/brand-mark";
-import { CountrySearch } from "@/components/country-search";
+import { CountrySearch } from "@/features/globe";
 import { MainNav } from "@/components/main-nav";
 import { cn } from "@/shared/cn";
 import { homePath } from "@/paths";

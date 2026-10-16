@@ -1,8 +1,8 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { CountrySearchResults } from "@/components/country-search-results";
-import { useCountrySearch } from "@/hooks/use-country-search";
+import { CountrySearchResults } from "@/features/globe/country-search-results";
+import { useCountrySearch } from "@/features/globe/use-country-search";
 import { cn } from "@/shared/cn";
 
 export function CountrySearch({ className }: { className?: string }) {

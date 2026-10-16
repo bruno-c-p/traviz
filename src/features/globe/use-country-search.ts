@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { searchCountries } from "@/features/countries";
-import { useSelectedCountryStore } from "@/store/selected-country";
+import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 const MAX_RESULTS = 6;
 
