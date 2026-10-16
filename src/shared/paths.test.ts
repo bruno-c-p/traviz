@@ -5,9 +5,10 @@ import { ROUTES } from "@/paths";
 
 const appDirectory = join(import.meta.dir, "..", "app");
 
-const routeFiles = (): string[] => [
-  ...new Glob("**/{page,route}.{ts,tsx,js,jsx,mdx}").scanSync(appDirectory),
-];
+const routeFiles = (): string[] =>
+  [...new Glob("**/{page,route}.{ts,tsx,js,jsx}").scanSync(appDirectory)].filter(
+    (file) => !file.split("/").some((segment) => segment.startsWith("_")),
+  );
 
 const routePathOf = (file: string): string => {
   const segments = file
