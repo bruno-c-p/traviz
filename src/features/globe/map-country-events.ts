@@ -55,10 +55,6 @@ function collectUnmatchedCodes(map: MapboxMap): string[] {
   return unmatched;
 }
 
-// One-time reconciliation sweep. Triggered off the source's own load
-// state (not `idle`) because the auto-rotate keeps the camera in
-// continuous motion, and `idle` never fires while a transition is
-// in progress.
 function bindReconciliationSweep(map: MapboxMap) {
   let sweepDone = false;
 

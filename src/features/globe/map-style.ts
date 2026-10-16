@@ -50,8 +50,6 @@ function pointCollection(points: { name: string; coordinates: number[]; area?: n
   };
 }
 
-// Mapbox's documented worldview filter, US perspective: keep non-disputed
-// boundaries, plus disputed ones whose worldview list includes "US".
 const WORLDVIEW_FILTER: FilterSpecification = [
   "all",
   ["==", ["get", "disputed"], "false"],
@@ -78,8 +76,6 @@ function groupCodesByState(marks: Marks): Map<string, string[]> {
   return groups;
 }
 
-// Builds a `match` expression grouping codes by state so each state is a
-// single case, falling back to STATE_COLORS.unmarked for everything else.
 export function buildFillColorExpression(marks: Marks): ExpressionSpecification | string {
   const groups = groupCodesByState(marks);
   const cases: (string | string[])[] = [];

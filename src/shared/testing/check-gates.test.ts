@@ -371,3 +371,41 @@ test("check:gates fails on a category below error, a CI without setup-bun and a 
     "runs:\n  using: composite\n  steps:\n    - run: bun install\n      continue-on-error: true\n",
   ]);
 });
+
+test("check:gates fails when an exemption's override covers other files", () => {
+  expectFailure(
+    "lists react/incompatible-library for src/features/country-list/virtual-country-list.tsx, but .oxlintrc.json has no matching override",
+    edit(
+      ".oxlintrc.json",
+      '"files": ["src/features/country-list/virtual-country-list.tsx"]',
+      '"files": ["src/features/country-list/*.tsx"]',
+    ),
+  );
+});
+
+test("check:gates fails when a boundaries rule or the bare-import rule is removed", () => {
+  for (const rule of [
+    "boundaries/feature-entry",
+    "boundaries/no-comments",
+    "boundaries/no-empty-import",
+    "boundaries/server-only-module",
+    "boundaries/use-server-placement",
+  ])
+    expectFailure(
+      `.oxlintrc.json.rules.${rule} differs from gates.json`,
+      edit(".oxlintrc.json", `"${rule}": "error",`, ""),
+    );
+
+  expectFailure(
+    ".oxlintrc.json.rules.import/no-unassigned-import differs from gates.json",
+    edit(".oxlintrc.json", '"server-only", "client-only"', '"server-only", "client-only", "**"'),
+  );
+  expectFailure(
+    ".oxlintrc.json.jsPlugins differs from gates.json",
+    edit(
+      ".oxlintrc.json",
+      '"specifier": "./tools/oxlint/boundaries/index.ts"',
+      '"specifier": "./x.ts"',
+    ),
+  );
+});

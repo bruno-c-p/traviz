@@ -21,7 +21,6 @@
     "incremental": true,
     "jsx": "react-jsx",
     "forceConsistentCasingInFileNames": true,
-    /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,

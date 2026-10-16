@@ -37,10 +37,6 @@ export function createGlobeSpin(map: MapboxMap, isSpinAllowed: () => boolean) {
     }
   }
 
-  // Any click, drag, or zoom stops the spin permanently. `movestart`'s
-  // `originalEvent` is only set for user-driven moves (mouse/touch/wheel),
-  // never for our own programmatic `jumpTo` spin ticks, so this can't
-  // confuse the two.
   function stopOnUserInteraction() {
     map.on("click", stop);
     map.on("mousedown", stop);

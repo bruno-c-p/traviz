@@ -1,5 +1,3 @@
-// Also doubles as the shared domain-type module (CountryState, Marks below):
-// stats.ts must not import from the store, so those types live here instead.
 export type CountryState = "visited" | "want" | "not_interested";
 
 export type Marks = Record<string, CountryState>;
