@@ -17,7 +17,7 @@ const routePathOf = (file: string): string => {
   const segments = file
     .split("/")
     .slice(0, -1)
-    .filter((segment) => !segment.startsWith("(") && !segment.startsWith("@"));
+    .filter((segment) => !segment.startsWith("("));
 
   return `/${segments.join("/")}`;
 };
