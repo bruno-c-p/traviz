@@ -5,14 +5,14 @@
     "reason": "paths.ts is the one module allowed to use type assertions, per the AGENTS.md rule on as."
   },
   {
-    "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/testing/**", "scripts/**"],
+    "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/shared/testing/**", "scripts/**"],
     "rule": "no-restricted-globals",
-    "reason": "Tests, src/testing and scripts run on bun and may use Bun APIs, per AGENTS.md."
+    "reason": "Tests, src/shared/testing and scripts run on bun and may use Bun APIs, per AGENTS.md."
   },
   {
-    "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/testing/**", "scripts/**"],
+    "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/shared/testing/**", "scripts/**"],
     "rule": "no-restricted-properties",
-    "reason": "Tests, src/testing and scripts run on bun and may use globalThis.Bun, per AGENTS.md."
+    "reason": "Tests, src/shared/testing and scripts run on bun and may use globalThis.Bun, per AGENTS.md."
   },
   {
     "files": ["src/components/virtual-country-list.tsx"],

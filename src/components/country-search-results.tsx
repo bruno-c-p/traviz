@@ -1,5 +1,5 @@
-import type { Country } from "@/lib/stats";
-import { cn } from "@/lib/utils";
+import type { Country } from "@/features/countries";
+import { cn } from "@/shared/cn";
 
 type CountrySearchResultsProps = {
   listboxId: string;

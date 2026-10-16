@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAVIGATION_ITEMS } from "@/lib/navigation";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 
 export function MainNav() {
   const pathname = usePathname();

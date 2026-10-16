@@ -12,7 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const checkBundleScript = join(import.meta.dir, "..", "..", "scripts", "check-bundle.ts");
+const checkBundleScript = join(import.meta.dir, "..", "..", "..", "scripts", "check-bundle.ts");
 const fixtureRoots: string[] = [];
 
 const firstLoadChunks = {

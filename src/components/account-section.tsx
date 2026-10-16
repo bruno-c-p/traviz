@@ -3,7 +3,7 @@
 import { useClerk, useUser } from "@clerk/nextjs";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 import { signInPath } from "@/paths";
 import { useCountriesStore } from "@/store/countries";
 

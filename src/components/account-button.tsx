@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { UserRound } from "lucide-react";
 import Link from "next/link";
 import { accountPath } from "@/paths";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 
 export function AccountButton({ className }: { className?: string }) {
   const { user } = useUser();

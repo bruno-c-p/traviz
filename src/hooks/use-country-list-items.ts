@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import type { StateColorKey } from "@/lib/colors";
 import { buildListItems } from "@/lib/country-list-items";
-import { countByState, countries, searchCountries } from "@/lib/countries";
-import type { Continent } from "@/lib/stats";
+import { countByState, countries, searchCountries } from "@/features/countries";
+import type { Continent } from "@/features/countries";
 import { useCountriesStore } from "@/store/countries";
 
 export function useCountryListItems(

@@ -3,11 +3,11 @@
 import { useId } from "react";
 import { createPortal } from "react-dom";
 import { ClearMarkButton } from "@/components/clear-mark-button";
-import { CountryHeading } from "@/components/country-heading";
+import { CountryHeading } from "@/features/countries";
 import { MarkChoices } from "@/components/mark-choices";
 import { useDraggableSheet } from "@/hooks/use-draggable-sheet";
 import { useIsClient } from "@/hooks/use-is-client";
-import type { Country } from "@/lib/stats";
+import type { Country } from "@/features/countries";
 
 export function CountrySheet({ country }: { country: Country }) {
   const headingId = useId();

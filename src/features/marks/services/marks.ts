@@ -1,7 +1,7 @@
 import "server-only";
 import { markRowSchema } from "@/features/marks/schemas";
 import type { CountryState, Marks } from "@/lib/colors";
-import { turso } from "@/lib/server/db";
+import { turso } from "@/shared/server/database";
 
 export async function loadMarks(userId: string): Promise<Marks> {
   const result = await turso.execute({

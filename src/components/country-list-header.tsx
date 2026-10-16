@@ -3,7 +3,7 @@ import { ContinentFilter } from "@/components/continent-filter";
 import { ListSearchInput } from "@/components/list-search-input";
 import { StatusFilters } from "@/components/status-filters";
 import type { StateColorKey } from "@/lib/colors";
-import type { Continent } from "@/lib/stats";
+import type { Continent } from "@/features/countries";
 
 type CountryListHeaderProps = {
   headerRef: Ref<HTMLDivElement>;

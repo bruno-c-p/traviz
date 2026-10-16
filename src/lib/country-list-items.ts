@@ -1,5 +1,5 @@
-import { CONTINENT_ORDER } from "@/lib/countries";
-import type { Continent, Country } from "@/lib/stats";
+import { CONTINENT_ORDER } from "@/features/countries";
+import type { Continent, Country } from "@/features/countries";
 
 export type ListItem =
   | { type: "header"; continent: Continent; count: number }

@@ -92,25 +92,25 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 
 ## Scripts
 
-| Command                 | What it does                                                                                               |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `bun run dev`           | Start the Next.js dev server                                                                               |
-| `bun run build`         | Build for production                                                                                       |
-| `bun run start`         | Serve the production build                                                                                 |
-| `bun run db:migrate`    | Create the `marks` table                                                                                   |
-| `bun run gen:countries` | Regenerate `src/data/countries.json` and `src/data/country-labels.json` from the `world-countries` package |
-| `bun run lint`          | Lint with Oxlint                                                                                           |
-| `bun run format`        | Format with Oxfmt                                                                                          |
-| `bun run typecheck`     | Type-check with `tsc --noEmit`                                                                             |
-| `bun run check:docs`    | Check that the docs name only paths and scripts that exist                                                 |
-| `bun run test`          | Run the bun tests under `src`                                                                              |
-| `bun run test:rules`    | Run the lint rule tests in `tools/oxlint` with Node 24                                                     |
-| `bun run check:bundle`  | Check the last build's first-load JS and preloads against `bundle-budget.json`                             |
-| `bun run check`         | Run CI's checks, except fallow and react-doctor, with a build                                              |
+| Command                 | What it does                                                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun run dev`           | Start the Next.js dev server                                                                                                           |
+| `bun run build`         | Build for production                                                                                                                   |
+| `bun run start`         | Serve the production build                                                                                                             |
+| `bun run db:migrate`    | Create the `marks` table                                                                                                               |
+| `bun run gen:countries` | Regenerate `src/features/countries/countries.json` and `src/features/countries/country-labels.json` from the `world-countries` package |
+| `bun run lint`          | Lint with Oxlint                                                                                                                       |
+| `bun run format`        | Format with Oxfmt                                                                                                                      |
+| `bun run typecheck`     | Type-check with `tsc --noEmit`                                                                                                         |
+| `bun run check:docs`    | Check that the docs name only paths and scripts that exist                                                                             |
+| `bun run test`          | Run the bun tests under `src`                                                                                                          |
+| `bun run test:rules`    | Run the lint rule tests in `tools/oxlint` with Node 24                                                                                 |
+| `bun run check:bundle`  | Check the last build's first-load JS and preloads against `bundle-budget.json`                                                         |
+| `bun run check`         | Run CI's checks, except fallow and react-doctor, with a build                                                                          |
 
 ## Country data
 
-`src/data/countries.json` has 250 entries generated from the `world-countries` package. 195 of them count toward the headline total. The other 55 are territories and dependencies: they appear on the map and in the list, but they aren't counted. The same script writes `src/data/country-labels.json`, the name and position of each label on the globe. Both generated files are committed, so only run `bun run gen:countries` after you update that dependency.
+`src/features/countries/countries.json` has 250 entries generated from the `world-countries` package. 195 of them count toward the headline total. The other 55 are territories and dependencies: they appear on the map and in the list, but they aren't counted. The same script writes `src/features/countries/country-labels.json`, the name and position of each label on the globe. Both generated files are committed, so only run `bun run gen:countries` after you update that dependency.
 
 ## Project structure
 

@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AccountButton } from "@/components/account-button";
-import { BrandMark } from "@/components/BrandMark";
+import { BrandMark } from "@/shared/brand-mark";
 import { CountrySearch } from "@/components/country-search";
 import { MainNav } from "@/components/main-nav";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 import { homePath } from "@/paths";
 
 export function TopBar() {

@@ -4,7 +4,7 @@ import { useEffect, useId } from "react";
 import { EmailLinkSent } from "@/features/auth/components/email-link-sent";
 import { useEmailLinkSignIn } from "@/features/auth/hooks/use-email-link-sign-in";
 import { forgetStoredMarks } from "@/lib/marks-storage";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 
 export function EmailLinkForm() {
   const errorId = useId();

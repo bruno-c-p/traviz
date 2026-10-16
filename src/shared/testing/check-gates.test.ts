@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-const repoRoot = join(import.meta.dir, "..", "..");
+const repoRoot = join(import.meta.dir, "..", "..", "..");
 const checkGatesScript = join(repoRoot, "scripts", "check-gates.ts");
 const fixtureRoots: string[] = [];
 
@@ -27,7 +27,7 @@ const exemptedFiles = [
   "src/components/virtual-country-list.tsx",
   "src/example.test.ts",
   "src/example.test.tsx",
-  "src/testing/example.ts",
+  "src/shared/testing/example.ts",
   "scripts/example.ts",
 ];
 

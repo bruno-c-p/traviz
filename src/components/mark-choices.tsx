@@ -9,7 +9,7 @@ import {
 } from "@/lib/colors";
 import type { CountryState } from "@/lib/colors";
 import { STATE_ICONS } from "@/lib/state-icons";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 import { useCountriesStore } from "@/store/countries";
 
 const TILE_LABELS: Record<CountryState, string> = {

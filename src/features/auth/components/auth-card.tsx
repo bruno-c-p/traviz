@@ -1,4 +1,4 @@
-import { BrandMark } from "@/components/BrandMark";
+import { BrandMark } from "@/shared/brand-mark";
 
 export function AuthCard({ children }: { children: React.ReactNode }) {
   return (

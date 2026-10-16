@@ -1,21 +1,5 @@
 import type { Marks } from "@/lib/colors";
-
-export type Continent =
-  | "Africa"
-  | "Asia"
-  | "Europe"
-  | "North America"
-  | "South America"
-  | "Oceania"
-  | "Antarctica";
-
-export interface Country {
-  code: string;
-  name: string;
-  flag: string;
-  continent: Continent;
-  counted: boolean;
-}
+import type { Continent, Country } from "@/features/countries";
 
 export interface StateCounts {
   visited: number;

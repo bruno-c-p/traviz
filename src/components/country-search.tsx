@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 import { CountrySearchResults } from "@/components/country-search-results";
 import { useCountrySearch } from "@/hooks/use-country-search";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/cn";
 
 export function CountrySearch({ className }: { className?: string }) {
   const search = useCountrySearch();

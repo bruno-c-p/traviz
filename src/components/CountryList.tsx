@@ -5,7 +5,7 @@ import { ContinentFilter } from "@/components/continent-filter";
 import { CountryListHeader } from "@/components/country-list-header";
 import { VirtualCountryList } from "@/components/virtual-country-list";
 import { useCountryListItems, useStateFilters } from "@/hooks/use-country-list-items";
-import type { Continent } from "@/lib/stats";
+import type { Continent } from "@/features/countries";
 
 export function CountryList() {
   const [query, setQuery] = useState("");
