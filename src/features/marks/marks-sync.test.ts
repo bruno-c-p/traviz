@@ -309,6 +309,20 @@ describe("marks sync", () => {
     expect(visibleMarks(state)).toEqual({ DEU: "want", ESP: "visited" });
   });
 
+  test("a change saved before the first snapshot never marks the base as server-confirmed", () => {
+    const uncached = play([started(OWNER), setMark("FRA", "visited"), sent(1), saved(1)]);
+
+    const cached = play([
+      started(OWNER, { ownerId: OWNER, marks: { ITA: "want" } }),
+      setMark("FRA", "visited"),
+      sent(1),
+      saved(1),
+    ]);
+
+    expect(uncached.base).toEqual({ source: "empty" });
+    expect(cached.base).toEqual({ source: "cache", marks: { ITA: "want", FRA: "visited" } });
+  });
+
   test("a tap after the session ended is not carried into the next session", () => {
     const state = play([
       started(OWNER),
