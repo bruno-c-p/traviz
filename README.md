@@ -103,6 +103,8 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 | `bun run format`        | Format with Oxfmt                                                                                          |
 | `bun run typecheck`     | Type-check with `tsc --noEmit`                                                                             |
 | `bun run check:docs`    | Check that the docs name only paths and scripts that exist                                                 |
+| `bun run test`          | Run the bun tests under `src`                                                                              |
+| `bun run test:rules`    | Run the lint rule tests in `tools/oxlint` with Node 24                                                     |
 
 ## Country data
 
