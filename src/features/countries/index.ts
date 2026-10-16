@@ -6,6 +6,6 @@ export {
   searchCountries,
 } from "@/features/countries/countries";
 
-export type { Continent, Country, CountryCode } from "@/features/countries/countries";
+export type { Continent, Country } from "@/features/countries/countries";
 
 export { CountryHeading } from "@/features/countries/country-heading";

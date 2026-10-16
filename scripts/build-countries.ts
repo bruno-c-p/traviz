@@ -48,7 +48,7 @@ function toRecord(country: WorldCountry) {
 
 const records = countries
   .map(toRecord)
-  .sort((first, second) => first.name.localeCompare(second.name));
+  .sort((first, second) => first.name.localeCompare(second.name, "en"));
 
 const sovereignCount = records.filter((record) => record.kind === "sovereign").length;
 

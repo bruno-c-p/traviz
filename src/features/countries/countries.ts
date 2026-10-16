@@ -9,7 +9,7 @@ export type Continent =
   | "Oceania"
   | "Antarctica";
 
-export type CountryCode = (typeof COUNTRY_RECORDS)[number]["code"];
+type CountryCode = (typeof COUNTRY_RECORDS)[number]["code"];
 
 export interface Country {
   code: CountryCode;
