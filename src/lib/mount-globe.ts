@@ -3,7 +3,7 @@ import { bindCountryEvents } from "@/lib/map-country-events";
 import { createGlobeSpin } from "@/lib/map-spin";
 import { bindStoreSync } from "@/lib/map-store-sync";
 import { buildMapStyle } from "@/lib/mapStyle";
-import { useCountriesStore } from "@/store/countries";
+import { useCountriesStore } from "@/features/marks";
 import { useSelectedCountryStore } from "@/store/selected-country";
 
 export function mountGlobe(

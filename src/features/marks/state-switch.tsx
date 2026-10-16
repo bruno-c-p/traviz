@@ -6,10 +6,10 @@ import {
   STATE_LABELS,
   STATE_ON_COLORS,
   STATE_SHORT_LABELS,
-} from "@/lib/colors";
-import { STATE_ICONS } from "@/lib/state-icons";
+} from "@/features/marks/colors";
+import { STATE_ICONS } from "@/features/marks/state-icons";
 import { cn } from "@/shared/cn";
-import { useCountriesStore } from "@/store/countries";
+import { useCountriesStore } from "@/features/marks/marks-store";
 
 export function StateSwitch({ code, countryName }: { code: string; countryName: string }) {
   const currentState = useCountriesStore((state) => state.marks[code]);

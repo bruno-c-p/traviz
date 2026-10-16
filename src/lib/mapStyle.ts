@@ -6,8 +6,8 @@ import type {
   StyleSpecification,
 } from "mapbox-gl";
 import { countryLabels } from "@/features/countries";
-import { COUNTRY_STATES, STATE_COLORS } from "@/lib/colors";
-import type { Marks } from "@/lib/colors";
+import { COUNTRY_STATES, STATE_COLORS } from "@/features/marks";
+import type { Marks } from "@/features/marks";
 
 export const SOURCE_ID = "country-boundaries";
 const COUNTRY_SOURCE_LAYER = "country_boundaries";

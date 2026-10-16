@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { countriesData } from "@/features/countries";
-import { COUNTRY_STATES } from "@/lib/colors";
+import { COUNTRY_STATES } from "@/features/marks/colors";
 
 const validCodes = new Set(countriesData.map((country) => country.code));
 

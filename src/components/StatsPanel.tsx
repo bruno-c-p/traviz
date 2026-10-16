@@ -2,13 +2,11 @@
 
 import { AccountSection } from "@/components/account-section";
 import { ContinentCard } from "@/components/continent-card";
-import { DangerZone } from "@/components/danger-zone";
+import { DangerZone, STATE_COLORS, useCountriesStore } from "@/features/marks";
 import { ProgressCard } from "@/components/progress-card";
 import { TotalTile } from "@/components/total-tile";
-import { STATE_COLORS } from "@/lib/colors";
 import { CONTINENT_ORDER, countries } from "@/features/countries";
 import { computeStats } from "@/lib/stats";
-import { useCountriesStore } from "@/store/countries";
 
 export function StatsPanel() {
   const marks = useCountriesStore((state) => state.marks);

@@ -2,9 +2,8 @@
 
 import { useId } from "react";
 import { createPortal } from "react-dom";
-import { ClearMarkButton } from "@/components/clear-mark-button";
+import { ClearMarkButton, MarkChoices } from "@/features/marks";
 import { CountryHeading } from "@/features/countries";
-import { MarkChoices } from "@/components/mark-choices";
 import { useDraggableSheet } from "@/hooks/use-draggable-sheet";
 import { useIsClient } from "@/hooks/use-is-client";
 import type { Country } from "@/features/countries";

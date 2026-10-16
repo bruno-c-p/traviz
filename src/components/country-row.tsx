@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { StateSwitch } from "@/components/state-switch";
+import { StateSwitch } from "@/features/marks";
 import type { Country } from "@/features/countries";
 
 export const CountryRow = memo(function CountryRow({ country }: { country: Country }) {

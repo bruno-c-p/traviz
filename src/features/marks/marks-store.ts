@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { CountryState, Marks } from "@/lib/colors";
+import type { CountryState, Marks } from "@/features/marks/colors";
 import { clearMarksAction } from "@/features/marks/actions/clear-marks";
 import { setMarkAction } from "@/features/marks/actions/set-mark";
 import { clearMarkAction } from "@/features/marks/actions/clear-mark";
-import { MARKS_STORAGE_KEY } from "@/lib/marks-storage";
+import { MARKS_STORAGE_KEY } from "@/features/marks/marks-storage";
 
 type SyncStatus = "idle" | "ready" | "error";
 

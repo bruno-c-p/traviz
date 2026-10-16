@@ -1,4 +1,4 @@
-import { COUNTRY_STATES, STATE_COLORS } from "@/lib/colors";
+import { COUNTRY_STATES, STATE_COLORS } from "@/features/marks";
 import type { ContinentStats } from "@/lib/stats";
 import type { Continent } from "@/features/countries";
 

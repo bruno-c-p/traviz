@@ -1,5 +1,5 @@
 import { useContinentOptions } from "@/hooks/use-continent-options";
-import { STATE_COLORS } from "@/lib/colors";
+import { STATE_COLORS } from "@/features/marks";
 import type { Continent } from "@/features/countries";
 import { cn } from "@/shared/cn";
 
