@@ -1,7 +1,6 @@
 import { afterAll, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import {
-  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -20,12 +19,14 @@ const fixtureRoots: string[] = [];
 
 const fakeClerk = `#!/bin/sh
 printf '%s\\n' "clerk $*" >> "$FAKE_LOG"
-printf 'clerk-env %s %s %s\\n' "\${CLERK_SECRET_KEY:-none}" "\${CLERK_PUBLISHABLE_KEY:-none}" "\${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-none}" >> "$FAKE_LOG"
+printf 'clerk-env [%s]\\n' "$(env | grep -E '^(CLERK_|NEXT_PUBLIC_CLERK_)' | cut -d= -f1 | sort | tr '\\n' ' ')" >> "$FAKE_LOG"
+if [ -n "$FAKE_CLERK_FAILS" ]; then echo "not logged in" >&2; exit 1; fi
 if [ "$1 $2" = "env pull" ]; then
   while [ $# -gt 0 ]; do
     if [ "$1" = "--file" ]; then pulled_file="$2"; fi
     shift
   done
+  if [ -n "$FAKE_CLERK_PULL_EMPTY" ]; then : > "$pulled_file"; exit 0; fi
   printf 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=%s\\nCLERK_SECRET_KEY=%s\\n' "$FAKE_PUBLISHABLE_KEY" "$FAKE_SECRET_KEY" > "$pulled_file"
   exit 0
 fi
@@ -38,8 +39,9 @@ esac
 
 const fakeVercel = `#!/bin/sh
 printf '%s\\n' "vercel $*" >> "$FAKE_LOG"
+printf 'vercel-env [%s]\\n' "$(env | grep -E '^VERCEL_' | cut -d= -f1 | sort | tr '\\n' ' ')" >> "$FAKE_LOG"
 if [ -n "$FAKE_VERCEL_FAILS" ]; then exit 1; fi
-printf 'NEXT_PUBLIC_MAPBOX_TOKEN="pk.fake-mapbox"\\nTURSO_DATABASE_URL="libsql://remote.turso.io"\\nTURSO_AUTH_TOKEN="remote-token"\\nCLERK_SECRET_KEY="sk_live_remote"\\n' > "$3"
+printf 'NEXT_PUBLIC_MAPBOX_TOKEN="%s"\\nTURSO_DATABASE_URL="libsql://remote.turso.io"\\nTURSO_AUTH_TOKEN="remote-token"\\nCLERK_SECRET_KEY="sk_live_remote"\\n' "$FAKE_MAPBOX_TOKEN" > "$3"
 `;
 
 const completeEnvLocal = [
@@ -55,22 +57,26 @@ type FakeBehaviour = {
   secretKey?: string;
   users?: string;
   vercelFails?: boolean;
+  mapboxToken?: string;
+  clerkFails?: boolean;
+  clerkMissing?: boolean;
+  clerkPullEmpty?: boolean;
+  migrationFails?: boolean;
   envLocal?: string;
   environment?: Record<string, string>;
 };
 
-function createFixture(envLocal: string | undefined): string {
+function createFixture({ envLocal, clerkMissing, migrationFails }: FakeBehaviour): string {
   const fixtureRoot = mkdtempSync(join(tmpdir(), "setup-"));
   fixtureRoots.push(fixtureRoot);
 
   mkdirSync(join(fixtureRoot, "bin"));
-  writeFileSync(join(fixtureRoot, "bin", "clerk"), fakeClerk);
-  writeFileSync(join(fixtureRoot, "bin", "vercel"), fakeVercel);
-  chmodSync(join(fixtureRoot, "bin", "clerk"), 0o755);
-  chmodSync(join(fixtureRoot, "bin", "vercel"), 0o755);
+
+  if (!clerkMissing) writeFileSync(join(fixtureRoot, "bin", "clerk"), fakeClerk, { mode: 0o755 });
+  writeFileSync(join(fixtureRoot, "bin", "vercel"), fakeVercel, { mode: 0o755 });
   writeFileSync(
     join(fixtureRoot, "package.json"),
-    JSON.stringify({ scripts: { "db:migrate": "touch migrated" } }),
+    JSON.stringify({ scripts: { "db:migrate": migrationFails ? "exit 1" : "touch migrated" } }),
   );
 
   if (envLocal !== undefined) writeFileSync(join(fixtureRoot, ".env.local"), envLocal);
@@ -81,9 +87,10 @@ function createFixture(envLocal: string | undefined): string {
 function runScript(
   script: string,
   behaviour: FakeBehaviour,
-  fixtureRoot = createFixture(behaviour.envLocal),
+  fixtureRoot = createFixture(behaviour),
 ) {
   const logPath = join(fixtureRoot, "calls.log");
+  const binDirectory = join(fixtureRoot, "bin");
 
   rmSync(logPath, { force: true });
 
@@ -92,13 +99,18 @@ function runScript(
     encoding: "utf8",
     env: {
       NODE_ENV: "development",
-      PATH: `${join(fixtureRoot, "bin")}:${process.env.PATH ?? ""}`,
+      PATH: behaviour.clerkMissing
+        ? `${binDirectory}:/usr/bin:/bin`
+        : `${binDirectory}:${process.env.PATH ?? ""}`,
       HOME: process.env.HOME,
       FAKE_LOG: logPath,
       FAKE_PUBLISHABLE_KEY: behaviour.publishableKey ?? "pk_test_pulled",
       FAKE_SECRET_KEY: behaviour.secretKey ?? "sk_test_pulled",
       FAKE_USERS: behaviour.users ?? "[]",
       FAKE_VERCEL_FAILS: behaviour.vercelFails ? "1" : "",
+      FAKE_MAPBOX_TOKEN: behaviour.mapboxToken ?? "pk.fake-mapbox",
+      FAKE_CLERK_FAILS: behaviour.clerkFails ? "1" : "",
+      FAKE_CLERK_PULL_EMPTY: behaviour.clerkPullEmpty ? "1" : "",
       ...behaviour.environment,
     },
   });
@@ -111,8 +123,9 @@ function runScript(
     exitCode: result.status,
     stdout: result.stdout,
     output: result.stdout + result.stderr,
-    calls: logLines.filter((line) => !line.startsWith("clerk-env ")),
-    clerkKeysSeen: logLines.filter((line) => line.startsWith("clerk-env ")),
+    calls: logLines.filter((line) => !/^(clerk|vercel)-env /.test(line)),
+    clerkEnvironment: logLines.filter((line) => line.startsWith("clerk-env ")),
+    vercelEnvironment: logLines.filter((line) => line.startsWith("vercel-env ")),
     envLocal: existsSync(envLocalPath) ? readFileSync(envLocalPath, "utf8") : null,
     migrated: existsSync(join(fixtureRoot, "migrated")),
   };
@@ -254,15 +267,34 @@ for (const [name, value] of [
     expect(run.calls).toEqual([]);
   });
 
-test("clerk never receives a Clerk key from the process environment or .env.local", () => {
+test("clerk never receives a CLERK_ variable or the Clerk publishable key", () => {
   const run = runSetup({
     envLocal: completeEnvLocal,
     users: '[{"id":"user_existing"}]',
-    environment: { CLERK_SECRET_KEY: "sk_test_shell", CLERK_PUBLISHABLE_KEY: "pk_test_shell" },
+    environment: {
+      CLERK_SECRET_KEY: "sk_test_shell",
+      CLERK_PUBLISHABLE_KEY: "pk_test_shell",
+      CLERK_API_URL: "https://api.clerk.example",
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_shell",
+    },
   });
 
   expect(run.exitCode).toBe(0);
-  expect(new Set(run.clerkKeysSeen)).toEqual(new Set(["clerk-env none none none"]));
+  expect(run.clerkEnvironment.length).toBeGreaterThan(0);
+  expect(new Set(run.clerkEnvironment)).toEqual(new Set(["clerk-env []"]));
+});
+
+test("vercel never receives a Vercel token, org or project from the process environment", () => {
+  const run = runSetup({
+    environment: {
+      VERCEL_TOKEN: "shell-token",
+      VERCEL_ORG_ID: "team_shell",
+      VERCEL_PROJECT_ID: "prj_shell",
+    },
+  });
+
+  expect(run.exitCode).toBe(0);
+  expect(run.vercelEnvironment).toEqual(["vercel-env []"]);
 });
 
 test("creates .env.local readable only by its owner", () => {
@@ -305,7 +337,7 @@ test("sign-in-token prints only a ten-minute token for the dev test user", () =>
   expect(run.stdout).toBe("token_fake\n");
   expect(run.calls.length).toBe(2);
   expect(run.calls.every((call) => call.endsWith("--instance dev"))).toBe(true);
-  expect(new Set(run.clerkKeysSeen)).toEqual(new Set(["clerk-env none none none"]));
+  expect(new Set(run.clerkEnvironment)).toEqual(new Set(["clerk-env []"]));
 
   const tokenCall = run.calls.find((call) =>
     call.startsWith("clerk api /sign_in_tokens --yes -d "),
@@ -338,4 +370,161 @@ test("reads single-quoted, exported and commented values in .env.local", () => {
   expect(run.exitCode).toBe(0);
   expect(run.envLocal).toBe(envLocal);
   expect(run.calls.some((call) => call.includes("env pull"))).toBe(false);
+});
+
+const databaseOutsideData = [
+  "file:/Users/someone/other-worktree/.data/dev.db",
+  "file:///Users/someone/other-worktree/.data/dev.db",
+  "file:.data/../../other-worktree/.data/dev.db",
+  "file:dev.db",
+  "file:.data",
+];
+
+for (const databaseUrl of databaseOutsideData) {
+  test(`refuses ${databaseUrl} in .env.local`, () => {
+    const envLocal = `TURSO_DATABASE_URL=${databaseUrl}\n`;
+    const run = runSetup({ envLocal });
+
+    expect(run.exitCode).toBe(1);
+    expect(run.output).toContain(
+      "TURSO_DATABASE_URL in .env.local must be a file inside this worktree's .data/",
+    );
+    expect(run.envLocal).toBe(envLocal);
+    expect(run.calls).toEqual([]);
+    expect(run.migrated).toBe(false);
+  });
+
+  test(`refuses ${databaseUrl} in the process environment`, () => {
+    const run = runSetup({ environment: { TURSO_DATABASE_URL: databaseUrl } });
+
+    expect(run.exitCode).toBe(1);
+    expect(run.output).toContain(
+      "TURSO_DATABASE_URL in the process environment (shell or .env) must be a file inside this worktree's .data/",
+    );
+    expect(run.envLocal).toBeNull();
+    expect(run.calls).toEqual([]);
+  });
+}
+
+test("accepts relative, absolute and file:/// databases inside this worktree's .data/", () => {
+  const fixtureRoot = createFixture({});
+
+  const databaseUrls = [
+    "file:.data/other.db",
+    `file:${fixtureRoot}/.data/other.db`,
+    `file://${fixtureRoot}/.data/other.db`,
+  ];
+
+  for (const databaseUrl of databaseUrls) {
+    writeFileSync(
+      join(fixtureRoot, ".env.local"),
+      completeEnvLocal.replace("file:.data/dev.db", databaseUrl),
+    );
+
+    const run = runSetup(
+      { users: '[{"id":"user_existing"}]', environment: { TURSO_DATABASE_URL: databaseUrl } },
+      fixtureRoot,
+    );
+
+    expect(run.exitCode).toBe(0);
+    expect(run.migrated).toBe(true);
+  }
+});
+
+test("refuses a Mapbox secret token in .env.local without printing it", () => {
+  const envLocal = completeEnvLocal.replace("pk.existing", "sk.secret-mapbox");
+  const run = runSetup({ envLocal });
+
+  expect(run.exitCode).toBe(1);
+  expect(run.output).toContain(
+    "NEXT_PUBLIC_MAPBOX_TOKEN in .env.local is not a Mapbox public token",
+  );
+  expect(run.output).not.toContain("sk.secret-mapbox");
+  expect(run.envLocal).toBe(envLocal);
+  expect(run.calls).toEqual([]);
+  expect(run.migrated).toBe(false);
+});
+
+test("refuses a Mapbox secret token in the process environment without printing it", () => {
+  const run = runSetup({ environment: { NEXT_PUBLIC_MAPBOX_TOKEN: "sk.secret-mapbox" } });
+
+  expect(run.exitCode).toBe(1);
+  expect(run.output).toContain(
+    "NEXT_PUBLIC_MAPBOX_TOKEN in the process environment (shell or .env) is not a Mapbox public token",
+  );
+  expect(run.output).not.toContain("sk.secret-mapbox");
+  expect(run.envLocal).toBeNull();
+  expect(run.calls).toEqual([]);
+});
+
+test("refuses a pulled Mapbox secret token and writes nothing", () => {
+  const run = runSetup({ mapboxToken: "sk.secret-mapbox" });
+
+  expect(run.exitCode).toBe(1);
+  expect(run.output).toContain(
+    "NEXT_PUBLIC_MAPBOX_TOKEN in the vercel env pull output is not a Mapbox public token",
+  );
+  expect(run.output).not.toContain("sk.secret-mapbox");
+  expect(run.envLocal).toBeNull();
+  expect(run.migrated).toBe(false);
+});
+
+const clerkLoginMessage =
+  "clerk CLI missing or not logged in: install it and run clerk auth login, then rerun bun run setup";
+
+test("setup exits 1 with a login hint when clerk is not on PATH", () => {
+  const run = runSetup({ clerkMissing: true });
+
+  expect(run.exitCode).toBe(1);
+  expect(run.output).toContain(clerkLoginMessage);
+  expect(run.output).toMatch(/ENOENT|not found/);
+  expect(run.output).not.toContain("    at ");
+  expect(run.envLocal).toBeNull();
+  expect(run.migrated).toBe(false);
+});
+
+test("setup exits 1 with a login hint when clerk fails", () => {
+  const run = runSetup({ clerkFails: true });
+
+  expect(run.exitCode).toBe(1);
+  expect(run.output).toContain(clerkLoginMessage);
+  expect(run.output).toContain("Command failed: clerk env pull");
+  expect(run.output).not.toContain("    at ");
+  expect(run.envLocal).toBeNull();
+  expect(existsSync(join(run.fixtureRoot, ".data", "clerk-dev.env"))).toBe(false);
+});
+
+test("sign-in-token exits 1 with a login hint when clerk is not on PATH", () => {
+  const run = runScript(signInTokenScript, { envLocal: completeEnvLocal, clerkMissing: true });
+
+  expect(run.exitCode).toBe(1);
+  expect(run.stdout).toBe("");
+  expect(run.output).toContain(clerkLoginMessage);
+  expect(run.output).not.toContain("    at ");
+});
+
+test("sign-in-token exits 1 with a login hint when clerk fails", () => {
+  const run = runScript(signInTokenScript, { envLocal: completeEnvLocal, clerkFails: true });
+
+  expect(run.exitCode).toBe(1);
+  expect(run.stdout).toBe("");
+  expect(run.output).toContain(clerkLoginMessage);
+  expect(run.output).toContain("Command failed: clerk api");
+});
+
+test("exits 1 when clerk env pull returns no keys", () => {
+  const run = runSetup({ clerkPullEmpty: true });
+
+  expect(run.exitCode).toBe(1);
+  expect(run.output).toContain("clerk env pull returned no NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.");
+  expect(run.envLocal).toBeNull();
+  expect(run.migrated).toBe(false);
+});
+
+test("exits 1 when bun run db:migrate fails", () => {
+  const run = runSetup({ migrationFails: true });
+
+  expect(run.exitCode).toBe(1);
+  expect(run.output).toContain("bun run db:migrate failed.");
+  expect(run.calls.some((call) => call.startsWith("clerk api /users"))).toBe(false);
 });

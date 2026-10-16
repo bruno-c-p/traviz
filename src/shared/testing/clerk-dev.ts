@@ -6,22 +6,37 @@ export const seededUserEmail = "agent+clerk_test@example.com";
 const userSchema = z.object({ id: z.string() });
 const signInTokenSchema = z.object({ token: z.string() });
 
-const clerkKeyVariables = [
-  "CLERK_SECRET_KEY",
-  "CLERK_PUBLISHABLE_KEY",
-  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-];
+class ClerkCliError extends Error {}
+
+export function exitOnClerkCliError(run: () => void): void {
+  try {
+    run();
+  } catch (cause: unknown) {
+    if (!(cause instanceof ClerkCliError)) throw cause;
+
+    console.error(cause.message);
+    process.exit(1);
+  }
+}
 
 export function runClerkDev(args: string[]): string {
   const environment = { ...process.env };
 
-  for (const name of clerkKeyVariables) delete environment[name];
+  for (const name of Object.keys(environment))
+    if (name.startsWith("CLERK_") || name === "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY")
+      delete environment[name];
 
-  return execFileSync("clerk", [...args, "--instance", "dev"], {
-    encoding: "utf8",
-    env: environment,
-    stdio: ["ignore", "pipe", "inherit"],
-  });
+  try {
+    return execFileSync("clerk", [...args, "--instance", "dev"], {
+      encoding: "utf8",
+      env: environment,
+      stdio: ["ignore", "pipe", "inherit"],
+    });
+  } catch (cause: unknown) {
+    throw new ClerkCliError(
+      `clerk CLI missing or not logged in: install it and run clerk auth login, then rerun bun run setup (${cause instanceof Error ? cause.message : String(cause)})`,
+    );
+  }
 }
 
 export function findSeededUserId(): string | undefined {
