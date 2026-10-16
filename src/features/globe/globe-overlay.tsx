@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AccountButton } from "@/components/account-button";
+import { AccountButton } from "@/features/auth";
 import { CountryCard } from "@/features/globe/country-card";
 import { CountrySearch } from "@/features/globe/country-search";
 import { CountrySheet } from "@/features/globe/country-sheet";

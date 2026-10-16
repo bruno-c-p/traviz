@@ -2,7 +2,7 @@
 
 import { countryCodeSchema } from "@/features/marks/schemas";
 import { deleteMarkForUser } from "@/features/marks/services/marks";
-import { requireUserId } from "@/lib/server/session";
+import { requireUserId } from "@/features/auth/server";
 
 export async function clearMarkAction(code: string): Promise<void> {
   const userId = await requireUserId();

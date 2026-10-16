@@ -1,5 +1,4 @@
-import { AuthCard } from "@/features/auth/components/auth-card";
-import { EmailLinkVerification } from "@/features/auth/components/email-link-verification";
+import { AuthCard, EmailLinkVerification } from "@/features/auth";
 
 export default function SignInVerifyPage() {
   return (

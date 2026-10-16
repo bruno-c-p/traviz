@@ -1,6 +1,6 @@
 "use client";
 
-import { AccountSection } from "@/components/account-section";
+import { AccountSection } from "@/features/auth";
 import { ContinentCard } from "@/features/stats/continent-card";
 import { DangerZone, STATE_COLORS, useCountriesStore } from "@/features/marks";
 import { ProgressCard } from "@/features/stats/progress-card";

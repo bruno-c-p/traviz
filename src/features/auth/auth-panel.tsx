@@ -1,5 +1,5 @@
-import { AuthCard } from "@/features/auth/components/auth-card";
-import { EmailLinkForm } from "@/features/auth/components/email-link-form";
+import { AuthCard } from "@/features/auth/auth-card";
+import { EmailLinkForm } from "@/features/auth/email-link-form";
 
 export function AuthPanel() {
   return (
