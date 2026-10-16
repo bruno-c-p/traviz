@@ -25,6 +25,8 @@ describe("ROUTES", () => {
   });
 
   test("has exactly one row for every page and route handler under src/app", () => {
-    expect(ROUTES.map((route) => route.path).sort()).toEqual(routeFiles().map(routePathOf).sort());
+    expect(ROUTES.map((route): string => route.path).sort()).toEqual(
+      routeFiles().map(routePathOf).sort(),
+    );
   });
 });

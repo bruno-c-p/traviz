@@ -1,9 +1,10 @@
 import { BarChart3, Globe, List } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { Route } from "next";
 import { homePath, listPath, statsPath } from "@/paths";
 
 export type NavigationItem = {
-  href: string;
+  href: Route;
   label: string;
   Icon: LucideIcon;
 };

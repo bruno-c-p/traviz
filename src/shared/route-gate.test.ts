@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { Route } from "next";
 import { homePath, listPath, signInPath, signInVerifyPath, statsPath } from "@/paths";
 import type { RouteAccess } from "@/paths";
 import { decideGate, redirectFor, routeAccess } from "@/shared/route-gate";
@@ -20,7 +21,7 @@ describe("routeAccess", () => {
 });
 
 describe("decideGate", () => {
-  const cases: { access: RouteAccess; isAuthenticated: boolean; redirect: string | undefined }[] = [
+  const cases: { access: RouteAccess; isAuthenticated: boolean; redirect: Route | undefined }[] = [
     { access: "signedIn", isAuthenticated: false, redirect: signInPath() },
     { access: "signedIn", isAuthenticated: true, redirect: undefined },
     { access: "signedOut", isAuthenticated: false, redirect: undefined },
@@ -38,7 +39,7 @@ describe("decideGate", () => {
 });
 
 describe("redirectFor", () => {
-  const cases: { pathname: string; isAuthenticated: boolean; redirect: string | undefined }[] = [
+  const cases: { pathname: string; isAuthenticated: boolean; redirect: Route | undefined }[] = [
     { pathname: signInVerifyPath(), isAuthenticated: true, redirect: undefined },
     { pathname: signInVerifyPath(), isAuthenticated: false, redirect: undefined },
     { pathname: signInPath(), isAuthenticated: true, redirect: homePath() },
