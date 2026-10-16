@@ -24,5 +24,7 @@ jobs:
           node-version: 24
       - run: bun install --frozen-lockfile
       - run: bun run check
-      - run: bun run fallow
-      - run: bun run react-doctor --no-telemetry
+      - if: ${{ !cancelled() }}
+        run: bun run fallow
+      - if: ${{ !cancelled() }}
+        run: bun run react-doctor --no-telemetry

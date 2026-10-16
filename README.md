@@ -106,7 +106,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 | `bun run test`          | Run the bun tests under `src`                                                                              |
 | `bun run test:rules`    | Run the lint rule tests in `tools/oxlint` with Node 24                                                     |
 | `bun run check:bundle`  | Check the last build's first-load JS and preloads against `bundle-budget.json`                             |
-| `bun run check`         | Run every CI check in order, including a build                                                             |
+| `bun run check`         | Run CI's checks, except fallow and react-doctor, with a build                                              |
 
 ## Country data
 

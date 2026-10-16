@@ -47,11 +47,20 @@ function createBuildFixture(): string {
   writeRouteStats(fixtureRoot, ["/", "/list"]);
   writeFileSync(
     join(fixtureRoot, ".next", "server", "app", "index.html"),
-    preloadTag("/_next/static/chunks/home.js"),
+    [
+      preloadTag("/_next/static/chunks/home.js"),
+      '<script src="/_next/static/chunks/shared.js" async="">',
+      '<script src="/_next/static/chunks/lazy.js" noModule="">',
+      '<script src="https://clerk.example.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js" async="">',
+    ].join(""),
   );
   writeFileSync(join(fixtureRoot, ".next", "server", "app", "list.html"), "<html></html>");
 
   return fixtureRoot;
+}
+
+function writeListHtml(fixtureRoot: string, html: string) {
+  writeFileSync(join(fixtureRoot, ".next", "server", "app", "list.html"), html);
 }
 
 function runCheckBundle(fixtureRoot: string, ...extraArguments: string[]) {
@@ -109,10 +118,7 @@ test("check:bundle fails when a route's first-load JS grows past the tolerance",
 test("check:bundle fails when the HTML preloads JS outside the route's first load", () => {
   const fixtureRoot = createBuildFixture();
   runCheckBundle(fixtureRoot, "--write");
-  writeFileSync(
-    join(fixtureRoot, ".next", "server", "app", "list.html"),
-    preloadTag("/_next/static/chunks/lazy.js?dpl=abc"),
-  );
+  writeListHtml(fixtureRoot, preloadTag("/_next/static/chunks/lazy.js?dpl=abc"));
 
   const { exitCode, output } = runCheckBundle(fixtureRoot);
 
@@ -125,8 +131,8 @@ test("check:bundle fails when the HTML preloads JS outside the route's first loa
 test("check:bundle fails when the HTML preloads a script from another origin", () => {
   const fixtureRoot = createBuildFixture();
   runCheckBundle(fixtureRoot, "--write");
-  writeFileSync(
-    join(fixtureRoot, ".next", "server", "app", "list.html"),
+  writeListHtml(
+    fixtureRoot,
     preloadTag("https://clerk.example.com/npm/@clerk/ui@1/dist/ui.browser.js"),
   );
 
@@ -168,5 +174,78 @@ test("check:bundle fails when a built route has no budget", () => {
   const { exitCode, output } = runCheckBundle(fixtureRoot);
 
   expect(output).toContain("/list has no budget");
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails on a modulepreload outside the route's first load", () => {
+  const fixtureRoot = createBuildFixture();
+  runCheckBundle(fixtureRoot, "--write");
+  writeListHtml(fixtureRoot, '<link rel="modulepreload" href="/_next/static/chunks/lazy.js"/>');
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain("/list preloads .next/static/chunks/lazy.js");
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails when the HTML loads a chunk the stats file leaves out", () => {
+  const fixtureRoot = createBuildFixture();
+  runCheckBundle(fixtureRoot, "--write");
+  writeListHtml(fixtureRoot, '<script src="/_next/static/chunks/lazy.js" async="">');
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain(
+    "/list HTML loads .next/static/chunks/lazy.js, which route-bundle-stats.json leaves out of its first-load JS",
+  );
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails when a route has no prerendered HTML", () => {
+  const fixtureRoot = createBuildFixture();
+  runCheckBundle(fixtureRoot, "--write");
+  rmSync(join(fixtureRoot, ".next", "server", "app", "list.html"));
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain("/list has no prerendered HTML");
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails when the stats file lists no routes", () => {
+  const fixtureRoot = createBuildFixture();
+  runCheckBundle(fixtureRoot, "--write");
+  writeRouteStats(fixtureRoot, []);
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain("is not a list of routes with first-load chunks");
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails on a budget key it does not know", () => {
+  const fixtureRoot = createBuildFixture();
+  writeFileSync(
+    join(fixtureRoot, "bundle-budget.json"),
+    JSON.stringify({
+      tolerance: { percent: 1, minBytes: 1024 },
+      routes: { "/": { firstLoadGzipBytes: 1, scriptOrigin: [] } },
+    }),
+  );
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain("bundle-budget.json is invalid");
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails on a script preload whose URL has no .js extension", () => {
+  const fixtureRoot = createBuildFixture();
+  runCheckBundle(fixtureRoot, "--write");
+  writeListHtml(fixtureRoot, preloadTag("https://www.googletagmanager.com/gtag/js?id=G-1"));
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain("/list preloads https://www.googletagmanager.com/gtag/js?id=G-1");
   expect(exitCode).toBe(1);
 });
