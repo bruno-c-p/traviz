@@ -48,7 +48,7 @@ export function computeStats(marks: Marks, countries: readonly Country[]): Stats
     const continentStats = byContinent[country.continent];
     continentStats.total += 1;
 
-    if (country.counted) {
+    if (country.kind === "sovereign") {
       headlineTotal += 1;
       continentStats.countedTotal += 1;
     }
@@ -57,7 +57,7 @@ export function computeStats(marks: Marks, countries: readonly Country[]): Stats
       totals[state] += 1;
       continentStats[state] += 1;
 
-      if (state === "visited" && country.counted) {
+      if (state === "visited" && country.kind === "sovereign") {
         headlineVisited += 1;
         continentStats.countedVisited += 1;
       }

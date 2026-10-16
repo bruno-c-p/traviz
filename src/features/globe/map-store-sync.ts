@@ -1,4 +1,4 @@
-import type { Map as MapboxMap } from "mapbox-gl";
+import type { ExpressionSpecification, FilterSpecification } from "mapbox-gl";
 import { countryCenter } from "@/features/countries";
 import type { Marks } from "@/features/marks";
 import {
@@ -12,7 +12,18 @@ import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 const FLY_TO_ZOOM = 3;
 
-function bindMarksSync(map: MapboxMap, initialMarks: Marks) {
+export interface SyncedMap {
+  setPaintProperty(
+    layerId: string,
+    name: "fill-color",
+    value: ExpressionSpecification | string,
+  ): void;
+  setFilter(layerId: string, filter: FilterSpecification): void;
+  flyTo(options: { center: [number, number]; zoom: number }): void;
+  getZoom(): number;
+}
+
+function bindMarksSync(map: SyncedMap, initialMarks: Marks) {
   const currentMarks = useCountriesStore.getState().marks;
 
   if (currentMarks !== initialMarks) {
@@ -24,7 +35,7 @@ function bindMarksSync(map: MapboxMap, initialMarks: Marks) {
   });
 }
 
-function bindSelectionSync(map: MapboxMap, stopSpin: () => void) {
+function bindSelectionSync(map: SyncedMap, stopSpin: () => void) {
   map.setFilter(
     SELECTED_LAYER_ID,
     buildSelectedFilter(useSelectedCountryStore.getState().selectedCode),
@@ -48,7 +59,7 @@ function bindSelectionSync(map: MapboxMap, stopSpin: () => void) {
   });
 }
 
-export function bindStoreSync(map: MapboxMap, initialMarks: Marks, stopSpin: () => void) {
+export function bindStoreSync(map: SyncedMap, initialMarks: Marks, stopSpin: () => void) {
   const unsubscribeMarks = bindMarksSync(map, initialMarks);
   const unsubscribeSelection = bindSelectionSync(map, stopSpin);
 

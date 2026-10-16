@@ -5,7 +5,7 @@ import type {
   SourceSpecification,
   StyleSpecification,
 } from "mapbox-gl";
-import { countryLabels } from "@/features/countries";
+import { countries } from "@/features/countries";
 import { COUNTRY_STATES, STATE_COLORS } from "@/features/marks";
 import type { Marks } from "@/features/marks";
 
@@ -38,6 +38,10 @@ const CONTINENT_LABELS = [
   { name: "Asia", coordinates: [90, 45] },
   { name: "Oceania", coordinates: [135, -25] },
 ];
+
+const COUNTRY_LABELS = countries
+  .filter((country) => country.hasGlobeLabel)
+  .map(({ name, center, area }) => ({ name, coordinates: [...center], area }));
 
 function pointCollection(points: { name: string; coordinates: number[]; area?: number }[]) {
   return {
@@ -108,7 +112,7 @@ const MAP_SOURCES = {
     url: "mapbox://mapbox.country-boundaries-v1",
     attribution: ATTRIBUTION,
   },
-  "country-labels": { type: "geojson", data: pointCollection(countryLabels) },
+  "country-labels": { type: "geojson", data: pointCollection(COUNTRY_LABELS) },
   "continent-labels": { type: "geojson", data: pointCollection(CONTINENT_LABELS) },
 } satisfies Record<string, SourceSpecification>;
 

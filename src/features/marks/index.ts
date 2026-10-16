@@ -2,6 +2,8 @@ export { COUNTRY_STATES, STATE_COLORS, STATE_LABELS } from "@/features/marks/col
 
 export type { Marks, StateColorKey } from "@/features/marks/colors";
 
+export { countByState } from "@/features/marks/count-by-state";
+
 export { useCountriesStore } from "@/features/marks/marks-store";
 
 export { forgetStoredMarks } from "@/features/marks/marks-storage";

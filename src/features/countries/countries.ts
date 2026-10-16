@@ -1,6 +1,4 @@
-import countriesData from "@/features/countries/countries.json";
-import countryLabels from "@/features/countries/country-labels.json";
-import type { Marks, StateColorKey } from "@/features/marks";
+import { COUNTRY_RECORDS } from "@/features/countries/countries.generated";
 
 export type Continent =
   | "Africa"
@@ -11,12 +9,17 @@ export type Continent =
   | "Oceania"
   | "Antarctica";
 
+export type CountryCode = (typeof COUNTRY_RECORDS)[number]["code"];
+
 export interface Country {
-  code: string;
+  code: CountryCode;
   name: string;
   flag: string;
   continent: Continent;
-  counted: boolean;
+  kind: "sovereign" | "territory";
+  center: readonly [longitude: number, latitude: number];
+  area: number;
+  hasGlobeLabel: boolean;
 }
 
 export const CONTINENT_ORDER: readonly Continent[] = [
@@ -29,34 +32,20 @@ export const CONTINENT_ORDER: readonly Continent[] = [
   "Antarctica",
 ];
 
-function toContinent(name: string): Continent {
-  const continent = CONTINENT_ORDER.find((candidate) => candidate === name);
+export const countries: readonly Country[] = COUNTRY_RECORDS;
 
-  if (!continent) throw new Error(`Unknown continent in countries.json: ${name}`);
-
-  return continent;
-}
-
-export const countries: readonly Country[] = countriesData.map((country) => ({
-  ...country,
-  continent: toContinent(country.continent),
-}));
-
-export const COUNTRIES_BY_CODE = new Map<string, Country>(
+export const COUNTRIES_BY_CODE: ReadonlyMap<string, Country> = new Map(
   countries.map((country) => [country.code, country]),
-);
-
-const LABEL_COORDINATES = new Map<string, number[]>(
-  countryLabels.map((label) => [label.name, label.coordinates]),
 );
 
 export function countryCenter(code: string): [number, number] | null {
   const country = COUNTRIES_BY_CODE.get(code);
-  const coordinates = country ? LABEL_COORDINATES.get(country.name) : undefined;
 
-  if (!coordinates || coordinates.length < 2) return null;
+  if (!country) return null;
 
-  return [coordinates[0], coordinates[1]];
+  const [longitude, latitude] = country.center;
+
+  return [longitude, latitude];
 }
 
 function normalizeSearchText(value: string): string {
@@ -66,7 +55,7 @@ function normalizeSearchText(value: string): string {
     .toLowerCase();
 }
 
-const NORMALIZED_NAMES = new Map(
+const NORMALIZED_NAMES = new Map<string, string>(
   countries.map((country) => [country.code, normalizeSearchText(country.name)]),
 );
 
@@ -96,22 +85,4 @@ export function searchCountries(query: string, pool: readonly Country[] = countr
         first.rank - second.rank || first.country.name.localeCompare(second.country.name),
     )
     .map((entry) => entry.country);
-}
-
-export function countByState(
-  pool: readonly Country[],
-  marks: Marks,
-): Record<StateColorKey, number> {
-  const counts: Record<StateColorKey, number> = {
-    visited: 0,
-    want: 0,
-    not_interested: 0,
-    unmarked: 0,
-  };
-
-  for (const country of pool) {
-    counts[marks[country.code] ?? "unmarked"] += 1;
-  }
-
-  return counts;
 }
