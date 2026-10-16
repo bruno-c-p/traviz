@@ -1,13 +1,18 @@
-export const homePath = (): string => "/";
-export const signInPath = (): string => "/sign-in";
-export const signInVerifyPath = (): string => "/sign-in/verify";
-export const listPath = (): string => "/list";
-export const statsPath = (): string => "/stats";
-export const accountPath = (): string => "/stats#account";
+import type { Route } from "next";
+
+export const homePath = (): Route => "/";
+export const signInPath = (): Route => "/sign-in";
+export const signInVerifyPath = (): Route => "/sign-in/verify";
+export const listPath = (): Route => "/list";
+export const statsPath = (): Route => "/stats";
+export const accountPath = (): Route => "/stats#account";
+
+export const decoratedPath = (decorateUrl: (url: string) => string, path: Route): Route =>
+  decorateUrl(path) as Route;
 
 export type RouteAccess = "signedIn" | "signedOut" | "anyone";
 
-export const ROUTES: readonly { path: string; access: RouteAccess }[] = [
+export const ROUTES: readonly { path: Route; access: RouteAccess }[] = [
   { path: homePath(), access: "signedIn" },
   { path: listPath(), access: "signedIn" },
   { path: statsPath(), access: "signedIn" },

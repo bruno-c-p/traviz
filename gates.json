@@ -244,7 +244,7 @@
   },
   "scripts": {
     "lint": "oxlint --type-aware --deny-warnings",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "bun test",
     "test:rules": "node --import ./tools/oxlint/node-test-setup.ts --test 'tools/oxlint/**/*.test.ts'",
     "format": "oxfmt .",

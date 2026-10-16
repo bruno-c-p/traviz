@@ -3,7 +3,7 @@ import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { homePath, signInVerifyPath } from "@/paths";
+import { decoratedPath, homePath, signInVerifyPath } from "@/paths";
 
 type EmailLinkStep = "email" | "sending" | "sent";
 
@@ -35,7 +35,7 @@ export function useEmailLinkSignIn() {
   }
 
   function navigateHome({ decorateUrl }: { decorateUrl: (url: string) => string }) {
-    const url = decorateUrl(homePath());
+    const url = decoratedPath(decorateUrl, homePath());
 
     if (url.startsWith("http")) {
       window.location.href = url;

@@ -18,7 +18,7 @@
     "format": "oxfmt .",
     "fallow": "fallow",
     "react-doctor": "react-doctor",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "check:docs": "bun scripts/check-docs.ts",
     "check:bundle": "bun scripts/check-bundle.ts",
     "check:gates": "bun scripts/check-gates.ts",
