@@ -208,7 +208,11 @@ test("check:gates fails on oxlint config that loosens rules from elsewhere", () 
   );
   expectFailure(
     ".oxlintrc.json.plugins differs from gates.json",
-    edit(".oxlintrc.json", '"plugins": ["react", "typescript", "oxc"]', '"plugins": ["react"]'),
+    edit(
+      ".oxlintrc.json",
+      '"plugins": ["react", "typescript", "oxc", "unicorn", "import"]',
+      '"plugins": ["react"]',
+    ),
   );
 });
 

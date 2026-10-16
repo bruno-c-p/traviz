@@ -1,4 +1,4 @@
-import { turso } from "../src/shared/server/database.ts";
+import { turso } from "@/shared/server/database";
 
 async function main(): Promise<void> {
   await turso.execute(`

@@ -98,7 +98,7 @@
     },
     ".oxlintrc.json": {
       "$schema": "./node_modules/oxlint/configuration_schema.json",
-      "plugins": ["react", "typescript", "oxc"],
+      "plugins": ["react", "typescript", "oxc", "unicorn", "import"],
       "categories": {
         "correctness": "error"
       },
@@ -112,6 +112,9 @@
           }
         ],
         "oxc/no-accumulating-spread": "error",
+        "react/no-multi-comp": "error",
+        "unicorn/filename-case": ["error", { "case": "kebabCase" }],
+        "import/no-relative-parent-imports": "error",
         "typescript/no-explicit-any": "error",
         "typescript/consistent-type-assertions": [
           "error",
