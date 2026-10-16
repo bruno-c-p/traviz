@@ -34,17 +34,12 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function fakeTransport() {
   const calls: FakeCall[] = [];
-  const deadlines: (() => void)[] = [];
   let serverMarks: Marks = {};
 
   const transport: MarksTransport = {
     applyMarkChange: (expectedOwnerId, change) =>
       new Promise((resolve, reject) => {
         calls.push({ expectedOwnerId, change, resolve, reject });
-      }),
-    sendDeadline: () =>
-      new Promise((resolve) => {
-        deadlines.push(() => resolve());
       }),
   };
 
@@ -67,13 +62,10 @@ function fakeTransport() {
     await flush();
   };
 
-  const fireDeadline = async (index: number) => {
-    deadlines[index]?.();
-    await flush();
-  };
-
-  return { transport, sent, answer, fail, fireDeadline, server: () => serverMarks };
+  return { transport, sent, answer, fail, server: () => serverMarks };
 }
+
+type FakeTransport = ReturnType<typeof fakeTransport>;
 
 function fakeCache(
   options: { stored?: CachedMarks; readFails?: boolean; writeFails?: boolean } = {},
@@ -158,74 +150,107 @@ describe("write, reset, write, appeared in 81cc227, open on main: resetAll calls
     ]);
     expect(server()).toEqual({ FRA: "want" });
   });
-});
 
-describe("F5.2 and F5.3, appeared in 81cc227 (PR #5), open on main: clearLocal clears pendingWrites but queued writes still run", () => {
-  test("a late reply from the previous account never reaches the next account", async () => {
-    const { owner, sent, answer, writes } = setup();
+  test("a reset after signing back in to the same account waits for the tap still on the wire", async () => {
+    const { owner, sent, answer } = setup();
     owner.startSession(OWNER);
     owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
     owner.requestChange(tapDeu);
-    owner.requestChange(tapFra);
     await flush();
 
     owner.endSession();
+    owner.startSession(OWNER);
+    owner.requestChange(resetAll);
+    await flush();
+
+    expect(sent()).toEqual([[OWNER, tapDeu]]);
+
+    await answer(0);
+
+    expect(sent()).toEqual([
+      [OWNER, tapDeu],
+      [OWNER, resetAll],
+    ]);
+  });
+});
+
+describe("F5.2 and F5.3, appeared in 81cc227 (PR #5), open on main: clearLocal clears pendingWrites but queued writes still run", () => {
+  const previousAccountReplies = [
+    { kind: "saved", reply: (fake: FakeTransport) => fake.answer(0) },
+    {
+      kind: "failed",
+      reply: (fake: FakeTransport) => fake.answer(0, { ok: false, reason: "rejected" }),
+    },
+    { kind: "rejected", reply: (fake: FakeTransport) => fake.fail(0) },
+  ];
+
+  for (const { kind, reply } of previousAccountReplies) {
+    test(`a ${kind} reply from the previous account never reaches the next account, whose tap goes out after it`, async () => {
+      const fake = setup();
+      const { owner, sent, answer, writes } = fake;
+      owner.startSession(OWNER);
+      owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
+      owner.requestChange(tapDeu);
+      owner.requestChange(tapFra);
+      await flush();
+
+      owner.endSession();
+      owner.startSession(OTHER_OWNER);
+      owner.receiveSnapshot({ ok: true, ownerId: OTHER_OWNER, marks: {} });
+      owner.requestChange(tapIta);
+      await flush();
+
+      expect(sent()).toEqual([[OWNER, tapDeu]]);
+
+      await reply(fake);
+
+      expect(visibleMarks(owner.getState())).toEqual({ ITA: "visited" });
+      expect(owner.getState().problems).toEqual([]);
+      expect(writes).toEqual([
+        { ownerId: OWNER, marks: {} },
+        { ownerId: OTHER_OWNER, marks: {} },
+      ]);
+      expect(sent()).toEqual([
+        [OWNER, tapDeu],
+        [OTHER_OWNER, tapIta],
+      ]);
+
+      await answer(1);
+
+      expect(sent()).toEqual([
+        [OWNER, tapDeu],
+        [OTHER_OWNER, tapIta],
+      ]);
+      expect(visibleMarks(owner.getState())).toEqual({ ITA: "visited" });
+      expect(writes).toEqual([
+        { ownerId: OWNER, marks: {} },
+        { ownerId: OTHER_OWNER, marks: {} },
+        { ownerId: OTHER_OWNER, marks: { ITA: "visited" } },
+      ]);
+    });
+  }
+
+  test("switching accounts without ending the session holds the next account's tap until the previous reply", async () => {
+    const { owner, sent, answer } = setup();
+    owner.startSession(OWNER);
+    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
+    owner.requestChange(tapDeu);
+    await flush();
+
     owner.startSession(OTHER_OWNER);
     owner.receiveSnapshot({ ok: true, ownerId: OTHER_OWNER, marks: {} });
     owner.requestChange(tapIta);
     await flush();
 
+    expect(sent()).toEqual([[OWNER, tapDeu]]);
+
+    await answer(0);
+
+    expect(visibleMarks(owner.getState())).toEqual({ ITA: "visited" });
     expect(sent()).toEqual([
       [OWNER, tapDeu],
       [OTHER_OWNER, tapIta],
     ]);
-
-    await answer(0);
-
-    expect(sent()).toEqual([
-      [OWNER, tapDeu],
-      [OTHER_OWNER, tapIta],
-    ]);
-    expect(visibleMarks(owner.getState())).toEqual({ ITA: "visited" });
-    expect(owner.getState().base).toEqual({ source: "server", marks: {} });
-    expect(writes.filter((cached) => cached.ownerId === OTHER_OWNER)).toEqual([
-      { ownerId: OTHER_OWNER, marks: {} },
-    ]);
-  });
-
-  test("a deadline for the previous account's change does not settle the next account's change", async () => {
-    const { owner, fireDeadline, answer } = setup();
-    owner.startSession(OWNER);
-    owner.requestChange(tapDeu);
-    await flush();
-
-    owner.endSession();
-    owner.startSession(OTHER_OWNER);
-    owner.requestChange(tapIta);
-    await flush();
-
-    await fireDeadline(0);
-    expect(owner.getState().pending.map((entry) => entry.phase)).toEqual(["sending"]);
-    expect(owner.getState().problems).toEqual([]);
-
-    await answer(0);
-    expect(owner.getState().pending.map((entry) => entry.phase)).toEqual(["sending"]);
-  });
-
-  test("a failed reply for the previous account's change does not settle the next account's change", async () => {
-    const { owner, fail } = setup();
-    owner.startSession(OWNER);
-    owner.requestChange(tapDeu);
-    await flush();
-
-    owner.endSession();
-    owner.startSession(OTHER_OWNER);
-    owner.requestChange(tapIta);
-    await flush();
-
-    await fail(0);
-    expect(owner.getState().pending.map((entry) => entry.phase)).toEqual(["sending"]);
-    expect(visibleMarks(owner.getState())).toEqual({ ITA: "visited" });
   });
 });
 
@@ -294,7 +319,6 @@ describe("marks owner", () => {
 
         return Promise.resolve(SAVED);
       },
-      sendDeadline: () => new Promise(() => undefined),
     };
 
     const owner = createMarksOwner(transport, fakeCache().cache);
@@ -308,41 +332,6 @@ describe("marks owner", () => {
     expect(calls).toEqual([tapDeu, tapFra]);
     expect(visibleMarks(owner.getState())).toEqual({ FRA: "want" });
     expect(owner.getState().problems).toEqual([{ scope: "DEU", reason: "unavailable" }]);
-  });
-
-  test("a deadline before the reply settles as unavailable and sends the next change", async () => {
-    const { owner, sent, fireDeadline, answer } = setup();
-    owner.startSession(OWNER);
-    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
-    owner.requestChange(tapDeu);
-    owner.requestChange(tapFra);
-    await flush();
-
-    await fireDeadline(0);
-
-    expect(visibleMarks(owner.getState())).toEqual({ FRA: "want" });
-    expect(owner.getState().problems).toEqual([{ scope: "DEU", reason: "unavailable" }]);
-    expect(sent()).toEqual([
-      [OWNER, tapDeu],
-      [OWNER, tapFra],
-    ]);
-
-    await answer(0);
-    expect(visibleMarks(owner.getState())).toEqual({ FRA: "want" });
-  });
-
-  test("a deadline after the reply is ignored", async () => {
-    const { owner, answer, fireDeadline } = setup();
-    owner.startSession(OWNER);
-    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
-    owner.requestChange(tapDeu);
-    await flush();
-
-    await answer(0);
-    await fireDeadline(0);
-
-    expect(visibleMarks(owner.getState())).toEqual({ DEU: "visited" });
-    expect(owner.getState().problems).toEqual([]);
   });
 
   test("the cache is written for a server base and again when a saved change moves it", async () => {
@@ -365,7 +354,7 @@ describe("marks owner", () => {
     ]);
   });
 
-  test("the cache is never written for a cache or empty base", async () => {
+  test("the cache is never written for a cache base", async () => {
     const { owner, answer, writes } = setup({ stored: { ownerId: OWNER, marks: { FRA: "want" } } });
     owner.startSession(OWNER);
     owner.requestChange(tapDeu);
@@ -377,6 +366,29 @@ describe("marks owner", () => {
       marks: { FRA: "want", DEU: "visited" },
     });
     expect(writes).toEqual([]);
+  });
+
+  test("the cache is never written for an empty base", async () => {
+    const { owner, answer, writes } = setup();
+    owner.startSession(OWNER);
+    owner.requestChange(tapDeu);
+    await flush();
+    await answer(0);
+
+    expect(visibleMarks(owner.getState())).toEqual({ DEU: "visited" });
+    expect(writes).toEqual([]);
+  });
+
+  test("a reply for another account rolls the change back and records why", async () => {
+    const { owner, answer } = setup();
+    owner.startSession(OWNER);
+    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: { FRA: "want" } });
+    owner.requestChange(tapDeu);
+    await flush();
+    await answer(0, { ok: false, reason: "other-account" });
+
+    expect(visibleMarks(owner.getState())).toEqual({ FRA: "want" });
+    expect(owner.getState().problems).toEqual([{ scope: "DEU", reason: "other-account" }]);
   });
 
   test("a cached snapshot shows at session start", () => {

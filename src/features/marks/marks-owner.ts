@@ -14,7 +14,6 @@ export type MarksTransport = {
     expectedOwnerId: string,
     change: MarkChange,
   ) => Promise<MarkChangeResult>;
-  readonly sendDeadline: () => Promise<void>;
 };
 
 export type MarksCache = {
@@ -34,6 +33,7 @@ const UNAVAILABLE: MarkChangeResult = { ok: false, reason: "unavailable" };
 
 export function createMarksOwner(transport: MarksTransport, cache: MarksCache): MarksOwner {
   let state = INITIAL_MARKS_SYNC_STATE;
+  let requestInFlight = false;
 
   const readCache = (): CachedMarks | null => {
     try {
@@ -69,24 +69,24 @@ export function createMarksOwner(transport: MarksTransport, cache: MarksCache): 
     }
   };
 
-  const sendOldestWaiting = () => {
+  const sendOldestUnsaved = () => {
     const { ownerId } = state;
     const entry = state.pending.find((candidate) => candidate.phase !== "saved");
 
-    if (entry?.phase !== "waiting" || ownerId === null) return;
+    if (requestInFlight || ownerId === null || entry === undefined) return;
 
+    requestInFlight = true;
     dispatch({ type: "change-sent", id: entry.id });
 
-    const deadline = transport.sendDeadline().then(() => UNAVAILABLE);
-
-    void Promise.race([applyMarkChange(ownerId, entry.change), deadline]).then((result) => {
+    void applyMarkChange(ownerId, entry.change).then((result) => {
+      requestInFlight = false;
       handle({ type: "change-settled", id: entry.id, result });
     });
   };
 
   const handle = (event: MarksSyncEvent) => {
     dispatch(event);
-    sendOldestWaiting();
+    sendOldestUnsaved();
   };
 
   return {
