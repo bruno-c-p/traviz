@@ -1,13 +1,3 @@
-/**
- * Build script: Extract country metadata from world-countries package.
- *
- * This generates a slim JSON file with only country name, code, flag, continent, and count status.
- * The geometry comes from Mapbox at runtime; we do NOT extract GeoJSON.
- *
- * Note: The generated list is ISO 3166-1 official entries only. The Mapbox `country-boundaries-v1`
- * tileset may contain codes not present here. Kosovo (XKX/XK) is the known case — it has no official
- * ISO code, so it does not appear in world-countries and will be unmatched at runtime.
- */
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -34,7 +24,6 @@ function mapRegionToContinent(
       return "South America";
     }
 
-    // Caribbean, Central America, North America, Northern America -> North America
     return "North America";
   }
 
@@ -84,7 +73,6 @@ const processed = countries
       continentCounts[continent]++;
     }
 
-    // Apply fallback for missing/empty flags (e.g., BES, unrecognized territories)
     let flag = country.flag;
 
     if (!flag || flag.trim() === "") {
@@ -102,7 +90,6 @@ const processed = countries
   })
   .sort((a, b) => a.name.localeCompare(b.name));
 
-// Verify no empty flags remain
 const emptyFlags = processed.filter((c) => !c.flag || c.flag.trim() === "");
 
 if (emptyFlags.length > 0) {
@@ -111,15 +98,10 @@ if (emptyFlags.length > 0) {
   );
 }
 
-// Verify exactly 195 counted entries.
-// Note: world-countries marks Vatican City (VAT) as unMember: true despite it being a permanent UN observer
-// (not a full member). This means VAT arrives via the unMember set, not as an explicit observer addition.
-// We add PSE explicitly because it is marked unMember: false in world-countries.
 if (countedCount !== 195) {
   throw new Error(`Expected exactly 195 counted entries, got ${countedCount}`);
 }
 
-// Verify VAT and PSE are both in the counted set
 const vat = processed.find((c) => c.code === "VAT");
 const pse = processed.find((c) => c.code === "PSE");
 
