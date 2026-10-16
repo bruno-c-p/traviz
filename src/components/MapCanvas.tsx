@@ -9,7 +9,18 @@ import { STATE_COLORS } from "@/lib/colors";
 import { mountGlobe } from "@/lib/mount-globe";
 import { homePath } from "@/paths";
 
-const mapboxModulePromise = typeof window === "undefined" ? null : import("mapbox-gl");
+function reportMapLoadFailure(cause: unknown) {
+  console.error("The map could not load.", cause);
+}
+
+const mapboxModulePromise =
+  typeof window === "undefined"
+    ? null
+    : import("mapbox-gl").catch((cause: unknown) => {
+        reportMapLoadFailure(cause);
+
+        return null;
+      });
 
 export function MapCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,17 +41,19 @@ export function MapCanvas() {
     let isCancelled = false;
     let unmount: (() => void) | undefined;
 
-    mapboxModulePromise?.then(({ default: mapbox }) => {
-      if (isCancelled) return;
+    mapboxModulePromise
+      ?.then((mapboxModule) => {
+        if (isCancelled || !mapboxModule) return;
 
-      const globe = mountGlobe(mapbox, container, () => isMapRouteRef.current);
+        const globe = mountGlobe(mapboxModule.default, container, () => isMapRouteRef.current);
 
-      mapRef.current = globe.map;
-      unmount = () => {
-        mapRef.current = null;
-        globe.unmount();
-      };
-    });
+        mapRef.current = globe.map;
+        unmount = () => {
+          mapRef.current = null;
+          globe.unmount();
+        };
+      })
+      .catch(reportMapLoadFailure);
 
     return () => {
       isCancelled = true;
