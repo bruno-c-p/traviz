@@ -40,10 +40,11 @@ if (!existsSync(statsPath))
   fail(`${statsPath} not found. Run bun run build first. ${statsChangedHint}`);
 
 function readJson<T>(path: string, schema: z.ZodType<T>, problem: string): T {
+  const text = readFileSync(path, "utf8");
   let json: unknown;
 
   try {
-    json = JSON.parse(readFileSync(path, "utf8"));
+    json = JSON.parse(text);
   } catch {
     fail(`${path} is not valid JSON. ${problem}`);
   }
@@ -89,7 +90,11 @@ const firstLoadGzipBytesByRoute = new Map(
 function readBudget(): Budget | null {
   if (!existsSync(budgetPath)) return null;
 
-  return readJson(budgetPath, budgetSchema, "Fix it, or run bun run check:bundle --write.");
+  return readJson(
+    budgetPath,
+    budgetSchema,
+    "Fix it, or delete it and run bun run check:bundle --write.",
+  );
 }
 
 function writeBudget(previous: Budget | null): Budget {

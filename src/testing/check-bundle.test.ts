@@ -1,7 +1,14 @@
 import { afterAll, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -269,6 +276,30 @@ test("check:bundle fails when a chunk in the stats file is missing on disk", () 
 
   expect(output).toContain(
     ".next/static/chunks/home.js is in route-bundle-stats.json but not on disk",
+  );
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle --write keeps a hand-tuned tolerance", () => {
+  const fixtureRoot = createBuildFixture();
+  const budgetPath = join(fixtureRoot, "bundle-budget.json");
+  writeFileSync(
+    budgetPath,
+    JSON.stringify({ tolerance: { percent: 5, minBytes: 2048 }, routes: {} }),
+  );
+
+  expect(runCheckBundle(fixtureRoot, "--write").exitCode).toBe(0);
+  expect(readFileSync(budgetPath, "utf8")).toContain('"percent": 5');
+});
+
+test("check:bundle points to a working recovery when the budget is invalid", () => {
+  const fixtureRoot = createBuildFixture();
+  writeFileSync(join(fixtureRoot, "bundle-budget.json"), "");
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot, "--write");
+
+  expect(output).toContain(
+    "is not valid JSON. Fix it, or delete it and run bun run check:bundle --write.",
   );
   expect(exitCode).toBe(1);
 });
