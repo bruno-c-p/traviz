@@ -48,7 +48,7 @@ bun run dev
 
 - Pulls the Clerk development keys with `clerk env pull --instance dev`. It refuses to write a `pk_live_` or `sk_live_` key.
 - Pulls only `NEXT_PUBLIC_MAPBOX_TOKEN` from the Vercel development environment. Without a token the globe shows a flat placeholder, and the list, stats and sign-in still work.
-- Sets `TURSO_DATABASE_URL=file:.data/dev.db` and runs `bun run db:migrate`. Marks live in `.data/dev.db` inside each worktree, so no worktree writes a shared database. Setup refuses to run when `.env.local` already names a remote database.
+- Sets `TURSO_DATABASE_URL=file:.data/dev.db` and runs `bun run db:migrate`. Marks live in `.data/dev.db` inside each worktree, so no worktree writes a shared database. Setup refuses to run when `.env.local` or the process environment (shell or `.env`) names a remote database or a live Clerk key.
 - Creates the Clerk development user `agent+clerk_test@example.com` if it does not exist yet.
 
 `.env.example` lists the same variables.

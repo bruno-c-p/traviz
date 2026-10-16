@@ -6,9 +6,20 @@ export const seededUserEmail = "agent+clerk_test@example.com";
 const userSchema = z.object({ id: z.string() });
 const signInTokenSchema = z.object({ token: z.string() });
 
+const clerkKeyVariables = [
+  "CLERK_SECRET_KEY",
+  "CLERK_PUBLISHABLE_KEY",
+  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+];
+
 export function runClerkDev(args: string[]): string {
+  const environment = { ...process.env };
+
+  for (const name of clerkKeyVariables) delete environment[name];
+
   return execFileSync("clerk", [...args, "--instance", "dev"], {
     encoding: "utf8",
+    env: environment,
     stdio: ["ignore", "pipe", "inherit"],
   });
 }

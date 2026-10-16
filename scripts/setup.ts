@@ -1,13 +1,14 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { parseArgs } from "node:util";
+import { parseArgs, parseEnv } from "node:util";
 import { runClerkDev, seededUserEmail, seedUser } from "@/shared/testing/clerk-dev";
 
 const { values: options } = parseArgs({ options: { root: { type: "string" } } });
 const root = resolve(options.root ?? join(import.meta.dirname, ".."));
 const dataDirectory = join(root, ".data");
 const envLocalPath = join(root, ".env.local");
+const processEnvironmentSource = "the process environment (shell or .env)";
 
 const clerkDevelopmentKeyPrefixes = [
   ["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "pk_test_"],
@@ -19,29 +20,13 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-function unquote(value: string): string {
-  return /^"(.*)"$/s.exec(value)?.[1] ?? value;
-}
-
 function readEnvFile(filePath: string): Map<string, string> {
   if (!existsSync(filePath)) return new Map();
 
   return new Map(
-    readFileSync(filePath, "utf8")
-      .split("\n")
-      .flatMap((line): [string, string][] => {
-        const trimmedLine = line.trim();
-        const separatorIndex = trimmedLine.indexOf("=");
-
-        if (trimmedLine.startsWith("#") || separatorIndex < 1) return [];
-
-        return [
-          [
-            trimmedLine.slice(0, separatorIndex).trim(),
-            unquote(trimmedLine.slice(separatorIndex + 1).trim()),
-          ],
-        ];
-      }),
+    Object.entries(parseEnv(readFileSync(filePath, "utf8"))).flatMap(
+      ([name, value]): [string, string][] => (value === undefined ? [] : [[name, value]]),
+    ),
   );
 }
 
@@ -60,7 +45,7 @@ function pullEnvFile(fileName: string, pull: (filePath: string) => void): Map<st
 function refuseRemoteDatabase(existing: Map<string, string>): void {
   const sources = [
     [".env.local", existing.get("TURSO_DATABASE_URL")],
-    ["the shell environment", process.env.TURSO_DATABASE_URL],
+    [processEnvironmentSource, process.env.TURSO_DATABASE_URL],
   ] as const;
 
   for (const [source, databaseUrl] of sources)
@@ -85,19 +70,22 @@ function pullClerkKeys(existing: Map<string, string>, additions: Map<string, str
 }
 
 function refuseNonDevelopmentClerkKeys(
-  existing: Map<string, string>,
-  additions: Map<string, string>,
+  source: string,
+  lookup: (name: string) => string | undefined,
 ): void {
   for (const [name, prefix] of clerkDevelopmentKeyPrefixes) {
-    const value = existing.get(name) ?? additions.get(name);
+    const value = lookup(name);
 
-    if (value === undefined) fail(`clerk env pull returned no ${name}.`);
-
-    if (!value.startsWith(prefix))
+    if (value !== undefined && !value.startsWith(prefix))
       fail(
-        `Refusing: ${name} is not a Clerk development key (${prefix}). Setup only writes development keys.`,
+        `Refusing: ${name} in ${source} is not a Clerk development key (${prefix}). Setup only writes development keys.`,
       );
   }
+}
+
+function requireClerkKeys(existing: Map<string, string>, additions: Map<string, string>): void {
+  for (const [name] of clerkDevelopmentKeyPrefixes)
+    if (!existing.has(name) && !additions.has(name)) fail(`clerk env pull returned no ${name}.`);
 }
 
 function pullMapboxToken(): string | undefined {
@@ -109,7 +97,11 @@ function pullMapboxToken(): string | undefined {
         { stdio: ["ignore", "ignore", "inherit"] },
       );
     }).get("NEXT_PUBLIC_MAPBOX_TOKEN");
-  } catch {
+  } catch (cause: unknown) {
+    console.log(
+      `vercel env pull failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
+
     return undefined;
   }
 }
@@ -133,7 +125,7 @@ function appendToEnvLocal(additions: Map<string, string>): void {
   const separator = current === "" || current.endsWith("\n") ? "" : "\n";
   const lines = [...additions].map(([name, value]) => `${name}=${value}\n`);
 
-  appendFileSync(envLocalPath, separator + lines.join(""));
+  appendFileSync(envLocalPath, separator + lines.join(""), { mode: 0o600 });
 }
 
 function runMigration(): void {
@@ -150,9 +142,12 @@ function main(): void {
   const additions = new Map<string, string>();
 
   refuseRemoteDatabase(existing);
+  refuseNonDevelopmentClerkKeys(".env.local", (name) => existing.get(name));
+  refuseNonDevelopmentClerkKeys(processEnvironmentSource, (name) => process.env[name]);
   mkdirSync(dataDirectory, { recursive: true });
   pullClerkKeys(existing, additions);
-  refuseNonDevelopmentClerkKeys(existing, additions);
+  refuseNonDevelopmentClerkKeys("the clerk env pull output", (name) => additions.get(name));
+  requireClerkKeys(existing, additions);
   addMapboxToken(existing, additions);
 
   if (!existing.has("TURSO_DATABASE_URL")) additions.set("TURSO_DATABASE_URL", "file:.data/dev.db");
