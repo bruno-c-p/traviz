@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, rmSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import {
   findFreePort,
@@ -32,6 +32,14 @@ function fail(message: string): never {
   process.exit(1);
 }
 
+function readRecord(): ReturnType<typeof readInstance> {
+  try {
+    return readInstance();
+  } catch (cause: unknown) {
+    return fail(cause instanceof Error ? cause.message : String(cause));
+  }
+}
+
 function build(environment: Environment): void {
   const tree = treeFingerprint();
   const log = openSync(buildLogFile, "w");
@@ -56,7 +64,7 @@ function build(environment: Environment): void {
 }
 
 function prepare(): Environment {
-  const existing = readInstance();
+  const existing = readRecord();
 
   if (existing && isAlive(existing.pid))
     fail(
@@ -126,12 +134,7 @@ function signalGroup(pid: number, signal: NodeJS.Signals): void {
 }
 
 async function stop(): Promise<void> {
-  const instance = readInstance();
-
-  if (!instance && existsSync(instanceFile))
-    fail(
-      `${instanceFile} is not a valid server record, so its server cannot be stopped safely. Read the file, stop that PID's process group by hand, then delete the file.`,
-    );
+  const instance = readRecord();
 
   if (!instance) return console.log("no verify server recorded in this worktree");
 

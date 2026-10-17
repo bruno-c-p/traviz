@@ -30,13 +30,26 @@ export type BuildStamp = z.infer<typeof buildStampSchema>;
 export function readInstance(): Instance | undefined {
   if (!existsSync(instanceFile)) return undefined;
 
-  try {
-    return instanceSchema.parse(JSON.parse(readFileSync(instanceFile, "utf8")));
-  } catch {
-    console.error(`Ignored ${instanceFile}, which is not a valid server record.`);
+  const parsed = z
+    .string()
+    .transform((text, context) => {
+      try {
+        return z.unknown().parse(JSON.parse(text));
+      } catch {
+        context.addIssue({ code: "custom", message: "not JSON" });
 
-    return undefined;
-  }
+        return z.NEVER;
+      }
+    })
+    .pipe(instanceSchema)
+    .safeParse(readFileSync(instanceFile, "utf8"));
+
+  if (!parsed.success)
+    throw new Error(
+      `${instanceFile} is not a valid server record, so the server it named cannot be found safely. Read the file, stop that process group by hand, then delete the file.`,
+    );
+
+  return parsed.data;
 }
 
 export function readBuildStamp(): BuildStamp | undefined {

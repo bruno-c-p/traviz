@@ -36,9 +36,10 @@ const heightCap = 4_000;
 
 async function growToContent(page: Page, width: number): Promise<void> {
   let height = viewportHeight(width);
+  let bottom = height;
 
   for (let attempt = 0; attempt < 4; attempt++) {
-    const bottom = Math.ceil(z.number().parse(await page.evaluate(contentBottom)));
+    bottom = Math.ceil(z.number().parse(await page.evaluate(contentBottom)));
 
     if (bottom <= height || height >= heightCap) break;
 
@@ -47,7 +48,8 @@ async function growToContent(page: Page, width: number): Promise<void> {
     await settle(page);
   }
 
-  if (height >= heightCap) console.log(`${page.url()} at ${width} px was cut at ${heightCap} px`);
+  if (bottom > height)
+    console.log(`${page.url()} at ${width} px was cut at ${height} of ${bottom} px`);
 }
 
 function fileName(route: string, width: number, suffix: string): string {

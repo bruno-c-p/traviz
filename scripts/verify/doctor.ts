@@ -68,7 +68,17 @@ check(
     : `source changed since the build at ${stamp?.builtAt ?? "never"}. Run bun run verify:server stop, then bun run verify:server start`,
 );
 
-const instance = readInstance();
+let instance: ReturnType<typeof readInstance>;
+let recordFailure: string | undefined;
+
+try {
+  instance = readInstance();
+} catch (cause: unknown) {
+  recordFailure = cause instanceof Error ? cause.message : String(cause);
+}
+
+check(".data/verify/server.json is readable", recordFailure);
+
 const isRunning = instance !== undefined && isAlive(instance.pid);
 
 check(
