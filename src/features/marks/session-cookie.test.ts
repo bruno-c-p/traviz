@@ -48,3 +48,16 @@ test("an owner id that only appears in a nested claim answers false", () => {
 
   expect(isSignedInAs(`__session=${impersonated}`, "user_a")).toBe(false);
 });
+
+test("a suffixed session cookie decides over a bare one", () => {
+  const cookie = `__session=${sessionFor("user_a")}; __session_abc=${sessionFor("user_b")}`;
+
+  expect(isSignedInAs(cookie, "user_a")).toBe(false);
+  expect(isSignedInAs(cookie, "user_b")).toBe(true);
+});
+
+test("any of several suffixed session cookies can name the owner", () => {
+  const cookie = `__session_abc=${sessionFor("user_b")}; __session_def=${sessionFor("user_a")}`;
+
+  expect(isSignedInAs(cookie, "user_a")).toBe(true);
+});
