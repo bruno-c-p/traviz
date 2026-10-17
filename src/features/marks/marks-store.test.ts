@@ -448,8 +448,23 @@ describe("a late reply after the deadline", () => {
     expect(store.getState().marks).toEqual({});
   });
 
+  test("a newer failure on the same country survives the late reply", async () => {
+    const { store, signIn, answer, expire, answerRead } = setup();
+    signIn(OWNER);
+    store.getState().toggle("DEU", "visited");
+    await flush();
+    await expire(0);
+    store.getState().toggle("DEU", "want");
+    await answer(0);
+    await answer(1, { ok: false, reason: "rejected" });
+    await answerRead(0);
+
+    expect(store.getState().marks).toEqual({ DEU: "visited" });
+    expect(store.getState().problems).toEqual([{ scope: "DEU", reason: "rejected" }]);
+  });
+
   for (const readThrows of [false, true]) {
-    test(`a fresh read that ${readThrows ? "throws" : "fails"} leaves the screen as it was`, async () => {
+    test(`a saved late reply brings the colour back even when the fresh read ${readThrows ? "throws" : "fails"}`, async () => {
       const { store, signIn, answer, expire, failRead } = setup({ readThrows });
       signIn(OWNER);
       store.getState().toggle("DEU", "visited");
@@ -460,8 +475,8 @@ describe("a late reply after the deadline", () => {
       store.getState().toggle("FRA", "want");
       await flush();
 
-      expect(store.getState().marks).toEqual({ FRA: "want" });
-      expect(store.getState().problems).toEqual([{ scope: "DEU", reason: "unavailable" }]);
+      expect(store.getState().marks).toEqual({ DEU: "visited", FRA: "want" });
+      expect(store.getState().problems).toEqual([]);
     });
   }
 });

@@ -10,6 +10,7 @@ import {
   type MarkChangeFailure,
   type MarksSyncEvent,
   type MarksSyncState,
+  type SyncProblem,
 } from "@/features/marks/marks-sync";
 
 const OWNER = "user_a";
@@ -514,6 +515,45 @@ describe("problems after unit 21", () => {
       { scope: "DEU", reason: "unavailable" },
       { scope: "all-marks", reason: "unavailable" },
     ]);
+  });
+});
+
+describe("a late confirmation", () => {
+  const timedOut = () =>
+    play([
+      started(OWNER),
+      snapshot({}),
+      setMark("DEU", "visited"),
+      sent(1),
+      failed(1, "unavailable"),
+    ]);
+
+  const confirmLate = (problem: SyncProblem | undefined): MarksSyncEvent => {
+    if (problem === undefined) throw new Error("no deadline problem");
+
+    return {
+      type: "late-change-confirmed",
+      change: { kind: "set", code: "DEU", state: "visited" },
+      problem,
+    };
+  };
+
+  test("applies the change to the base and removes the deadline's problem", () => {
+    const state = timedOut();
+    const confirmed = play([confirmLate(state.problems[0])], state);
+
+    expect(visibleMarks(confirmed)).toEqual({ DEU: "visited" });
+    expect(confirmed.problems).toEqual([]);
+  });
+
+  test("keeps a newer problem for the same country", () => {
+    const state = timedOut();
+    const deadlineProblem = state.problems[0];
+    const newer = play([setMark("DEU", "want"), sent(2), failed(2, "rejected")], state);
+    const confirmed = play([confirmLate(deadlineProblem)], newer);
+
+    expect(visibleMarks(confirmed)).toEqual({ DEU: "visited" });
+    expect(confirmed.problems).toEqual([{ scope: "DEU", reason: "rejected" }]);
   });
 });
 

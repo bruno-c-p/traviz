@@ -8,6 +8,7 @@ import {
   type MarksSnapshot,
   type MarksSyncEvent,
   type MarksSyncState,
+  type SyncProblem,
 } from "@/features/marks/marks-sync";
 
 export type MarksTransport = {
@@ -90,17 +91,15 @@ export function createMarksOwner(
     newestSnapshotRead = 0;
   };
 
-  const acceptSnapshot = (snapshot: MarksSnapshot, read: number): boolean => {
-    if (read < newestSnapshotRead) return false;
+  const acceptSnapshot = (snapshot: MarksSnapshot, read: number) => {
+    if (read < newestSnapshotRead) return;
 
     if (snapshot.ok) newestSnapshotRead = read;
 
     handle({ type: "snapshot-received", snapshot });
-
-    return snapshot.ok;
   };
 
-  const readFreshSnapshot = (ownerId: string, onAccepted: () => void) => {
+  const readFreshSnapshot = (ownerId: string) => {
     const readSession = session;
     const read = nextSnapshotRead;
     nextSnapshotRead += 1;
@@ -108,7 +107,7 @@ export function createMarksOwner(
     try {
       transport.readMarks(ownerId).then(
         (snapshot) => {
-          if (readSession === session && acceptSnapshot(snapshot, read)) onAccepted();
+          if (readSession === session) acceptSnapshot(snapshot, read);
         },
         () => {},
       );
@@ -120,12 +119,13 @@ export function createMarksOwner(
     sentSession: number,
     change: MarkChange,
     result: MarkChangeResult,
+    deadlineProblem: SyncProblem,
   ) => {
     if (sentSession !== session) return;
 
-    readFreshSnapshot(ownerId, () => {
-      if (result.ok) handle({ type: "problem-dismissed", scope: changeScope(change) });
-    });
+    if (result.ok) handle({ type: "late-change-confirmed", change, problem: deadlineProblem });
+
+    readFreshSnapshot(ownerId);
   };
 
   const applyMarkChange = (ownerId: string, change: MarkChange): Promise<MarkChangeResult> => {
@@ -146,21 +146,25 @@ export function createMarksOwner(
     dispatch({ type: "change-sent", id: entry.id });
 
     const sentSession = session;
-    let expired = false;
+    let deadlineProblem: SyncProblem | undefined;
 
     const settle = (result: MarkChangeResult) =>
       handle({ type: "change-settled", id: entry.id, result });
 
     startDeadline(() => {
-      expired = true;
       settle(UNAVAILABLE);
+      deadlineProblem = state.problems.find(
+        (problem) => problem.scope === changeScope(entry.change),
+      );
     });
 
     void applyMarkChange(ownerId, entry.change).then((result) => {
       requestInFlight = false;
       settle(result);
 
-      if (expired) settleLateReply(ownerId, sentSession, entry.change, result);
+      if (deadlineProblem !== undefined) {
+        settleLateReply(ownerId, sentSession, entry.change, result, deadlineProblem);
+      }
     });
   };
 

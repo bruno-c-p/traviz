@@ -50,7 +50,12 @@ export type MarksSyncEvent =
   | { readonly type: "change-requested"; readonly change: MarkChange }
   | { readonly type: "change-sent"; readonly id: number }
   | { readonly type: "change-settled"; readonly id: number; readonly result: MarkChangeResult }
-  | { readonly type: "problem-dismissed"; readonly scope: string };
+  | { readonly type: "problem-dismissed"; readonly scope: string }
+  | {
+      readonly type: "late-change-confirmed";
+      readonly change: MarkChange;
+      readonly problem: SyncProblem;
+    };
 
 export const INITIAL_MARKS_SYNC_STATE: MarksSyncState = {
   ownerId: null,
@@ -225,5 +230,11 @@ export function reduceMarksSync(state: MarksSyncState, event: MarksSyncEvent): M
       return settleChange(state, event.id, event.result);
     case "problem-dismissed":
       return { ...state, problems: withoutProblem(state.problems, event.scope) };
+    case "late-change-confirmed":
+      return {
+        ...state,
+        base: withConfirmedChange(state.base, event.change),
+        problems: state.problems.filter((problem) => problem !== event.problem),
+      };
   }
 }

@@ -319,7 +319,7 @@ describe("D1, appeared in 1d566f9, open on PR #41: a request that never settles 
       [OWNER, tapDeu],
       [OWNER, resetAll],
     ]);
-    expect(owner.getState().problems).toEqual([{ scope: "DEU", reason: "unavailable" }]);
+    expect(owner.getState().problems).toEqual([]);
 
     await answer(1);
     await answer(2);
