@@ -12,6 +12,7 @@ import {
   type MarksSyncState,
   type SyncProblem,
 } from "@/features/marks/marks-sync";
+import { isSignedInAs } from "@/features/marks/session-cookie";
 
 export type SavingScopes = "all" | readonly string[];
 
@@ -96,15 +97,19 @@ export function createMarksStore(owner: MarksOwner) {
   return store;
 }
 
-export const useCountriesStore = createMarksStore(
-  createMarksOwner(
-    { applyMarkChange, readMarks },
-    createMarksCache(() => localStorage),
-    (onExpired) => {
-      setTimeout(onExpired, 8000);
-    },
-  ),
+const marksOwner = createMarksOwner(
+  { applyMarkChange, readMarks },
+  createMarksCache(() => localStorage),
+  (onExpired) => {
+    setTimeout(onExpired, 8000);
+  },
 );
+
+if (typeof document !== "undefined") {
+  marksOwner.previewCache((ownerId) => isSignedInAs(document.cookie, ownerId));
+}
+
+export const useCountriesStore = createMarksStore(marksOwner);
 
 export function endMarksSession() {
   useCountriesStore.getState().endSession();
