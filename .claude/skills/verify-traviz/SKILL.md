@@ -18,7 +18,7 @@ bun run verify:server start
 ```
 
 - `bun run setup` writes `.env.local` with Clerk development keys and the Mapbox token. It migrates `.data/dev.db` and creates the dev user `agent+clerk_test@example.com`. It needs the `vercel` and `clerk` CLIs, both logged in. It is safe to run again. Its closing `Next: run bun run dev, then bun run sign-in-token` hint is for manual work. For verification, continue with `verify:server start`.
-- `verify:server start` refuses a remote database, a database outside `.data/` and a key that is not `pk_test_`. It then runs `bun run build`, starts `next start` on a free port and waits until `/sign-in` answers 200. It is ready when it prints `ready http://localhost:<port> pid <pid>`. The port and PID go to `.data/verify/server.json`. Logs go to `.data/verify/build.log` and `.data/verify/server.log`.
+- `verify:server start` refuses a remote database, a database outside `.data/` and a key that is not `pk_test_`. It then runs `bun run build`, starts `next start` on a free port and waits until `/sign-in` answers 200. The build runs silently for about a minute, and its output goes to `.data/verify/build.log`. It is ready when it prints `ready http://localhost:<port> pid <pid>`. The port and PID go to `.data/verify/server.json`. Logs go to `.data/verify/build.log` and `.data/verify/server.log`.
 - `verify:server start --no-build` reuses `.next`, but only when this worktree's `.env.local` built it.
 - One server runs per worktree, and a second `start` refuses. Separate worktrees run side by side, each with its own port and `.data/dev.db`. All of them share one Clerk dev user.
 
@@ -43,7 +43,7 @@ The driver is `playwright-core` running the installed Google Chrome with SwiftSh
 - `readMarkRows()` reads the `marks` table of the database `TURSO_DATABASE_URL` names (`.data/dev.db` after setup), read-only, as `{ user_id, code, state }[]`.
 - `runJourney(label, motion, async (journal, page, browser, baseUrl) => { ... })` from `@/shared/testing/verify/journal` is the frame for a new journey. It makes the evidence directory, signs in at 1440 x 900, records a thrown error as a failed step, closes the browser and writes `journal.json`, and sets exit code 1 on any failed step. Inside it, call `journal.record(step, ok, detail)` and `journal.screenshot(page, name)`. Its closing step, `no console errors or failed requests`, covers only the page it opened. A page from another `openPage` call has its own `problems`, so record them with `journal.record`.
 
-Select elements by role and accessible name. The handles that matter are listed per feature in [features/README.md](features/README.md). For a journey without a script, put the scratch file in `.data/verify/` (gitignored, and the `@/` alias still resolves) and run it with `bun`.
+Select elements by role and accessible name. The handles that matter are listed per feature in [features/README.md](features/README.md). For a journey without a script, write `.data/verify/<name>.ts` and run it from the worktree root with `bun .data/verify/<name>.ts`. `.data/` is gitignored, and the `@/` alias still resolves there. Top-level `await` works, so call `await runJourney(...)` directly. The helpers read `.env.local` and `.data/verify/server.json` themselves, so the script needs no environment or URL arguments.
 
 Ready-made journeys:
 
