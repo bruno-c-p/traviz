@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { createClient, type Client } from "@libsql/client";
+import { LibsqlError, createClient, type Client } from "@libsql/client";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { applyMarkChangeOn } from "@/features/marks/apply-mark-change";
@@ -25,8 +25,16 @@ function openDatabase(): Client {
   return createClient({ url: `file:${join(databaseDirectory, `marks-${databaseCount}.db`)}` });
 }
 
+let loggedErrors: unknown[] = [];
+
 function signedInAs(userId: string | null) {
-  return { client, getUserId: () => Promise.resolve(userId) };
+  return {
+    client,
+    getUserId: () => Promise.resolve(userId),
+    logWriteError: (cause: unknown) => {
+      loggedErrors.push(cause);
+    },
+  };
 }
 
 async function seed(userId: string, marks: readonly (readonly [string, string])[]) {
@@ -48,6 +56,7 @@ async function storedMarks(userId: string) {
 }
 
 beforeEach(async () => {
+  loggedErrors = [];
   client = openDatabase();
   await client.execute(createMarksTableSql);
 });
@@ -161,5 +170,7 @@ describe("applyMarkChange", () => {
         state: "want",
       }),
     ).toEqual({ ok: false, reason: "unavailable" });
+
+    expect(loggedErrors).toEqual([expect.any(LibsqlError)]);
   });
 });

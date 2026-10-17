@@ -7,6 +7,7 @@ import type { MarkChange, MarkChangeResult } from "@/features/marks/marks-sync";
 export type MarkChangeServer = {
   readonly client: Client;
   readonly getUserId: () => Promise<string | null>;
+  readonly logWriteError: (cause: unknown) => void;
 };
 
 export async function applyMarkChangeOn(
@@ -29,7 +30,7 @@ export async function applyMarkChangeOn(
   } catch (cause: unknown) {
     if (!(cause instanceof LibsqlError)) throw cause;
 
-    console.error("The mark change could not be written.", cause);
+    server.logWriteError(cause);
 
     return { ok: false, reason: "unavailable" };
   }
