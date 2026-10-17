@@ -585,3 +585,46 @@ describe("marks owner listeners", () => {
     expect(writes.length).toBe(writesBefore);
   });
 });
+
+describe("marks owner cache preview", () => {
+  const stored: CachedMarks = { ownerId: OWNER, marks: { DEU: "visited" } };
+
+  test("a preview signed in as the cached owner shows the cache", () => {
+    const { owner } = setup({ stored });
+    const asked: string[] = [];
+
+    owner.previewCache((ownerId) => {
+      asked.push(ownerId);
+
+      return true;
+    });
+
+    expect(asked).toEqual([OWNER]);
+    expect(visibleMarks(owner.getState())).toEqual({ DEU: "visited" });
+    expect(owner.getState().ownerId).toBeNull();
+  });
+
+  test("a preview signed in as someone else shows nothing", () => {
+    const { owner } = setup({ stored });
+
+    owner.previewCache(() => false);
+
+    expect(visibleMarks(owner.getState())).toEqual({});
+  });
+
+  test("a preview with no cache shows nothing", () => {
+    const { owner } = setup();
+
+    owner.previewCache(() => true);
+
+    expect(visibleMarks(owner.getState())).toEqual({});
+  });
+
+  test("a preview whose cache read throws shows nothing", () => {
+    const { owner } = setup({ stored, readFails: true });
+
+    owner.previewCache(() => true);
+
+    expect(visibleMarks(owner.getState())).toEqual({});
+  });
+});

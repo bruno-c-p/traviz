@@ -45,6 +45,7 @@ export type MarksSyncEvent =
       readonly ownerId: string;
       readonly cached: CachedMarks | null;
     }
+  | { readonly type: "cache-previewed"; readonly cached: CachedMarks }
   | { readonly type: "session-ended" }
   | { readonly type: "snapshot-received"; readonly snapshot: MarksSnapshot }
   | { readonly type: "change-requested"; readonly change: MarkChange }
@@ -150,6 +151,12 @@ function startSession(
   return { ...state, ownerId, base, pending, problems: [], sessionEnded: false };
 }
 
+function previewCache(state: MarksSyncState, cached: CachedMarks): MarksSyncState {
+  if (state.ownerId !== null || state.base.source !== "empty") return state;
+
+  return { ...state, base: { source: "cache", marks: cached.marks } };
+}
+
 function endSession(state: MarksSyncState): MarksSyncState {
   return { ...INITIAL_MARKS_SYNC_STATE, lastChangeId: state.lastChangeId, sessionEnded: true };
 }
@@ -224,6 +231,8 @@ export function reduceMarksSync(state: MarksSyncState, event: MarksSyncEvent): M
   switch (event.type) {
     case "session-started":
       return startSession(state, event.ownerId, event.cached);
+    case "cache-previewed":
+      return previewCache(state, event.cached);
     case "session-ended":
       return endSession(state);
     case "snapshot-received":

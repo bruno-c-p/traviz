@@ -595,3 +595,60 @@ describe("the snapshot from the server render", () => {
     });
   });
 });
+
+describe("the cache preview before the session starts", () => {
+  const cached: CachedMarks = { ownerId: OWNER, marks: { DEU: "visited" } };
+
+  const previewed = (preview: CachedMarks = cached): MarksSyncEvent => ({
+    type: "cache-previewed",
+    cached: preview,
+  });
+
+  test("a preview shows the cached marks with no owner", () => {
+    const state = play([previewed()]);
+
+    expect(visibleMarks(state)).toEqual({ DEU: "visited" });
+    expect(state.ownerId).toBeNull();
+  });
+
+  test("a session for the same owner keeps the preview, and its snapshot replaces it", () => {
+    const kept = play([previewed(), started(OWNER, cached)]);
+
+    expect(visibleMarks(kept)).toEqual({ DEU: "visited" });
+
+    expect(visibleMarks(play([snapshot({ FRA: "want" })], kept))).toEqual({ FRA: "want" });
+  });
+
+  test("a session for another owner drops the preview", () => {
+    const state = play([previewed(), started(OTHER_OWNER, cached)]);
+
+    expect(visibleMarks(state)).toEqual({});
+  });
+
+  test("a preview after the session started changes nothing", () => {
+    const before = play([started(OWNER)]);
+
+    expect(play([previewed()], before)).toBe(before);
+  });
+
+  test("a preview after a snapshot changes nothing", () => {
+    const before = play([started(OWNER), snapshot({ FRA: "want" })]);
+
+    expect(play([previewed()], before)).toBe(before);
+  });
+
+  test("a second preview changes nothing", () => {
+    const before = play([previewed()]);
+
+    expect(play([previewed({ ownerId: OWNER, marks: { FRA: "want" } })], before)).toBe(before);
+  });
+
+  test("a tap made during the preview survives the session start", () => {
+    const state = play([previewed(), setMark("FRA", "want"), started(OWNER, cached)]);
+
+    expect(visibleMarks(state)).toEqual({ DEU: "visited", FRA: "want" });
+    expect(state.pending.map((entry) => entry.change)).toEqual([
+      { kind: "set", code: "FRA", state: "want" },
+    ]);
+  });
+});

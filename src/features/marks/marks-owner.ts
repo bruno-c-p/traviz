@@ -29,6 +29,7 @@ export type MarksDeadline = (onExpired: () => void) => void;
 
 export type MarksOwner = {
   readonly getState: () => MarksSyncState;
+  readonly previewCache: (isSignedInAs: (ownerId: string) => boolean) => void;
   readonly startSession: (ownerId: string) => void;
   readonly endSession: () => void;
   readonly receiveSnapshot: (snapshot: MarksSnapshot) => void;
@@ -175,6 +176,13 @@ export function createMarksOwner(
 
   return {
     getState: () => state,
+    previewCache: (isSignedInAs) => {
+      const cached = readCache();
+
+      if (cached !== null && isSignedInAs(cached.ownerId)) {
+        dispatch({ type: "cache-previewed", cached });
+      }
+    },
     startSession: (ownerId) => {
       if (state.ownerId !== ownerId) beginSession();
 
