@@ -287,6 +287,41 @@ describe("two tabs on different accounts", () => {
   });
 });
 
+describe("notifications", () => {
+  test("starting the same session again keeps marks and calls no subscriber", () => {
+    const { store, signIn } = setup();
+    signIn(OWNER, { FRA: "want" });
+    const marks = store.getState().marks;
+    let heard = 0;
+
+    store.subscribe(() => {
+      heard += 1;
+    });
+    store.getState().startSession(OWNER);
+
+    expect(heard).toBe(0);
+    expect(store.getState().marks).toBe(marks);
+  });
+
+  test("sending a change calls no subscriber, and saving it keeps the marks object", async () => {
+    const { store, signIn, answer } = setup();
+    signIn(OWNER, { FRA: "want" });
+    const seen: unknown[] = [];
+
+    store.subscribe((state) => {
+      seen.push(state.marks);
+    });
+    store.getState().toggle("DEU", "visited");
+
+    expect(seen.length).toBe(1);
+
+    const marks = store.getState().marks;
+    await answer(0);
+
+    expect(store.getState().marks).toBe(marks);
+  });
+});
+
 describe("saving", () => {
   test("a country is saving until its write settles", async () => {
     const { store, signIn, answer } = setup();

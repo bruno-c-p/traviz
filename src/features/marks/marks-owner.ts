@@ -77,6 +77,9 @@ export function createMarksOwner(
   const dispatch = (event: MarksSyncEvent) => {
     const previous = state;
     state = reduceMarksSync(state, event);
+
+    if (state === previous) return;
+
     writeCache(previous);
     listeners.forEach((listener) => listener());
   };

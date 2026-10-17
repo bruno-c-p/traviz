@@ -566,4 +566,22 @@ describe("marks owner listeners", () => {
 
     expect(heard).toBe(3);
   });
+
+  test("an event that changes nothing reaches no listener and writes no cache", () => {
+    const { owner, writes } = setup();
+    owner.startSession(OWNER);
+    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
+    let heard = 0;
+    const writesBefore = writes.length;
+
+    owner.subscribe(() => {
+      heard += 1;
+    });
+    owner.startSession(OWNER);
+    owner.endSession();
+    owner.requestChange(tapDeu);
+
+    expect(heard).toBe(1);
+    expect(writes.length).toBe(writesBefore);
+  });
 });

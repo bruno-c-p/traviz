@@ -37,6 +37,20 @@ function savingScopes(state: MarksSyncState): SavingScopes {
   return unsaved.map((entry) => changeScope(entry.change));
 }
 
+function sameMarks(left: Marks, right: Marks): boolean {
+  const codes = Object.keys(left);
+
+  return (
+    codes.length === Object.keys(right).length && codes.every((code) => left[code] === right[code])
+  );
+}
+
+function sameSaving(left: SavingScopes, right: SavingScopes): boolean {
+  if (left === "all" || right === "all") return left === right;
+
+  return left.length === right.length && left.every((scope, index) => scope === right[index]);
+}
+
 function project(state: MarksSyncState) {
   return {
     marks: visibleMarks(state),
@@ -61,7 +75,23 @@ export function createMarksStore(owner: MarksOwner) {
     receiveSnapshot: owner.receiveSnapshot,
   }));
 
-  owner.subscribe(() => store.setState(project(owner.getState())));
+  owner.subscribe(() => {
+    const current = store.getState();
+    const { marks, ownerId, saving, problems } = project(owner.getState());
+    const keptMarks = sameMarks(current.marks, marks) ? current.marks : marks;
+    const keptSaving = sameSaving(current.saving, saving) ? current.saving : saving;
+
+    if (
+      keptMarks === current.marks &&
+      ownerId === current.ownerId &&
+      keptSaving === current.saving &&
+      problems === current.problems
+    ) {
+      return;
+    }
+
+    store.setState({ marks: keptMarks, ownerId, saving: keptSaving, problems });
+  });
 
   return store;
 }
