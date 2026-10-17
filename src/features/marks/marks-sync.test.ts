@@ -519,6 +519,42 @@ describe("problems after unit 21", () => {
   });
 });
 
+describe("events that change nothing", () => {
+  test("dismissing a scope with no problem returns the same state", () => {
+    const before = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("DEU", "visited"),
+      sent(1),
+      failed(1, "unavailable"),
+    ]);
+
+    expect(reduceMarksSync(before, { type: "problem-dismissed", scope: "FRA" })).toBe(before);
+  });
+
+  test("ending a session that already ended returns the same state", () => {
+    const before = play([started(OWNER), snapshot({ FRA: "want" }), ended()]);
+
+    expect(reduceMarksSync(before, ended())).toBe(before);
+  });
+
+  test("ending a session before any started still records that it ended", () => {
+    const state = reduceMarksSync(INITIAL_MARKS_SYNC_STATE, ended());
+
+    expect(state.sessionEnded).toBe(true);
+  });
+
+  test("ending an ended session that shows a preview clears the preview", () => {
+    const before = play([
+      started(OWNER),
+      ended(),
+      { type: "cache-previewed", cached: { ownerId: OWNER, marks: { DEU: "visited" } } },
+    ]);
+
+    expect(visibleMarks(reduceMarksSync(before, ended()))).toEqual({});
+  });
+});
+
 describe("a late confirmation", () => {
   const timedOut = () =>
     play([
@@ -641,6 +677,20 @@ describe("the cache preview before the session starts", () => {
     const before = play([previewed()]);
 
     expect(play([previewed({ ownerId: OWNER, marks: { FRA: "want" } })], before)).toBe(before);
+  });
+
+  test("a tap made over another owner's preview is dropped at the session start", () => {
+    const state = play([previewed(), setMark("FRA", "want"), started(OTHER_OWNER, cached)]);
+
+    expect(state.pending).toEqual([]);
+    expect(visibleMarks(state)).toEqual({});
+  });
+
+  test("a tap made over a preview the session start drops is dropped with it", () => {
+    const state = play([previewed(), setMark("FRA", "want"), started(OWNER)]);
+
+    expect(state.pending).toEqual([]);
+    expect(visibleMarks(state)).toEqual({});
   });
 
   test("a tap made during the preview survives the session start", () => {

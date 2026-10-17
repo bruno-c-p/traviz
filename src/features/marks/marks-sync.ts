@@ -146,7 +146,10 @@ function startSession(
   const base: MarkBase =
     cached?.ownerId === ownerId ? { source: "cache", marks: cached.marks } : { source: "empty" };
 
-  const pending = state.ownerId === null ? state.pending : [];
+  const keepsPending =
+    state.ownerId === null && (state.base.source === "empty" || base.source === "cache");
+
+  const pending = keepsPending ? state.pending : [];
 
   return { ...state, ownerId, base, pending, problems: [], sessionEnded: false };
 }
@@ -158,6 +161,8 @@ function previewCache(state: MarksSyncState, cached: CachedMarks): MarksSyncStat
 }
 
 function endSession(state: MarksSyncState): MarksSyncState {
+  if (state.sessionEnded && state.base.source === "empty") return state;
+
   return { ...INITIAL_MARKS_SYNC_STATE, lastChangeId: state.lastChangeId, sessionEnded: true };
 }
 
@@ -227,6 +232,12 @@ function settleChange(state: MarksSyncState, id: number, result: MarkChangeResul
   };
 }
 
+function dismissProblem(state: MarksSyncState, scope: string): MarksSyncState {
+  if (!state.problems.some((problem) => problem.scope === scope)) return state;
+
+  return { ...state, problems: withoutProblem(state.problems, scope) };
+}
+
 export function reduceMarksSync(state: MarksSyncState, event: MarksSyncEvent): MarksSyncState {
   switch (event.type) {
     case "session-started":
@@ -244,7 +255,7 @@ export function reduceMarksSync(state: MarksSyncState, event: MarksSyncEvent): M
     case "change-settled":
       return settleChange(state, event.id, event.result);
     case "problem-dismissed":
-      return { ...state, problems: withoutProblem(state.problems, event.scope) };
+      return dismissProblem(state, event.scope);
     case "late-change-confirmed":
       return {
         ...state,
