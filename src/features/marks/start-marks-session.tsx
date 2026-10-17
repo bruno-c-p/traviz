@@ -1,20 +1,21 @@
 "use client";
 
 import { useEffect } from "react";
-import type { MarksSnapshot } from "@/features/marks/marks-sync";
+import type { Marks } from "@/features/marks/colors";
+import { snapshotFromMarks } from "@/features/marks/marks-sync";
 import { useCountriesStore } from "@/features/marks/marks-store";
 
 type StartMarksSessionProps = {
   ownerId: string;
-  snapshot: Promise<MarksSnapshot>;
+  marks: Promise<Marks>;
 };
 
-export function StartMarksSession({ ownerId, snapshot }: StartMarksSessionProps) {
+export function StartMarksSession({ ownerId, marks }: StartMarksSessionProps) {
   useEffect(() => {
     const { startSession, receiveSnapshot } = useCountriesStore.getState();
     startSession(ownerId);
-    void snapshot.then(receiveSnapshot);
-  }, [ownerId, snapshot]);
+    void snapshotFromMarks(ownerId, marks).then(receiveSnapshot);
+  }, [ownerId, marks]);
 
   return null;
 }

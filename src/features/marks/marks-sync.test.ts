@@ -4,6 +4,7 @@ import {
   applyChange,
   INITIAL_MARKS_SYNC_STATE,
   reduceMarksSync,
+  snapshotFromMarks,
   visibleMarks,
   type CachedMarks,
   type MarkChangeFailure,
@@ -513,5 +514,22 @@ describe("problems after unit 21", () => {
       { scope: "DEU", reason: "unavailable" },
       { scope: "all-marks", reason: "unavailable" },
     ]);
+  });
+});
+
+describe("the snapshot from the server render", () => {
+  test("loaded marks become an ok snapshot for that owner", async () => {
+    expect(await snapshotFromMarks(OWNER, Promise.resolve({ DEU: "visited" }))).toEqual({
+      ok: true,
+      ownerId: OWNER,
+      marks: { DEU: "visited" },
+    });
+  });
+
+  test("marks that failed to load become a failed snapshot for that owner", async () => {
+    expect(await snapshotFromMarks(OWNER, Promise.reject(new Error("hanging promise")))).toEqual({
+      ok: false,
+      ownerId: OWNER,
+    });
   });
 });

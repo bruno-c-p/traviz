@@ -84,6 +84,13 @@ export function visibleMarks(state: MarksSyncState): Marks {
   return foldChanges(baseMarks(state.base), state.pending);
 }
 
+export function snapshotFromMarks(ownerId: string, marks: Promise<Marks>): Promise<MarksSnapshot> {
+  return marks.then(
+    (loaded): MarksSnapshot => ({ ok: true, ownerId, marks: loaded }),
+    (): MarksSnapshot => ({ ok: false, ownerId }),
+  );
+}
+
 export function changeScope(change: MarkChange): string {
   return change.kind === "reset" ? "all-marks" : change.code;
 }

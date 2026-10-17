@@ -17,7 +17,7 @@ export const databaseMarksReader: MarksReader = {
   },
 };
 
-async function loadMarks(client: Client, userId: string): Promise<Marks> {
+export async function loadMarks(client: Client, userId: string): Promise<Marks> {
   const result = await client.execute({
     sql: "SELECT code, state FROM marks WHERE user_id = ?",
     args: [userId],
