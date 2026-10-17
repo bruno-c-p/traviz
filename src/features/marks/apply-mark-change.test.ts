@@ -90,17 +90,19 @@ describe("applyMarkChange", () => {
     expect(await storedMarks("user_a")).toEqual([{ code: "FRA", state: "visited" }]);
   });
 
-  test("a clear change removes only that country", async () => {
+  test("a clear change removes only that country, and only for the session user", async () => {
     await seed("user_a", [
       ["DEU", "want"],
       ["FRA", "visited"],
     ]);
+    await seed("user_b", [["FRA", "want"]]);
 
     expect(
       await applyMarkChangeWith(signedInAs("user_a"), "user_a", { kind: "clear", code: "FRA" }),
     ).toEqual({ ok: true });
 
     expect(await storedMarks("user_a")).toEqual([{ code: "DEU", state: "want" }]);
+    expect(await storedMarks("user_b")).toEqual([{ code: "FRA", state: "want" }]);
   });
 
   test("a reset removes every mark of the session user and no one else's", async () => {
