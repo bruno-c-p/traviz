@@ -30,6 +30,7 @@ import {
   type MetricRow,
   type Scenario,
   type Side,
+  type Visit,
 } from "@/shared/testing/perf/report";
 import { seedMarks, seededMarks, type SeedPlan } from "@/shared/testing/perf/seed";
 import { byteTolerance, significanceLevel, timingFloor } from "@/shared/testing/perf/stats";
@@ -77,9 +78,12 @@ const routes = [
 
 const minimumRuns = 5;
 
+const returnVisit: Visit = "return from /list";
+
 const scenarios: Scenario[] = routes.flatMap((route) => [
   { ...route, visit: "first visit" as const },
   { ...route, visit: "repeat visit" as const },
+  ...(route.path === homePath() ? [{ ...route, visit: returnVisit }] : []),
 ]);
 
 const marks = seededMarks(
@@ -128,7 +132,7 @@ async function measureScenario(
   page: BrowserPage,
   origin: string,
   route: (typeof routes)[number],
-): Promise<[Sample, Sample]> {
+): Promise<[Visit, Sample][]> {
   const url = `${origin}${route.path}`;
 
   await page.warmUp(url, timeoutMs);
@@ -140,7 +144,18 @@ async function measureScenario(
     const firstVisit = await page.measure(url, route.expectGlobe, timeoutMs);
     const repeatVisit = await page.measure(url, route.expectGlobe, timeoutMs);
 
-    return [firstVisit, repeatVisit];
+    const visits: [Visit, Sample][] = [
+      ["first visit", firstVisit],
+      ["repeat visit", repeatVisit],
+    ];
+
+    if (route.path === homePath())
+      visits.push([
+        returnVisit,
+        await page.measureSoftNavigation(`${origin}${listPath()}`, route.path, timeoutMs),
+      ]);
+
+    return visits;
   } finally {
     await page.setThrottled(false);
   }
@@ -199,7 +214,7 @@ function printHeader(
     `blocked: ${blockedUrlPatterns.join(", ")} through Network.setBlockedURLs, which keeps the HTTP cache on.`,
   );
   console.log(
-    `runs: ${runs} per scenario and side, alternating which side goes first. Data: ${marks.length} seeded marks, ${visitedCount} visited.`,
+    `runs: ${runs} per scenario and side, alternating which side goes first. Scenarios: ${scenarios.map(scenarioName).join(", ")}. The return from ${listPath()} loads ${listPath()} warm, then clicks the ${homePath()} nav link, and times from the click, so it has no TTFB, FCP or LCP. Data: ${marks.length} seeded marks, ${visitedCount} visited.`,
   );
   console.log(
     `noise: spread is the median absolute deviation (MAD). A timing counts as faster or slower only when an exact two-sided Mann-Whitney test gives p < ${significanceLevel}${runs === minimumRuns ? ` (with ${minimumRuns} runs a side, no overlap)` : ""} and the median moves by at least ${timingFloor.ms} ms or ${timingFloor.share * 100}%, whichever is larger. A byte delta counts above ${byteTolerance.bytes / 1024} KB or ${byteTolerance.share * 100}%, whichever is larger. Each load ends when its network is idle for 500 ms, so repeat visits start warm.`,
@@ -295,12 +310,12 @@ async function collectSamples(
   for (let run = 0; run < runs; run++)
     for (const route of routes)
       for (const side of run % 2 === 0 ? sides : sides.toReversed()) {
-        const [firstVisit, repeatVisit] = await measureScenario(page, origins[side], route);
+        const visits = await measureScenario(page, origins[side], route);
 
-        samples.get(scenarioName({ ...route, visit: "first visit" }))?.[side].push(firstVisit);
-        samples.get(scenarioName({ ...route, visit: "repeat visit" }))?.[side].push(repeatVisit);
+        for (const [visit, sample] of visits)
+          samples.get(scenarioName({ ...route, visit }))?.[side].push(sample);
         console.log(
-          `run ${run + 1}/${runs} ${route.path} ${side}: marks ${Math.round(firstVisit.marksReady)} ms first, ${Math.round(repeatVisit.marksReady)} ms repeat`,
+          `run ${run + 1}/${runs} ${route.path} ${side}: marks ${visits.map(([visit, sample]) => `${Math.round(sample.marksReady)} ms ${visit}`).join(", ")}`,
         );
         writeResults(resultsPath, {
           shas,

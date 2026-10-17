@@ -22,7 +22,12 @@ const sampleSchema = z.object({
   globeFrame: z.number().optional(),
 });
 
-export type Sample = z.infer<typeof sampleSchema> & {
+const softNavigationSchema = z.object({
+  marksReady: z.number(),
+  globeFrame: z.number(),
+});
+
+export type Sample = (z.infer<typeof sampleSchema> | z.infer<typeof softNavigationSchema>) & {
   scriptBytes: number;
   documentRedirects: number;
 };
@@ -64,16 +69,33 @@ function probeSource(readyProbes: ReadyProbe[]): string {
   return `(() => {
     const marks = {};
     Object.defineProperty(window, "__perfMarks", { value: marks });
-    for (const context of [WebGLRenderingContext, WebGL2RenderingContext]) {
-      const { drawArrays, drawElements } = context.prototype;
-      const record = () => {
-        marks.globeFrame ??= performance.now();
-        context.prototype.drawArrays = drawArrays;
-        context.prototype.drawElements = drawElements;
-      };
-      context.prototype.drawArrays = function (...args) { record(); return drawArrays.apply(this, args); };
-      context.prototype.drawElements = function (...args) { record(); return drawElements.apply(this, args); };
-    }
+    const drawWatchers = new Set();
+    const contexts = [WebGLRenderingContext, WebGL2RenderingContext].map((context) => ({
+      prototype: context.prototype,
+      drawArrays: context.prototype.drawArrays,
+      drawElements: context.prototype.drawElements,
+    }));
+    const onDraw = () => {
+      const now = performance.now();
+      for (const watcher of drawWatchers) if (watcher(now)) drawWatchers.delete(watcher);
+      if (drawWatchers.size > 0) return;
+      for (const { prototype, drawArrays, drawElements } of contexts) {
+        prototype.drawArrays = drawArrays;
+        prototype.drawElements = drawElements;
+      }
+    };
+    const watchDraws = (watcher) => {
+      if (drawWatchers.size === 0)
+        for (const { prototype, drawArrays, drawElements } of contexts) {
+          prototype.drawArrays = function (...args) { onDraw(); return drawArrays.apply(this, args); };
+          prototype.drawElements = function (...args) { onDraw(); return drawElements.apply(this, args); };
+        }
+      drawWatchers.add(watcher);
+    };
+    watchDraws((now) => {
+      marks.globeFrame ??= now;
+      return true;
+    });
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) marks.lcp = entry.startTime;
     }).observe({ type: "largest-contentful-paint", buffered: true });
@@ -85,6 +107,28 @@ function probeSource(readyProbes: ReadyProbe[]): string {
       marks.marksReady = performance.now();
       clearInterval(timer);
     }, 50);
+    Object.defineProperty(window, "__perfSoftNavigate", {
+      value: (path, timeoutMs) => new Promise((resolve) => {
+        const link = document.querySelector(\`a[href="\${path}"]\`);
+        if (!link) return resolve(null);
+        const start = performance.now();
+        const timings = {};
+        watchDraws((now) => {
+          if (location.pathname !== path) return false;
+          timings.globeFrame = now - start;
+          return true;
+        });
+        const check = setInterval(() => {
+          if (timings.marksReady === undefined && location.pathname === path && probes[path]?.())
+            timings.marksReady = performance.now() - start;
+          const done = timings.marksReady !== undefined && timings.globeFrame !== undefined;
+          if (!done && performance.now() - start < timeoutMs) return;
+          clearInterval(check);
+          resolve(done ? timings : null);
+        }, 50);
+        link.click();
+      }),
+    });
   })()`;
 }
 
@@ -300,11 +344,7 @@ export class BrowserPage {
     const { globeFrame, ...timings } = await this.evaluate(readSampleSource, sampleSchema);
 
     await this.waitForNetworkIdle(url, timeoutMs);
-
-    if (this.droppedEvents.size > 0)
-      throw new Error(
-        `CDP events did not match their schemas, so the counts are unreliable: ${[...this.droppedEvents].map(([method, count]) => `${method} x${count}`).join(", ")}`,
-      );
+    this.throwOnDroppedEvents();
 
     return {
       ...timings,
@@ -312,6 +352,41 @@ export class BrowserPage {
       scriptBytes: this.scriptBytes,
       documentRedirects: this.counters.documentRedirects - redirectsBefore,
     };
+  }
+
+  async measureSoftNavigation(fromUrl: string, path: string, timeoutMs: number): Promise<Sample> {
+    await this.measure(fromUrl, false, timeoutMs);
+
+    const redirectsBefore = this.counters.documentRedirects;
+
+    this.scriptBytes = 0;
+    this.scriptRequests.clear();
+
+    const timings = await this.evaluate(
+      `window.__perfSoftNavigate(${JSON.stringify(path)}, ${timeoutMs})`,
+      softNavigationSchema.nullable(),
+    );
+
+    if (!timings)
+      throw new Error(
+        `Clicking the ${path} link on ${fromUrl} did not show the seeded marks and a globe frame within ${timeoutMs} ms.`,
+      );
+
+    await this.waitForNetworkIdle(path, timeoutMs);
+    this.throwOnDroppedEvents();
+
+    return {
+      ...timings,
+      scriptBytes: this.scriptBytes,
+      documentRedirects: this.counters.documentRedirects - redirectsBefore,
+    };
+  }
+
+  private throwOnDroppedEvents(): void {
+    if (this.droppedEvents.size > 0)
+      throw new Error(
+        `CDP events did not match their schemas, so the counts are unreliable: ${[...this.droppedEvents].map(([method, count]) => `${method} x${count}`).join(", ")}`,
+      );
   }
 
   get droppedEvents(): ReadonlyMap<string, number> {

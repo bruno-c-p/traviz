@@ -3,11 +3,15 @@ import { judge, type Judgment, type Unit } from "@/shared/testing/perf/stats";
 
 export type Side = "baseline" | "candidate";
 
-export type Visit = "first visit" | "repeat visit";
+export type Visit = "first visit" | "repeat visit" | "return from /list";
 
 export type Scenario = { path: string; visit: Visit; expectGlobe: boolean };
 
-type Metric = { key: keyof Sample; label: string; unit: Unit };
+type MetricKey = "ttfb" | "fcp" | "lcp" | "marksReady" | "globeFrame" | "scriptBytes";
+
+type MetricValues = Partial<Record<MetricKey, number>>;
+
+type Metric = { key: MetricKey; label: string; unit: Unit };
 
 const metrics: Metric[] = [
   { key: "ttfb", label: "TTFB", unit: "ms" },
@@ -39,8 +43,13 @@ export function buildRows(
     if (!sides) return [];
 
     return metrics.flatMap((metric): MetricRow[] => {
-      const baselineValues = sides.baseline.flatMap((sample) => sample[metric.key] ?? []);
-      const candidateValues = sides.candidate.flatMap((sample) => sample[metric.key] ?? []);
+      const baselineValues = sides.baseline.flatMap(
+        (sample: MetricValues) => sample[metric.key] ?? [],
+      );
+
+      const candidateValues = sides.candidate.flatMap(
+        (sample: MetricValues) => sample[metric.key] ?? [],
+      );
 
       if (baselineValues.length === 0 || candidateValues.length === 0) return [];
 
