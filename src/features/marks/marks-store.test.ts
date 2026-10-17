@@ -484,6 +484,20 @@ describe("a late reply after the deadline", () => {
       expect(store.getState().problems).toEqual([]);
     });
   }
+
+  test("a late reply after the same owner's session restarts still brings the colour back", async () => {
+    const { store, signIn, answer, expire } = setup();
+    signIn(OWNER);
+    store.getState().toggle("DEU", "visited");
+    await flush();
+    await expire(0);
+
+    signIn(OWNER);
+    await answer(0);
+
+    expect(store.getState().marks).toEqual({ DEU: "visited" });
+    expect(store.getState().problems).toEqual([]);
+  });
 });
 
 describe("snapshot order", () => {
