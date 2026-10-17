@@ -1,8 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { readPerfEnvironment } from "@/shared/testing/perf/environment";
-import { launchBrowser } from "@/shared/testing/verify/browser";
+import { findSeededUserId, seededUserEmail } from "@/shared/testing/clerk-dev";
+import { launchBrowser, readMarkRows } from "@/shared/testing/verify/browser";
 import {
-  buildHasKey,
+  buildHasPublicValues,
   treeFingerprint,
   isAlive,
   readBuildStamp,
@@ -36,14 +37,27 @@ check(
 for (const tool of ["sqlite3", "clerk"])
   check(`${tool} is on PATH`, run("which", [tool]) === "" ? `install ${tool}` : undefined);
 
-const publishableKey =
-  perfEnvironment.kind === "ready"
-    ? (perfEnvironment.environment.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "")
-    : "";
+function failureOf(probe: () => boolean): string | undefined {
+  try {
+    return probe() ? undefined : "not found. Run bun run setup";
+  } catch (cause: unknown) {
+    return cause instanceof Error ? cause.message : String(cause);
+  }
+}
 
 check(
-  ".next was built with this worktree's Clerk key, not bun run check's placeholder",
-  publishableKey !== "" && buildHasKey(publishableKey)
+  `the clerk CLI is logged in and the dev user ${seededUserEmail} exists`,
+  failureOf(() => findSeededUserId() !== undefined),
+);
+
+check(
+  "the worktree database has a marks table",
+  failureOf(() => readMarkRows().length >= 0),
+);
+
+check(
+  ".next was built with this worktree's Clerk key and Mapbox token, not bun run check's placeholders",
+  perfEnvironment.kind === "ready" && buildHasPublicValues(perfEnvironment.environment)
     ? undefined
     : "run bun run verify:server stop, then bun run verify:server start",
 );

@@ -1,130 +1,118 @@
-import { join } from "node:path";
 import { parseArgs } from "node:util";
+import type { Page } from "playwright-core";
 import { z } from "zod";
-import {
-  findMapExpression,
-  launchBrowser,
-  openPage,
-  readCamera,
-  settle,
-  signIn,
-} from "@/shared/testing/verify/browser";
-import { evidenceDirectory, requireBaseUrl } from "@/shared/testing/verify/instance";
-import { Journal } from "@/shared/testing/verify/journal";
+import { COUNTRIES_BY_CODE, type Country } from "@/features/countries";
+import { findMapExpression, openRoute, readCamera, settle } from "@/shared/testing/verify/browser";
+import { runJourney, type Journal } from "@/shared/testing/verify/journal";
 import { homePath } from "@/paths";
 
 const { values: options } = parseArgs({
   options: {
-    name: { type: "string", default: "Japan" },
-    lng: { type: "string", default: "138" },
-    lat: { type: "string", default: "36" },
-    click: { type: "string", default: "France" },
-    "click-lng": { type: "string", default: "2.35" },
-    "click-lat": { type: "string", default: "46.6" },
+    code: { type: "string", default: "JPN" },
+    click: { type: "string", default: "FRA" },
   },
 });
 
-const baseUrl = requireBaseUrl();
-const directory = evidenceDirectory(`globe-search-${options.name}`);
-const journal = new Journal();
+const searched = COUNTRIES_BY_CODE.get(options.code.toUpperCase());
+const clicked = COUNTRIES_BY_CODE.get(options.click.toUpperCase());
+
+if (!searched || !clicked) {
+  console.error(`Unknown country code: ${searched ? options.click : options.code}.`);
+  process.exit(1);
+}
+
 const pointSchema = z.object({ x: z.number(), y: z.number() });
 
-const browser = await launchBrowser();
-const { page, problems } = await openPage(browser, 1440, "no-preference");
+async function checkSpin(journal: Journal, page: Page): Promise<void> {
+  await page.waitForTimeout(1_000);
 
-await signIn(page, baseUrl);
+  const before = await readCamera(page);
 
-await page.goto(baseUrl + homePath(), { waitUntil: "networkidle" });
+  await page.waitForTimeout(2_000);
 
-await page.waitForFunction(`${findMapExpression}?.isStyleLoaded() === true`, null, {
-  timeout: 30_000,
-});
+  const after = await readCamera(page);
+  const moved = before && after ? Math.abs(after.lng - before.lng) : 0;
 
-const beforeSpin = await readCamera(page);
+  journal.record("the globe spins on its own", moved > 0.5, `lng moved ${moved.toFixed(2)} in 2 s`);
+}
 
-await page.waitForTimeout(2_000);
+async function checkSearch(journal: Journal, page: Page, country: Country): Promise<void> {
+  await page.getByRole("combobox", { name: "Find a country" }).fill(country.name);
+  await settle(page);
+  await page.getByRole("option").filter({ hasText: country.code }).first().click();
+  await page.waitForTimeout(3_500);
 
-const afterSpin = await readCamera(page);
+  const camera = await readCamera(page);
+  const [lng, lat] = country.center;
 
-journal.record(
-  "the globe spins on its own",
-  beforeSpin !== null && afterSpin !== null && afterSpin.lng !== beforeSpin.lng,
-  `lng ${beforeSpin?.lng.toFixed(2)} then ${afterSpin?.lng.toFixed(2)}`,
+  const arrived =
+    camera !== null && Math.abs(camera.lng - lng) < 1 && Math.abs(camera.lat - lat) < 1;
+
+  journal.record(
+    `search flies to ${country.name}`,
+    arrived && camera?.moving === false,
+    `camera ${JSON.stringify(camera)}, expected ${lng},${lat}`,
+  );
+  journal.record(
+    "the country card opens for the picked country",
+    await page.getByRole("group", { name: `Mark ${country.name}`, exact: true }).isVisible(),
+    `group "Mark ${country.name}"`,
+  );
+  await journal.screenshot(page, "1-search-fly");
+}
+
+async function checkClick(journal: Journal, page: Page, country: Country): Promise<void> {
+  await page.keyboard.press("Escape");
+  await settle(page);
+
+  const point = pointSchema.parse(
+    await page.evaluate(`(() => {
+      const map = ${findMapExpression};
+      const center = ${JSON.stringify(country.center)};
+      map.jumpTo({ center, zoom: 4 });
+      const point = map.project(center);
+      const box = map.getContainer().getBoundingClientRect();
+      return { x: point.x + box.left, y: point.y + box.top };
+    })()`),
+  );
+
+  await page.waitForTimeout(1_500);
+  await page.mouse.click(point.x, point.y);
+  await settle(page);
+  journal.record(
+    `a click on the globe selects ${country.name}`,
+    await page.getByRole("group", { name: `Mark ${country.name}`, exact: true }).isVisible(),
+    `clicked ${Math.round(point.x)},${Math.round(point.y)} after jumpTo`,
+  );
+  await journal.screenshot(page, "2-click");
+}
+
+async function checkZoom(journal: Journal, page: Page): Promise<void> {
+  const before = (await readCamera(page))?.zoom ?? 0;
+
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await settle(page);
+
+  const after = (await readCamera(page))?.zoom ?? 0;
+
+  journal.record(
+    "Zoom in raises the zoom by one",
+    Math.abs(after - before - 1) < 0.01,
+    `${before} to ${after}`,
+  );
+}
+
+const searchedCountry = searched;
+const clickedCountry = clicked;
+
+await runJourney(
+  `globe-search-${searched.code}`,
+  "no-preference",
+  async (journal, page, _browser, baseUrl) => {
+    await openRoute(page, baseUrl, homePath());
+    await checkSpin(journal, page);
+    await checkSearch(journal, page, searchedCountry);
+    await checkClick(journal, page, clickedCountry);
+    await checkZoom(journal, page);
+  },
 );
-
-await page.getByRole("combobox", { name: "Find a country" }).fill(options.name);
-
-await settle(page);
-
-await page
-  .getByRole("option", { name: new RegExp(options.name) })
-  .first()
-  .click();
-
-await page.waitForTimeout(3_500);
-
-const flown = await readCamera(page);
-
-journal.record(
-  `search flies to ${options.name}`,
-  flown !== null &&
-    Math.abs(flown.lng - Number(options.lng)) < 1 &&
-    Math.abs(flown.lat - Number(options.lat)) < 1 &&
-    !flown.moving,
-  JSON.stringify(flown),
-);
-
-journal.record(
-  "the country card opens for the picked country",
-  (await page.getByRole("group", { name: `Mark ${options.name}` }).count()) > 0,
-  `group "Mark ${options.name}"`,
-);
-
-await page.screenshot({ path: join(directory, "1-search-fly.png") });
-
-await page.keyboard.press("Escape");
-
-await settle(page);
-
-const clickPoint = pointSchema.parse(
-  await page.evaluate(`(() => {
-    const map = ${findMapExpression};
-    const center = [${Number(options["click-lng"])}, ${Number(options["click-lat"])}];
-    map.jumpTo({ center, zoom: 4 });
-    const point = map.project(center);
-    const box = map.getContainer().getBoundingClientRect();
-    return { x: point.x + box.left, y: point.y + box.top };
-  })()`),
-);
-
-await page.waitForTimeout(1_500);
-
-await page.mouse.click(clickPoint.x, clickPoint.y);
-
-await settle(page);
-
-journal.record(
-  `a click on the globe selects ${options.click}`,
-  (await page.getByRole("group", { name: `Mark ${options.click}` }).count()) > 0,
-  `clicked ${Math.round(clickPoint.x)},${Math.round(clickPoint.y)}`,
-);
-
-await page.screenshot({ path: join(directory, "2-click.png") });
-
-const zoomBefore = (await readCamera(page))?.zoom ?? 0;
-
-await page.getByRole("button", { name: "Zoom in" }).click();
-
-await settle(page);
-
-const zoomAfter = (await readCamera(page))?.zoom ?? 0;
-
-journal.record(
-  "Zoom in raises the zoom by one",
-  Math.abs(zoomAfter - zoomBefore - 1) < 0.01,
-  `${zoomBefore} to ${zoomAfter}`,
-);
-
-await browser.close();
-
-journal.finish(directory, problems);

@@ -4,6 +4,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { z } from "zod";
+import type { Environment } from "@/shared/testing/perf/builds";
+import { readPerfEnvironment } from "@/shared/testing/perf/environment";
 
 export const repoRoot = resolve(import.meta.dirname, "../../../..");
 
@@ -17,8 +19,6 @@ export const serverLogFile = join(verifyDirectory, "server.log");
 
 export const buildLogFile = join(verifyDirectory, "build.log");
 
-export const databaseFile = join(repoRoot, ".data", "dev.db");
-
 const instanceSchema = z.object({ pid: z.number(), port: z.number(), startedAt: z.string() });
 
 export type Instance = z.infer<typeof instanceSchema>;
@@ -30,7 +30,13 @@ export type BuildStamp = z.infer<typeof buildStampSchema>;
 export function readInstance(): Instance | undefined {
   if (!existsSync(instanceFile)) return undefined;
 
-  return instanceSchema.parse(JSON.parse(readFileSync(instanceFile, "utf8")));
+  try {
+    return instanceSchema.parse(JSON.parse(readFileSync(instanceFile, "utf8")));
+  } catch {
+    console.error(`Ignored ${instanceFile}, which is not a valid server record.`);
+
+    return undefined;
+  }
 }
 
 export function readBuildStamp(): BuildStamp | undefined {
@@ -73,20 +79,36 @@ export function treeFingerprint(): string {
     .digest("hex");
 }
 
-export function buildHasKey(publishableKey: string): boolean {
+export function databasePath(): string {
+  const perfEnvironment = readPerfEnvironment(repoRoot, process.env);
+
+  if (perfEnvironment.kind === "refused") throw new Error(perfEnvironment.reason);
+
+  return perfEnvironment.databaseUrl.slice("file:".length);
+}
+
+export function buildHasPublicValues(environment: Environment): boolean {
   const chunks = join(repoRoot, ".next", "static", "chunks");
 
-  if (!existsSync(chunks)) return false;
+  const values = [
+    environment.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    environment.NEXT_PUBLIC_MAPBOX_TOKEN,
+  ];
 
-  return readdirSync(chunks, { recursive: true, encoding: "utf8" })
+  if (!existsSync(chunks) || values.some((value) => !value)) return false;
+
+  const sources = readdirSync(chunks, { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".js"))
-    .some((file) => readFileSync(join(chunks, file), "utf8").includes(publishableKey));
+    .map((file) => readFileSync(join(chunks, file), "utf8"));
+
+  return values.every((value) => sources.some((source) => value && source.includes(value)));
 }
 
 export function evidenceDirectory(label: string): string {
   const stateHome = process.env.XDG_STATE_HOME ?? join(homedir(), ".local", "state");
   const stamp = new Date().toISOString().replaceAll(":", "-").slice(0, 19);
-  const directory = join(stateHome, "traviz", "verify", `${stamp}-${label}`);
+  const safeLabel = label.replaceAll(/[^A-Za-z0-9-]/g, "-");
+  const directory = join(stateHome, "traviz", "verify", `${stamp}-${safeLabel}`);
 
   mkdirSync(directory, { recursive: true });
 

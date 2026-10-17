@@ -1,27 +1,27 @@
-import { join } from "node:path";
 import { parseArgs } from "node:util";
-import {
-  launchBrowser,
-  openPage,
-  readMarkRows,
-  settle,
-  signIn,
-} from "@/shared/testing/verify/browser";
-import { evidenceDirectory, requireBaseUrl } from "@/shared/testing/verify/instance";
-import { Journal } from "@/shared/testing/verify/journal";
+import type { Page } from "playwright-core";
+import { COUNTRIES_BY_CODE } from "@/features/countries";
+import { openPage, openRoute, readMarkRows, settle, signIn } from "@/shared/testing/verify/browser";
+import { runJourney } from "@/shared/testing/verify/journal";
 import { listPath } from "@/paths";
 
-const { values: options } = parseArgs({
-  options: {
-    code: { type: "string", default: "JPN" },
-    name: { type: "string", default: "Japan" },
-  },
-});
+const { values: options } = parseArgs({ options: { code: { type: "string", default: "JPN" } } });
 
-const { code, name } = options;
-const baseUrl = requireBaseUrl();
-const directory = evidenceDirectory(`mark-from-list-${code}`);
-const journal = new Journal();
+const code = options.code.toUpperCase();
+const country = COUNTRIES_BY_CODE.get(code);
+
+if (!country) {
+  console.error(`No country has the code ${code}.`);
+  process.exit(1);
+}
+
+const countryName = country.name;
+const initialState = readMarkRows().find((row) => row.code === code)?.state;
+
+if (initialState !== undefined) {
+  console.error(`FAIL precondition: ${code} already has a marks row (${initialState}).`);
+  process.exit(1);
+}
 
 async function waitForRow(expected: string | undefined): Promise<string | undefined> {
   const deadline = Date.now() + 5_000;
@@ -35,85 +35,69 @@ async function waitForRow(expected: string | undefined): Promise<string | undefi
   return state;
 }
 
-const initialState = readMarkRows().find((row) => row.code === code)?.state;
+async function findVisitedButton(page: Page, baseUrl: string) {
+  await openRoute(page, baseUrl, listPath());
+  await page.getByRole("textbox", { name: "Search countries" }).fill(countryName);
+  await settle(page);
 
-journal.record(
-  "precondition: no marks row for the country",
-  initialState === undefined,
-  `row state ${initialState ?? "none"}`,
-);
-
-if (initialState !== undefined) {
-  journal.finish(directory, []);
-  process.exit();
+  return page
+    .getByRole("group", { name: `Mark ${countryName}`, exact: true })
+    .getByRole("button", { name: "Visited", exact: true });
 }
 
-const browser = await launchBrowser();
-const { page, problems } = await openPage(browser, 1440, "reduce");
+await runJourney(`mark-from-list-${code}`, "reduce", async (journal, page, browser, baseUrl) => {
+  try {
+    const visited = await findVisitedButton(page, baseUrl);
 
-await signIn(page, baseUrl);
+    await journal.screenshot(page, "1-filtered");
+    await visited.click();
+    await settle(page);
+    journal.record(
+      "the Visited button is pressed after the click",
+      (await visited.getAttribute("aria-pressed")) === "true",
+      "aria-pressed",
+    );
+    journal.record(
+      "the marks row says visited",
+      (await waitForRow("visited")) === "visited",
+      `${code} in the worktree database`,
+    );
+    await journal.screenshot(page, "2-marked");
 
-await page.goto(baseUrl + listPath(), { waitUntil: "networkidle" });
+    const fresh = await openPage(browser, 1440, "reduce");
 
-await page.getByRole("textbox", { name: "Search countries" }).fill(name);
+    await signIn(fresh.page, baseUrl);
 
-await settle(page);
+    const freshVisited = await findVisitedButton(fresh.page, baseUrl);
 
-const group = page.getByRole("group", { name: `Mark ${name}` });
-const visited = group.getByRole("button", { name: "Visited", exact: true });
+    journal.record(
+      "a new session with empty storage shows the mark from the server",
+      (await freshVisited.getAttribute("aria-pressed")) === "true",
+      "aria-pressed in a new browser context",
+    );
+    await journal.screenshot(fresh.page, "3-new-session");
+    await fresh.page.context().close();
+    await visited.click();
+    await settle(page);
+    journal.record(
+      "a second click clears the mark",
+      (await visited.getAttribute("aria-pressed")) === "false",
+      "aria-pressed",
+    );
+    journal.record(
+      "the marks row is gone",
+      (await waitForRow(undefined)) === undefined,
+      `${code} in the worktree database`,
+    );
+    await journal.screenshot(page, "4-cleared");
+  } finally {
+    const leftover = readMarkRows().find((row) => row.code === code);
 
-await page.screenshot({ path: join(directory, "1-filtered.png") });
-
-await visited.click();
-
-await settle(page);
-
-journal.record(
-  "the Visited button is pressed after the click",
-  (await visited.getAttribute("aria-pressed")) === "true",
-  "aria-pressed",
-);
-
-journal.record(
-  "the marks row says visited",
-  (await waitForRow("visited")) === "visited",
-  `${code} in .data/dev.db`,
-);
-
-await page.screenshot({ path: join(directory, "2-marked.png") });
-
-await page.reload({ waitUntil: "networkidle" });
-
-await page.getByRole("textbox", { name: "Search countries" }).fill(name);
-
-await settle(page);
-
-journal.record(
-  "the mark survives a reload",
-  (await visited.getAttribute("aria-pressed")) === "true",
-  "aria-pressed after reload",
-);
-
-await page.screenshot({ path: join(directory, "3-reloaded.png") });
-
-await visited.click();
-
-await settle(page);
-
-journal.record(
-  "a second click clears the mark",
-  (await visited.getAttribute("aria-pressed")) === "false",
-  "aria-pressed",
-);
-
-journal.record(
-  "the marks row is gone",
-  (await waitForRow(undefined)) === undefined,
-  `${code} in .data/dev.db`,
-);
-
-await page.screenshot({ path: join(directory, "4-cleared.png") });
-
-await browser.close();
-
-journal.finish(directory, problems);
+    if (leftover)
+      journal.record(
+        "the journey left no mark behind",
+        false,
+        `${code} is still ${leftover.state}. Clear it on /list or with Reset all data on /stats.`,
+      );
+  }
+});

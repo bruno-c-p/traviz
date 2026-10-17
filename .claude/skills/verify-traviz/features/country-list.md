@@ -25,7 +25,7 @@ Preconditions:
 - **Continent filter.** At 1440 px, click `Asia` in the `Continents` navigation. Its `aria-pressed` turns `true`, and only Asian rows remain. At 375 px, use the `Continent` group of chips.
 - **Mark from a row.** In `page.getByRole("group", { name: "Mark Japan" })`, click `page.getByRole("button", { name: "Visited", exact: true })`. After `settle`, its `aria-pressed` is `true`, the `Visited` filter count goes up by 1, and the `Asia` sidebar entry reads `1 / 50`. Click `Visited` again to clear it.
 - **Virtual list.** Count `page.getByRole("group", { name: /^Mark / })` with no filter. At 1440 x 900 it is about 19, not 250. Scroll the list with `page.mouse.wheel(0, 5000)`, then `settle`. Rows further down the alphabet appear.
-- **Script.** `bun run verify:mark-from-list` runs search, mark, reload and clear, and checks the database row.
+- **Script.** `bun run verify:mark-from-list` runs search, mark, a new-session check and clear, and checks the database row.
 
 ## Gotchas
 

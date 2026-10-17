@@ -28,7 +28,7 @@ bun run verify:server start
 bun run verify:doctor
 ```
 
-The doctor is read-only. Each line starts with `ok` or `FAIL`, and the exit code is 1 when any check fails. It checks that `.env.local` is local only, that `sqlite3` and `clerk` are on PATH, that `.next` holds this worktree's Clerk key (`bun run check` leaves a placeholder build), that the build matches HEAD plus your uncommitted changes, that the recorded PID is alive and owns the port, that `/sign-in` answers 200, and that Chrome launches. Run it first, and again whenever anything looks off. A stale build fails the doctor. Fix it with `bun run verify:server stop`, then `bun run verify:server start`.
+The doctor is read-only. Each line starts with `ok` or `FAIL`, and the exit code is 1 when any check fails. It checks that `.env.local` is local only, that `sqlite3` and `clerk` are on PATH, that the `clerk` CLI is logged in and the dev user exists, that the database has a `marks` table, that `.next` holds this worktree's Clerk key and Mapbox token (`bun run check` leaves a placeholder build), that the build matches HEAD plus your uncommitted changes, that the recorded PID is alive and owns the port, that `/sign-in` answers 200, and that Chrome launches. Run it first, and again whenever anything looks off. A stale build fails the doctor. Fix it with `bun run verify:server stop`, then `bun run verify:server start`.
 
 ## Drive
 
@@ -37,10 +37,11 @@ The driver is `playwright-core` running the installed Google Chrome with SwiftSh
 - `launchBrowser()` starts headless Chrome.
 - `openPage(browser, width, motion)` opens a context at that width. `motion` is `"reduce"` or `"no-preference"`. It returns `{ page, problems }`, where `problems` collects console errors, page errors and responses with status 400 or higher. Mapbox's 404s for empty ocean tiles are left out.
 - `signIn(page, baseUrl)` gets a sign-in token for the dev user and signs in through `window.Clerk` with a ticket. No email is sent.
+- `openRoute(page, baseUrl, route)` opens a route, throws when the page lands somewhere else (a lost session lands on `/sign-in`), waits for the globe's style on `/`, then settles.
 - `settle(page)` waits 700 ms. Call it after every click, keypress or fill before you read state.
 - `readCamera(page)` returns `{ lng, lat, zoom, moving, styleLoaded }` for the globe, or `null` when no map is mounted. `findMapExpression` is the in-page expression that finds the mapbox-gl `Map` through the React fiber of `.mapboxgl-map`. Use it in `page.evaluate` to call `project`, `jumpTo` or `queryRenderedFeatures`.
-- `readMarkRows()` reads the `marks` table of `.data/dev.db` read-only, as `{ user_id, code, state }[]`.
-- `requireBaseUrl()` and `evidenceDirectory(label)` come from `@/shared/testing/verify/instance`. `Journal` from `@/shared/testing/verify/journal` records pass and fail steps and writes `journal.json`.
+- `readMarkRows()` reads the `marks` table of the database `TURSO_DATABASE_URL` names (`.data/dev.db` after setup), read-only, as `{ user_id, code, state }[]`.
+- `runJourney(label, motion, async (journal, page, browser, baseUrl) => { ... })` from `@/shared/testing/verify/journal` is the frame for a new journey. It makes the evidence directory, signs in at 1440 px, records a thrown error as a failed step, closes the browser and writes `journal.json`, and sets exit code 1 on any failed step. Inside it, call `journal.record(step, ok, detail)` and `journal.screenshot(page, name)`.
 
 Select elements by role and accessible name. The handles that matter are listed per feature in [features/README.md](features/README.md). For a journey without a script, put the scratch file in `.data/verify/` (gitignored, and the `@/` alias still resolves) and run it with `bun`.
 
@@ -53,10 +54,10 @@ bun run verify:shots --label <name>
 bun run verify:pixel-diff <before dir> <after dir>
 ```
 
-- `verify:mark-from-list [--code JPN --name Japan]` marks a country Visited from `/list` and checks the database row. It reloads and checks the mark is still there, clears it, and checks the row is gone. It stops before it clicks anything when the country already has a row.
-- `verify:globe-search [--name Japan --lng 138 --lat 36]` checks that the globe spins, that the search flies to the country and opens its card, that a click on France selects France, and that Zoom in adds one zoom level.
-- `verify:shots [--route /list ...] [--motion no-preference]` signs in and takes full-page screenshots of `/`, `/list` and `/stats` (or the routes given) at 375, 768 and 1440 px. Motion is reduced by default.
-- `verify:pixel-diff` compares PNGs with the same name in two directories and prints the count of changed pixels and the largest channel delta per file.
+- `verify:mark-from-list [--code JPN]` marks a country Visited from `/list` and checks the database row. It opens a second browser context with empty storage and checks the mark comes back from the server, then clears it and checks the row is gone. It stops before it clicks anything when the country already has a row, and reports any mark it leaves behind.
+- `verify:globe-search [--code JPN --click FRA]` checks that the globe spins, that the search flies to the country's centre from the dataset and opens its card, that a click on the second country selects it, and that Zoom in adds one zoom level. The click step uses `map.jumpTo` as setup to put the country under the pointer. The click itself is a real mouse event.
+- `verify:shots [--route /list ...] [--motion no-preference]` signs in and takes full-page screenshots of `/`, `/list` and `/stats` (or the routes given) at 375, 768 and 1440 px. Motion is reduced by default. It exits 1 when a route lands elsewhere or any problem was collected.
+- `verify:pixel-diff` compares PNGs with the same name in two directories and prints the count of changed pixels and the largest channel delta per file. It exits 1 when any file differs or exists on one side only.
 
 ## Evidence
 
@@ -66,7 +67,7 @@ A proof follows these rules:
 
 - Drive the real user path: the button, the search box, a click on the globe. Never call store setters, Server Actions or Clerk APIs other than the ticket sign-in.
 - Capture the action and the state after it, such as a screenshot before and after, plus the attribute or text that changed (`aria-pressed`, the card heading, a total).
-- Check the side effect next to the screen. A mark is proven only when `readMarkRows()` shows the row, and it persists only when the page still shows it after a reload.
+- Check the side effect next to the screen. A mark is proven only when `readMarkRows()` shows the row. It persists only when a new browser context, with empty localStorage, shows it. A plain reload reads the `traviz-marks` cache first and proves nothing about the server.
 - Report the `problems` list. Any entry in it fails the proof unless you can explain it.
 - For a UI change, run `verify:shots` and look at every image for overlap, clipped text and low contrast.
 
@@ -91,4 +92,4 @@ bun run verify:server stop
 
 ## Feature map
 
-[features/README.md](features/README.md) indexes one file per feature, with sub-features, entry points, driving steps and gotchas. Keep it current with `/maintain-verification-skill` when the UI changes.
+[features/README.md](features/README.md) indexes one file per feature, with sub-features, entry points, driving steps and gotchas. Keep it current when the UI changes. The t3-pstack plugin's `/maintain-verification-skill` does this where it is installed. Otherwise re-read the components under `src/features/<name>` and update the matching feature file in the same PR as the UI change.

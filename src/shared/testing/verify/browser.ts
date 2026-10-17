@@ -2,8 +2,8 @@ import { execFileSync } from "node:child_process";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { z } from "zod";
 import { createSignInToken, findSeededUserId } from "@/shared/testing/clerk-dev";
-import { databaseFile } from "@/shared/testing/verify/instance";
-import { signInPath } from "@/paths";
+import { databasePath } from "@/shared/testing/verify/instance";
+import { homePath, signInPath } from "@/paths";
 
 export const viewportWidths = [375, 768, 1440] as const;
 
@@ -66,6 +66,23 @@ export async function signIn(page: Page, baseUrl: string): Promise<void> {
     const attempt = await window.Clerk.client.signIn.create({ strategy: "ticket", ticket: ${JSON.stringify(ticket)} });
     await window.Clerk.setActive({ session: attempt.createdSessionId });
   })()`);
+  await page.waitForFunction("Boolean(window.Clerk?.session?.id)", null, { timeout: 10_000 });
+}
+
+export async function openRoute(page: Page, baseUrl: string, route: string): Promise<void> {
+  await page.goto(baseUrl + route, { waitUntil: "networkidle" });
+
+  const landed = new URL(page.url()).pathname;
+  const expected = new URL(route, baseUrl).pathname;
+
+  if (landed !== expected) throw new Error(`Opened ${route} but landed on ${landed}.`);
+
+  if (expected === homePath())
+    await page.waitForFunction(`${findMapExpression}?.isStyleLoaded() === true`, null, {
+      timeout: 30_000,
+    });
+
+  await settle(page);
 }
 
 export function settle(page: Page): Promise<void> {
@@ -116,7 +133,7 @@ export type MarkRow = z.infer<typeof markRowsSchema>[number];
 export function readMarkRows(): MarkRow[] {
   const output = execFileSync(
     "sqlite3",
-    ["-json", "-readonly", databaseFile, "select user_id, code, state from marks order by code"],
+    ["-json", "-readonly", databasePath(), "select user_id, code, state from marks order by code"],
     { encoding: "utf8" },
   ).trim();
 

@@ -6,7 +6,7 @@ This directory is the maintained source for verifying what a traviz user can see
 
 - `bun run setup` has run in this worktree, and `bun run verify:server start` printed `ready`.
 - `bun run verify:doctor` prints only `ok` lines.
-- The dev user `agent+clerk_test@example.com` has no marks: `sqlite3 .data/dev.db "select count(*) from marks"` prints `0`. If it does not, clear them through `/stats#account` (Reset all data) or report the starting rows.
+- The dev user `agent+clerk_test@example.com` has no marks: `sqlite3 .data/dev.db "select count(*) from marks"` prints `0`. If it does not, clear them with `Reset all data` in the `Danger zone` on `/stats`, or report the starting rows.
 - Never drive a server that this run did not start, or that `.data/verify/server.json` in this worktree does not record.
 
 ## Driving conventions
@@ -20,7 +20,7 @@ This directory is the maintained source for verifying what a traviz user can see
 ## Proof and skip reporting
 
 - Capture the user action and the resulting state: a screenshot before and after, and the changed attribute or text.
-- A mark change also needs the `marks` row from `readMarkRows()`, and persistence needs a reload.
+- A mark change also needs the `marks` row from `readMarkRows()`, and persistence needs a new browser context with empty storage.
 - Report the `problems` list from `openPage` with each journey.
 - Name the feature file, the sub-feature ID and the entry point with every artifact.
 - When a precondition is missing, report the journey as failed with the reason. Never weaken a journey so that it passes.

@@ -29,7 +29,7 @@ Preconditions:
 - **Set.** On `/list`, search `Japan` and click `Visited` in the `Mark Japan` group. After `settle`, `Visited` has `aria-pressed="true"`. Within 5 s, `readMarkRows()` has `{ code: "JPN", state: "visited" }`.
 - **Change.** Click `Want to go` in the same group. `Want to go` is pressed, `Visited` is not, and the row's state is `want`.
 - **Clear.** Click the pressed `Want to go`. No button is pressed, and the `JPN` row is gone.
-- **Persist.** Set a mark, then run `page.reload()`. The same button is still pressed. In a new browser context signed in again, the mark is there too.
+- **Persist.** Set a mark, then open a new browser context (`openPage`), sign in and find the same row. The same button is pressed. That is the server snapshot, because the new context has no `traviz-marks` cache.
 - **Cache.** After a mark, `localStorage.getItem("traviz-marks")` holds `{"state":{"marks":{"JPN":"visited"}},...}`.
 - **Reset.** Mark two countries. On `/stats`, click `Reset all data`, then `Yes, erase everything`. The status `All data has been reset.` appears, every total is 0, and `readMarkRows()` returns `[]`. `Cancel` instead leaves the marks.
 - **Globe fill.** After a mark on `/`, the country takes the state's colour (`#9fe870` visited, `#7a5af8` want, `#b9bdb5` not interested). Read a pixel at the projected centre from `page.screenshot({ clip })`, or read `map.getPaintProperty` on the fill layer.
@@ -39,7 +39,7 @@ Preconditions:
 
 - In the mobile sheet the mark buttons are named with their hint, such as `Visited Been there`. Use `{ name: /^Visited/ }` there.
 - Wait for the row with a poll of up to 5 s. The screen updates first and the Server Action writes afterward.
-- The marks actions never call `revalidatePath`. A reload is the only way to prove that the server snapshot holds the mark.
+- A plain `page.reload()` shows the cached marks from `traviz-marks` before the server snapshot arrives, so it can pass while the server lost the mark. Prove persistence from a new context. The marks actions never call `revalidatePath`, so the open page never refetches on its own.
 - `bun run perf` seeds 49 marks for the dev user. If the baseline count is not 0, reset first or report the rows you started with.
 - To force `marks-sync-error`, open `/list`, run `bun run verify:server stop`, click a mark, then click the `Stats` link (a client-side navigation still works). The `Account` section shows `Couldn't sync your latest changes: Failed to fetch`, and `traviz-marks` in localStorage still holds the unsaved mark. Run `bun run verify:server start --no-build` afterward. The new server gets a new port.
 - Every worktree has its own `.data/dev.db`, but the Clerk dev user is shared. The same user can see different marks in two worktrees.

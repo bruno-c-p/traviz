@@ -31,9 +31,9 @@ Preconditions:
 - **Click.** Project a point inside the country, then click it. In `page.evaluate`: `const map = ${findMapExpression}; map.jumpTo({ center: [2.35, 46.6], zoom: 4 }); const p = map.project([2.35, 46.6]); const box = map.getContainer().getBoundingClientRect();`. Wait 1.5 s and run `page.mouse.click(box.left + p.x, box.top + p.y)`. A group named `Mark France` appears.
 - **Card.** In the `Globe details` aside, the card has the country name as its heading, a `Close` button, the `Mark <country>` group with the buttons `Visited`, `Want to go` and `Not interested`, and a `Clear mark` button once the country has a mark. Pressing `Escape` closes it, and the `How to mark countries` hint returns.
 - **Sheet.** At width 375, the same selection opens a `dialog` named after the country (`page.getByRole("dialog", { name: "Japan" })`), with a `Close` button, the same mark group and a `Clear mark` button once the country has a mark.
-- **Zoom.** Click `page.getByRole("button", { name: "Zoom in" })`. `readCamera(page).zoom` goes up by 1.
-- **Return.** Click the `List` link, then the `Globe` link. `readCamera` reads the same centre and zoom as before you left. On `/list` and `/stats`, `document.querySelector(".mapboxgl-map")` is `null`.
-- **Script.** `bun run verify:globe-search` runs spin, search, card, click and zoom, and writes screenshots and `journal.json`.
+- **Zoom.** Click `page.getByRole("button", { name: "Zoom in" })`. `(await readCamera(page))?.zoom` goes up by 1.
+- **Return.** With motion `"reduce"` (or after a drag stops the spin), click the `List` link, then the `Globe` link. `readCamera` reads the same centre and zoom as before you left. A globe that was spinning keeps spinning, so its centre moves. On `/list` and `/stats`, `document.querySelector(".mapboxgl-map")` is `null`.
+- **Script.** `bun run verify:globe-search [--code JPN --click FRA]` runs spin, search, card, click and zoom, and writes screenshots and `journal.json`.
 
 ## Gotchas
 

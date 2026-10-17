@@ -4,12 +4,13 @@ import { parseArgs } from "node:util";
 import {
   findFreePort,
   startServer,
+  stopServer,
   waitForServer,
   type Environment,
 } from "@/shared/testing/perf/builds";
 import { readPerfEnvironment } from "@/shared/testing/perf/environment";
 import {
-  buildHasKey,
+  buildHasPublicValues,
   buildLogFile,
   buildStampFile,
   treeFingerprint,
@@ -32,6 +33,7 @@ function fail(message: string): never {
 }
 
 function build(environment: Environment): void {
+  const tree = treeFingerprint();
   const log = openSync(buildLogFile, "w");
 
   console.log(`building, log at ${buildLogFile}`);
@@ -48,32 +50,36 @@ function build(environment: Environment): void {
     closeSync(log);
   }
 
-  writeFileSync(
-    buildStampFile,
-    JSON.stringify({ tree: treeFingerprint(), builtAt: new Date().toISOString() }),
-  );
+  writeFileSync(buildStampFile, JSON.stringify({ tree, builtAt: new Date().toISOString() }));
 }
 
 function prepare(): Environment {
   const existing = readInstance();
 
   if (existing && isAlive(existing.pid))
-    fail(`A verify server already runs here: pid ${existing.pid} on port ${existing.port}.`);
+    fail(
+      `A verify server already runs here: pid ${existing.pid} on port ${existing.port}. Run bun run verify:server stop first.`,
+    );
 
   const perfEnvironment = readPerfEnvironment(repoRoot, process.env);
 
   if (perfEnvironment.kind === "refused") fail(`Refused: ${perfEnvironment.reason}`);
 
   const { environment } = perfEnvironment;
-  const publishableKey = environment.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
 
   mkdirSync(verifyDirectory, { recursive: true });
 
   if (!options["no-build"]) build(environment);
-  else if (!buildHasKey(publishableKey))
+  else if (!buildHasPublicValues(environment))
     fail(".next was not built with this worktree's .env.local. Run start without --no-build.");
 
   return environment;
+}
+
+async function waitUntilReady(port: number): Promise<void> {
+  const signIn = await fetch(`http://localhost:${port}/sign-in`);
+
+  if (!signIn.ok) throw new Error(`/sign-in answered ${signIn.status}. See ${serverLogFile}.`);
 }
 
 async function start(): Promise<void> {
@@ -81,37 +87,52 @@ async function start(): Promise<void> {
   const port = await findFreePort();
   const server = startServer(repoRoot, port, environment, serverLogFile);
 
-  if (server.pid === undefined) fail("next start did not spawn.");
+  try {
+    await waitForServer(server, port, serverLogFile);
+    await waitUntilReady(port);
+  } catch (cause: unknown) {
+    stopServer(server);
+    fail(`The server did not become ready and was stopped. ${String(cause)}`);
+  }
 
   writeFileSync(
     instanceFile,
     JSON.stringify({ pid: server.pid, port, startedAt: new Date().toISOString() }),
   );
-  await waitForServer(server, port, serverLogFile);
-
-  const signIn = await fetch(`http://localhost:${port}/sign-in`);
-
-  if (!signIn.ok) fail(`/sign-in answered ${signIn.status}. See ${serverLogFile}.`);
-
   server.unref();
   console.log(`ready http://localhost:${port} pid ${server.pid}`);
+}
+
+function signalGroup(pid: number, signal: NodeJS.Signals): void {
+  try {
+    process.kill(-pid, signal);
+  } catch (cause: unknown) {
+    if (!(cause instanceof Error && "code" in cause && cause.code === "ESRCH")) throw cause;
+  }
 }
 
 async function stop(): Promise<void> {
   const instance = readInstance();
 
-  if (!instance) return console.log("no verify server recorded in this worktree");
+  if (!instance) {
+    rmSync(instanceFile, { force: true });
 
-  if (isAlive(instance.pid)) process.kill(-instance.pid, "SIGTERM");
+    return console.log("no verify server recorded in this worktree");
+  }
 
-  const deadline = Date.now() + 10_000;
+  try {
+    if (isAlive(instance.pid)) signalGroup(instance.pid, "SIGTERM");
 
-  while (isAlive(instance.pid) && Date.now() < deadline)
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    const deadline = Date.now() + 10_000;
 
-  if (isAlive(instance.pid)) process.kill(-instance.pid, "SIGKILL");
+    while (isAlive(instance.pid) && Date.now() < deadline)
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-  rmSync(instanceFile);
+    if (isAlive(instance.pid)) signalGroup(instance.pid, "SIGKILL");
+  } finally {
+    rmSync(instanceFile, { force: true });
+  }
+
   console.log(`stopped pid ${instance.pid}, port ${instance.port}`);
 }
 
