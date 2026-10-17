@@ -3,6 +3,19 @@ import type { Client, InStatement } from "@libsql/client";
 import { markRowSchema } from "@/features/marks/schemas";
 import type { Marks } from "@/features/marks/colors";
 import type { MarkChange, MarksSnapshot } from "@/features/marks/marks-sync";
+import { turso } from "@/shared/server/database";
+
+type MarksReader = {
+  readonly client: Client;
+  readonly logReadError: (cause: unknown) => void;
+};
+
+export const databaseMarksReader: MarksReader = {
+  client: turso,
+  logReadError: (cause) => {
+    console.error("The marks could not be read.", cause);
+  },
+};
 
 async function loadMarks(client: Client, userId: string): Promise<Marks> {
   const result = await client.execute({
@@ -21,11 +34,14 @@ async function loadMarks(client: Client, userId: string): Promise<Marks> {
   return marks;
 }
 
-export async function loadMarksSnapshot(client: Client, userId: string): Promise<MarksSnapshot> {
+export async function loadMarksSnapshot(
+  reader: MarksReader,
+  userId: string,
+): Promise<MarksSnapshot> {
   try {
-    return { ok: true, ownerId: userId, marks: await loadMarks(client, userId) };
+    return { ok: true, ownerId: userId, marks: await loadMarks(reader.client, userId) };
   } catch (cause: unknown) {
-    console.error("The marks could not be read.", cause);
+    reader.logReadError(cause);
 
     return { ok: false, ownerId: userId };
   }

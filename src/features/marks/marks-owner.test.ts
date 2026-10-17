@@ -545,3 +545,25 @@ describe("marks owner", () => {
     expect(sent()).toEqual([]);
   });
 });
+
+describe("marks owner listeners", () => {
+  test("a listener hears every change until it unsubscribes", async () => {
+    const { owner, answer } = setup();
+    let heard = 0;
+
+    const unsubscribe = owner.subscribe(() => {
+      heard += 1;
+    });
+
+    owner.startSession(OWNER);
+    owner.requestChange(tapDeu);
+    await flush();
+
+    expect(heard).toBe(3);
+
+    unsubscribe();
+    await answer(0);
+
+    expect(heard).toBe(3);
+  });
+});
