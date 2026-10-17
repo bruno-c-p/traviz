@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { createPortal } from "react-dom";
-import { ClearMarkButton, MarkChoices } from "@/features/marks";
+import { ClearMarkButton, MarkChoices, MarkStatus } from "@/features/marks";
 import { CountryHeading } from "@/features/countries";
 import { useDraggableSheet } from "@/features/globe/use-draggable-sheet";
 import { useIsClient } from "@/features/globe/use-is-client";
@@ -34,6 +34,7 @@ export function CountrySheet({ country }: { country: Country }) {
         <div aria-hidden className="mx-auto h-1 w-10 rounded-full bg-line" />
         <CountryHeading country={country} headingId={headingId} onClose={close} />
         <MarkChoices code={country.code} countryName={country.name} layout="rows" />
+        <MarkStatus scope={country.code} />
         <ClearMarkButton code={country.code} className="self-center" />
       </dialog>
     </div>,

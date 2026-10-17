@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { ClearMarkButton, MarkChoices } from "@/features/marks";
+import { ClearMarkButton, MarkChoices, MarkStatus } from "@/features/marks";
 import { CountryHeading } from "@/features/countries";
 import type { Country } from "@/features/countries";
 import { useSelectedCountryStore } from "@/features/globe/selected-country";
@@ -17,6 +17,7 @@ export function CountryCard({ country }: { country: Country }) {
     >
       <CountryHeading country={country} headingId={headingId} onClose={clearSelection} />
       <MarkChoices code={country.code} countryName={country.name} layout="tiles" />
+      <MarkStatus scope={country.code} className="-mt-3" />
       <ClearMarkButton code={country.code} className="-my-2 self-start px-1" />
     </section>
   );

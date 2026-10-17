@@ -1,12 +1,11 @@
 import "server-only";
 import type { Client, InStatement } from "@libsql/client";
 import { markRowSchema } from "@/features/marks/schemas";
-import type { CountryState, Marks } from "@/features/marks/colors";
-import type { MarkChange } from "@/features/marks/marks-sync";
-import { turso } from "@/shared/server/database";
+import type { Marks } from "@/features/marks/colors";
+import type { MarkChange, MarksSnapshot } from "@/features/marks/marks-sync";
 
-export async function loadMarks(userId: string): Promise<Marks> {
-  const result = await turso.execute({
+async function loadMarks(client: Client, userId: string): Promise<Marks> {
+  const result = await client.execute({
     sql: "SELECT code, state FROM marks WHERE user_id = ?",
     args: [userId],
   });
@@ -20,6 +19,16 @@ export async function loadMarks(userId: string): Promise<Marks> {
   }
 
   return marks;
+}
+
+export async function loadMarksSnapshot(client: Client, userId: string): Promise<MarksSnapshot> {
+  try {
+    return { ok: true, ownerId: userId, marks: await loadMarks(client, userId) };
+  } catch (cause: unknown) {
+    console.error("The marks could not be read.", cause);
+
+    return { ok: false, ownerId: userId };
+  }
 }
 
 function markChangeStatement(userId: string, change: MarkChange): InStatement {
@@ -46,20 +55,4 @@ export async function writeMarkChange(
   change: MarkChange,
 ): Promise<void> {
   await client.execute(markChangeStatement(userId, change));
-}
-
-export async function upsertMarkForUser(
-  userId: string,
-  code: string,
-  state: CountryState,
-): Promise<void> {
-  await writeMarkChange(turso, userId, { kind: "set", code, state });
-}
-
-export async function deleteMarkForUser(userId: string, code: string): Promise<void> {
-  await writeMarkChange(turso, userId, { kind: "clear", code });
-}
-
-export async function clearMarksForUser(userId: string): Promise<void> {
-  await writeMarkChange(turso, userId, { kind: "reset" });
 }

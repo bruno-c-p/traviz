@@ -5,17 +5,17 @@ import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/shared/cn";
 import { signInPath } from "@/paths";
-import { useCountriesStore } from "@/features/marks";
+import { endMarksSession, MarkStatus } from "@/features/marks";
 
 export function AccountSection({ className }: { className?: string }) {
   const { user } = useUser();
   const { signOut } = useClerk();
-  const syncError = useCountriesStore((state) => state.syncError);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   async function handleSignOut() {
     if (isSigningOut) return;
     setIsSigningOut(true);
+    endMarksSession();
     await signOut({ redirectUrl: signInPath() });
   }
 
@@ -48,11 +48,8 @@ export function AccountSection({ className }: { className?: string }) {
           {isSigningOut ? "Signing out…" : "Sign out"}
         </button>
       </div>
-      {syncError && (
-        <p role="status" className="rounded-2xl bg-warning px-4 py-3 text-sm text-warning-content">
-          Couldn't sync your latest changes: {syncError}
-        </p>
-      )}
+      <MarkStatus scope="all-marks" className="text-sm" />
+      <MarkStatus scope="snapshot" className="text-sm" />
     </section>
   );
 }

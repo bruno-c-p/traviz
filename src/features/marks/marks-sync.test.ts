@@ -461,3 +461,57 @@ describe("marks sync", () => {
     expect(visibleMarks(state)).toEqual({});
   });
 });
+
+describe("problems after unit 21", () => {
+  test("dismissing a problem removes only that scope", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("DEU", "visited"),
+      sent(1),
+      failed(1, "unavailable"),
+      setMark("FRA", "want"),
+      sent(2),
+      failed(2, "rejected"),
+      { type: "problem-dismissed", scope: "DEU" },
+    ]);
+
+    expect(state.problems).toEqual([{ scope: "FRA", reason: "rejected" }]);
+  });
+
+  test("a saved reset clears every change problem and keeps the snapshot problem", () => {
+    const state = play([
+      started(OWNER),
+      failedSnapshot(),
+      setMark("DEU", "visited"),
+      sent(1),
+      failed(1, "unavailable"),
+      reset(),
+      sent(2),
+      failed(2, "unavailable"),
+      reset(),
+      sent(3),
+      saved(3),
+    ]);
+
+    expect(state.problems).toEqual([{ scope: "snapshot", reason: "unavailable" }]);
+  });
+
+  test("a failed reset keeps the earlier change problems", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("DEU", "visited"),
+      sent(1),
+      failed(1, "unavailable"),
+      reset(),
+      sent(2),
+      failed(2, "unavailable"),
+    ]);
+
+    expect(state.problems).toEqual([
+      { scope: "DEU", reason: "unavailable" },
+      { scope: "all-marks", reason: "unavailable" },
+    ]);
+  });
+});

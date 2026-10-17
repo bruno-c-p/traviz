@@ -42,6 +42,7 @@ function fakeTransport() {
       new Promise((resolve, reject) => {
         calls.push({ expectedOwnerId, change, resolve, reject });
       }),
+    readMarks: () => new Promise(() => {}),
   };
 
   const sent = () => calls.map((call) => [call.expectedOwnerId, call.change]);
@@ -83,6 +84,7 @@ function fakeCache(
       if (options.writeFails === true) throw new Error("quota exceeded");
       writes.push(cached);
     },
+    clear: () => {},
   };
 
   return { cache, writes };
@@ -420,6 +422,7 @@ describe("marks owner", () => {
 
         return Promise.resolve(SAVED);
       },
+      readMarks: () => new Promise(() => {}),
     };
 
     const owner = createMarksOwner(transport, fakeCache().cache, fakeDeadline().startDeadline);

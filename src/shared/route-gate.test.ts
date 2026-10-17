@@ -51,7 +51,15 @@ describe("redirectFor", () => {
   test.each(cases)(
     "$pathname with isAuthenticated=$isAuthenticated redirects to $redirect",
     ({ pathname, isAuthenticated, redirect }) => {
-      expect(redirectFor(pathname, isAuthenticated)).toBe(redirect);
+      expect(redirectFor(pathname, isAuthenticated, false)).toBe(redirect);
+    },
+  );
+
+  test.each([homePath(), listPath(), statsPath(), signInPath()])(
+    "a server action posted to %s reaches the action whether or not the user is signed in",
+    (pathname) => {
+      expect(redirectFor(pathname, false, true)).toBeUndefined();
+      expect(redirectFor(pathname, true, true)).toBeUndefined();
     },
   );
 });

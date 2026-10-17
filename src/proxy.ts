@@ -4,7 +4,8 @@ import { redirectFor } from "@/shared/route-gate";
 
 export default clerkMiddleware(async (auth, request) => {
   const { isAuthenticated } = await auth();
-  const redirectPath = redirectFor(request.nextUrl.pathname, isAuthenticated);
+  const isServerAction = request.method === "POST" && request.headers.has("next-action");
+  const redirectPath = redirectFor(request.nextUrl.pathname, isAuthenticated, isServerAction);
 
   if (redirectPath !== undefined) {
     return NextResponse.redirect(new URL(redirectPath, request.url));

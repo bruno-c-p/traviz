@@ -1,7 +1,6 @@
-import { Suspense } from "react";
 import { TabBar } from "@/features/app-shell/tab-bar";
 import { TopBar } from "@/features/app-shell/top-bar";
-import { MarksProvider } from "@/features/marks/server";
+import { MarksSession } from "@/features/marks/server";
 import { getUserId } from "@/features/auth/server";
 
 export async function SessionLayer() {
@@ -13,9 +12,7 @@ export async function SessionLayer() {
     <>
       <TopBar />
       <TabBar />
-      <Suspense fallback={null}>
-        <MarksProvider userId={userId} />
-      </Suspense>
+      <MarksSession userId={userId} />
     </>
   );
 }

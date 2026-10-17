@@ -13,5 +13,9 @@ export const decideGate = (access: RouteAccess, isAuthenticated: boolean): Route
   return undefined;
 };
 
-export const redirectFor = (pathname: string, isAuthenticated: boolean): Route | undefined =>
-  decideGate(routeAccess(pathname), isAuthenticated);
+export const redirectFor = (
+  pathname: string,
+  isAuthenticated: boolean,
+  isServerAction: boolean,
+): Route | undefined =>
+  isServerAction ? undefined : decideGate(routeAccess(pathname), isAuthenticated);

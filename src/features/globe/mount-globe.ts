@@ -63,29 +63,34 @@ export function startGlobe<T extends GlobeMap>(
 
 type HandoffOptions<T> = Omit<GlobeOptions<T>, "isSpinning"> & { prefersReducedMotion: boolean };
 
-export function createCameraHandoff() {
-  let lastCamera: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
+const DEFAULT_CAMERA: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
+
+export function createCameraHandoff(getOwnerId: () => string | null) {
+  let lastCamera = DEFAULT_CAMERA;
+  let lastOwnerId: string | null = null;
 
   return function mountFromLastCamera<T extends GlobeMap>(
     createMap: (camera: GlobeCamera) => T,
     { prefersReducedMotion, ...options }: HandoffOptions<T>,
   ) {
-    const map = createMap(lastCamera);
+    const camera = getOwnerId() === lastOwnerId ? lastCamera : DEFAULT_CAMERA;
+    const map = createMap(camera);
 
     const unmountGlobe = startGlobe(map, {
       ...options,
-      isSpinning: lastCamera.isSpinning && !prefersReducedMotion,
+      isSpinning: camera.isSpinning && !prefersReducedMotion,
     });
 
     function unmount() {
       lastCamera = unmountGlobe();
+      lastOwnerId = getOwnerId();
     }
 
     return { map, unmount };
   };
 }
 
-const mountFromLastCamera = createCameraHandoff();
+const mountFromLastCamera = createCameraHandoff(() => useCountriesStore.getState().ownerId);
 
 export function mountGlobe(mapbox: typeof mapboxgl, container: HTMLDivElement) {
   const initialMarks = useCountriesStore.getState().marks;

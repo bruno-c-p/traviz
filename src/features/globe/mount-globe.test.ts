@@ -251,7 +251,7 @@ describe("camera handoff", () => {
   }
 
   test("the next globe starts from the last globe's camera and keeps its stopped spin", () => {
-    const mountFromLastCamera = createCameraHandoff();
+    const mountFromLastCamera = createCameraHandoff(() => "user_a");
     const firstGlobe = mountFrom(mountFromLastCamera);
 
     firstGlobe.map.loadStyle();
@@ -270,7 +270,7 @@ describe("camera handoff", () => {
   });
 
   test("the next globe keeps spinning when the user never stopped the last one", () => {
-    const mountFromLastCamera = createCameraHandoff();
+    const mountFromLastCamera = createCameraHandoff(() => "user_a");
 
     mountFrom(mountFromLastCamera).unmount();
 
@@ -283,8 +283,29 @@ describe("camera handoff", () => {
     nextGlobe.unmount();
   });
 
+  test("the next globe starts from the default camera when another account signed in", () => {
+    let ownerId = "user_a";
+    const mountFromLastCamera = createCameraHandoff(() => ownerId);
+    const firstGlobe = mountFrom(mountFromLastCamera);
+
+    firstGlobe.map.loadStyle();
+    firstGlobe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
+    firstGlobe.map.fire("mousedown");
+    firstGlobe.unmount();
+
+    ownerId = "user_b";
+    const nextGlobe = mountFrom(mountFromLastCamera);
+
+    expect(nextGlobe.cameras).toEqual([{ center: [0, 20], zoom: 1.4, isSpinning: true }]);
+
+    nextGlobe.unmount();
+  });
+
   test("reduced motion starts no spin", () => {
-    const globe = mountFrom(createCameraHandoff(), { prefersReducedMotion: true });
+    const globe = mountFrom(
+      createCameraHandoff(() => "user_a"),
+      { prefersReducedMotion: true },
+    );
 
     globe.map.loadStyle();
     globe.frames.runFrames(3);

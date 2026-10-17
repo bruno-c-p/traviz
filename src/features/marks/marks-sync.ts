@@ -49,7 +49,8 @@ export type MarksSyncEvent =
   | { readonly type: "snapshot-received"; readonly snapshot: MarksSnapshot }
   | { readonly type: "change-requested"; readonly change: MarkChange }
   | { readonly type: "change-sent"; readonly id: number }
-  | { readonly type: "change-settled"; readonly id: number; readonly result: MarkChangeResult };
+  | { readonly type: "change-settled"; readonly id: number; readonly result: MarkChangeResult }
+  | { readonly type: "problem-dismissed"; readonly scope: string };
 
 export const INITIAL_MARKS_SYNC_STATE: MarksSyncState = {
   ownerId: null,
@@ -83,7 +84,7 @@ export function visibleMarks(state: MarksSyncState): Marks {
   return foldChanges(baseMarks(state.base), state.pending);
 }
 
-function changeScope(change: MarkChange): string {
+export function changeScope(change: MarkChange): string {
   return change.kind === "reset" ? "all-marks" : change.code;
 }
 
@@ -194,7 +195,10 @@ function settleChange(state: MarksSyncState, id: number, result: MarkChangeResul
     ...state,
     base: withConfirmedChange(state.base, entry.change),
     pending: withPhase(state.pending, id, "saved"),
-    problems: withoutProblem(state.problems, scope),
+    problems:
+      entry.change.kind === "reset"
+        ? state.problems.filter((problem) => problem.scope === "snapshot")
+        : withoutProblem(state.problems, scope),
   };
 }
 
@@ -212,5 +216,7 @@ export function reduceMarksSync(state: MarksSyncState, event: MarksSyncEvent): M
       return markSent(state, event.id);
     case "change-settled":
       return settleChange(state, event.id, event.result);
+    case "problem-dismissed":
+      return { ...state, problems: withoutProblem(state.problems, event.scope) };
   }
 }
