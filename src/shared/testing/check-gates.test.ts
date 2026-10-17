@@ -21,6 +21,7 @@ const gateFiles = [
   ".fallowrc.json",
   "doctor.config.json",
   "package.json",
+  "bundle-budget.json",
 ];
 
 const exemptedFiles = [
@@ -409,4 +410,48 @@ test("check:gates fails when a boundaries rule or the bare-import rule is remove
       '"specifier": "./x.ts"',
     ),
   );
+});
+
+function budgetEdit(route: string, field: string, bytes: number): [string, string] {
+  const contents = repoFile("bundle-budget.json");
+  const pattern = new RegExp(`("${route}": \\{[^}]*"${field}": )\\d+`);
+
+  if (!pattern.test(contents)) throw new Error(`bundle-budget.json has no ${field} for ${route}`);
+
+  return ["bundle-budget.json", contents.replace(pattern, `$1${bytes}`)];
+}
+
+test("check:gates fails when a bundle budget or its tolerance rises, or a route is dropped", () => {
+  expectFailure(
+    "bundle-budget.json /list lazyGzipBytes is 600000, above",
+    budgetEdit("/list", "lazyGzipBytes", 600_000),
+  );
+  expectFailure(
+    "bundle-budget.json /stats firstLoadGzipBytes is 10000000, above",
+    budgetEdit("/stats", "firstLoadGzipBytes", 10_000_000),
+  );
+  expectFailure(
+    "bundle-budget.json tolerance.minBytes is 100000, above",
+    edit("bundle-budget.json", '"minBytes": 1024', '"minBytes": 100000'),
+  );
+  expectFailure(
+    "bundle-budget.json drops /_not-found, which gates.json budgets",
+    edit("bundle-budget.json", '"/_not-found"', '"/elsewhere"'),
+  );
+  expectFailure(
+    "bundle-budget.json budgets /elsewhere, which gates.json does not",
+    edit("bundle-budget.json", '"/_not-found"', '"/elsewhere"'),
+  );
+});
+
+test("check:gates passes when a bundle budget is lowered", () => {
+  for (const lowered of [
+    budgetEdit("/", "lazyGzipBytes", 0),
+    budgetEdit("/list", "firstLoadGzipBytes", 0),
+  ]) {
+    const { exitCode, output } = runCheckGates(lowered);
+
+    expect(output).toContain("check:gates 0 loosened");
+    expect(exitCode).toBe(0);
+  }
 });

@@ -3,7 +3,11 @@ import { judge, type Judgment, type Unit } from "@/shared/testing/perf/stats";
 
 export type Side = "baseline" | "candidate";
 
-export type Visit = "first visit" | "repeat visit";
+export type Visit =
+  | "first visit"
+  | "repeat visit"
+  | "return from /list, warm"
+  | "return from /list, cold";
 
 export type Scenario = { path: string; visit: Visit; expectGlobe: boolean };
 

@@ -11,21 +11,17 @@ export type SpinnableMap = {
   on: (type: SpinStopEvent, listener: (event: { originalEvent?: unknown }) => void) => void;
 };
 
-type FrameScheduler = Pick<Window, "requestAnimationFrame" | "cancelAnimationFrame">;
+export type FrameScheduler = Pick<Window, "requestAnimationFrame" | "cancelAnimationFrame">;
 
 type GlobeSpinOptions = {
-  isSpinAllowed: () => boolean;
-  prefersReducedMotion: boolean;
+  startsStopped: boolean;
   frames: FrameScheduler;
 };
 
-export function createGlobeSpin(
-  map: SpinnableMap,
-  { isSpinAllowed, prefersReducedMotion, frames }: GlobeSpinOptions,
-) {
+export function createGlobeSpin(map: SpinnableMap, { startsStopped, frames }: GlobeSpinOptions) {
   let spinFrameId: number | null = null;
   let lastFrameTime: number | null = null;
-  let stopped = prefersReducedMotion;
+  let stopped = startsStopped;
 
   function spinFrame(now: number) {
     const elapsedSeconds =
@@ -34,7 +30,7 @@ export function createGlobeSpin(
     lastFrameTime = now;
     spinFrameId = frames.requestAnimationFrame(spinFrame);
 
-    if (isSpinAllowed() && elapsedSeconds > 0) {
+    if (elapsedSeconds > 0) {
       const center = map.getCenter();
       center.lng -= SPIN_DEGREES_PER_SECOND * elapsedSeconds;
       map.jumpTo({ center });
@@ -69,5 +65,5 @@ export function createGlobeSpin(
     });
   }
 
-  return { start, stop, stopOnUserInteraction };
+  return { start, stop, stopOnUserInteraction, isStopped: () => stopped };
 }

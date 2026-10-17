@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 
 const checkBundleScript = join(import.meta.dir, "..", "..", "..", "scripts", "check-bundle.ts");
 const fixtureRoots: string[] = [];
@@ -68,6 +69,29 @@ function createBuildFixture(): string {
 
 function writeListHtml(fixtureRoot: string, html: string) {
   writeFileSync(join(fixtureRoot, ".next", "server", "app", "list.html"), html);
+}
+
+function chunkPath(fixtureRoot: string, chunk: string): string {
+  return join(fixtureRoot, ".next", "static", "chunks", `${chunk}.js`);
+}
+
+function writeChunk(fixtureRoot: string, chunk: string, references: string[]) {
+  const referenceSource = references.map((reference) => `"static/chunks/${reference}.js"`);
+
+  writeFileSync(
+    chunkPath(fixtureRoot, chunk),
+    `${randomBytes(4000).toString("base64")};${referenceSource.join(",")}`,
+  );
+}
+
+function gzipBytesOfChunk(fixtureRoot: string, chunk: string): number {
+  return gzipSync(readFileSync(chunkPath(fixtureRoot, chunk)), { level: 9 }).length;
+}
+
+function lazyGzipBytesIn(output: string, route: string): number {
+  const row = output.split("\n").find((line) => line.startsWith(`${route}\t`));
+
+  return Number(row?.split("\t")[4]);
 }
 
 function runCheckBundle(fixtureRoot: string, ...extraArguments: string[]) {
@@ -332,4 +356,99 @@ test("check:bundle fails when a route preloads a chunk only another route loads 
 
   expect(output).toContain("/ preloads .next/static/chunks/list.js");
   expect(exitCode).toBe(1);
+});
+
+test("check:bundle counts a lazy chunk a first-load chunk references", () => {
+  const fixtureRoot = createBuildFixture();
+  writeChunk(fixtureRoot, "home", ["lazy"]);
+  runCheckBundle(fixtureRoot, "--write");
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(lazyGzipBytesIn(output, "/")).toBe(gzipBytesOfChunk(fixtureRoot, "lazy"));
+  expect(lazyGzipBytesIn(output, "/list")).toBe(0);
+  expect(exitCode).toBe(0);
+});
+
+test("check:bundle counts a lazy chunk reached through another lazy chunk", () => {
+  const fixtureRoot = createBuildFixture();
+  writeChunk(fixtureRoot, "home", ["lazy"]);
+  writeChunk(fixtureRoot, "lazy", ["deep"]);
+  writeChunk(fixtureRoot, "deep", ["home"]);
+  runCheckBundle(fixtureRoot, "--write");
+
+  const { output } = runCheckBundle(fixtureRoot);
+
+  expect(lazyGzipBytesIn(output, "/")).toBe(
+    gzipBytesOfChunk(fixtureRoot, "lazy") + gzipBytesOfChunk(fixtureRoot, "deep"),
+  );
+});
+
+test("check:bundle fails when a chunk references a chunk that is not on disk", () => {
+  const fixtureRoot = createBuildFixture();
+  writeChunk(fixtureRoot, "home", ["missing"]);
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain(
+    ".next/static/chunks/home.js references .next/static/chunks/missing.js, which is not on disk",
+  );
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle does not count a first-load chunk as lazy when another chunk references it", () => {
+  const fixtureRoot = createBuildFixture();
+  writeChunk(fixtureRoot, "home", ["shared"]);
+  runCheckBundle(fixtureRoot, "--write");
+
+  expect(lazyGzipBytesIn(runCheckBundle(fixtureRoot).output, "/")).toBe(0);
+});
+
+test("check:bundle fails when a route's lazy JS grows past the tolerance", () => {
+  const fixtureRoot = createBuildFixture();
+  writeChunk(fixtureRoot, "home", ["lazy"]);
+  runCheckBundle(fixtureRoot, "--write");
+  appendFileSync(chunkPath(fixtureRoot, "lazy"), randomBytes(2000));
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+  const lazyGzipBytes = gzipBytesOfChunk(fixtureRoot, "lazy");
+
+  expect(output).toMatch(
+    new RegExp(
+      `^/ lazy JS is ${lazyGzipBytes} B gzipped, over its limit of \\d+ B \\(budget \\d+ B \\+ 1024 B tolerance\\): \\.next/static/chunks/lazy\\.js \\(${lazyGzipBytes} B\\)$`,
+      "m",
+    ),
+  );
+  expect(output).not.toMatch(/^\/list lazy JS/m);
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle lists the lazy chunks largest first when it fails", () => {
+  const fixtureRoot = createBuildFixture();
+  writeChunk(fixtureRoot, "home", ["lazy", "deep"]);
+  writeFileSync(chunkPath(fixtureRoot, "deep"), randomBytes(8000));
+  runCheckBundle(fixtureRoot, "--write");
+  appendFileSync(chunkPath(fixtureRoot, "lazy"), randomBytes(6000));
+
+  const { output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toMatch(
+    /\): \.next\/static\/chunks\/lazy\.js \(\d+ B\), \.next\/static\/chunks\/deep\.js \(\d+ B\)$/m,
+  );
+});
+
+test("check:bundle --write records the first-load and lazy bytes of each route", () => {
+  const fixtureRoot = createBuildFixture();
+  writeChunk(fixtureRoot, "list", ["lazy"]);
+  runCheckBundle(fixtureRoot, "--write");
+
+  const budget: unknown = JSON.parse(readFileSync(join(fixtureRoot, "bundle-budget.json"), "utf8"));
+
+  expect(budget).toMatchObject({
+    routes: {
+      "/": { lazyGzipBytes: 0 },
+      "/list": { lazyGzipBytes: gzipBytesOfChunk(fixtureRoot, "lazy") },
+    },
+  });
+  expect(runCheckBundle(fixtureRoot).exitCode).toBe(0);
 });

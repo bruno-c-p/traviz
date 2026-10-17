@@ -277,5 +277,37 @@
       "version": "1.4.3",
       "onFail": "download"
     }
+  },
+  "bundleBudget": {
+    "tolerance": {
+      "percent": 1,
+      "minBytes": 1024
+    },
+    "routes": {
+      "/list": {
+        "firstLoadGzipBytes": 226310,
+        "lazyGzipBytes": 0
+      },
+      "/": {
+        "firstLoadGzipBytes": 221455,
+        "lazyGzipBytes": 517013
+      },
+      "/stats": {
+        "firstLoadGzipBytes": 217280,
+        "lazyGzipBytes": 0
+      },
+      "/sign-in": {
+        "firstLoadGzipBytes": 199465,
+        "lazyGzipBytes": 0
+      },
+      "/sign-in/verify": {
+        "firstLoadGzipBytes": 192048,
+        "lazyGzipBytes": 0
+      },
+      "/_not-found": {
+        "firstLoadGzipBytes": 187409,
+        "lazyGzipBytes": 0
+      }
+    }
   }
 }

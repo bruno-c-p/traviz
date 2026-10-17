@@ -1,33 +1,30 @@
 "use client";
 
 import "mapbox-gl/dist/mapbox-gl.css";
-import { usePathname } from "next/navigation";
 import type { Map as MapboxMap } from "mapbox-gl";
 import { useEffect, useRef } from "react";
 import { ZoomControls } from "@/features/globe/zoom-controls";
 import { STATE_COLORS } from "@/features/marks";
 import { mountGlobe } from "@/features/globe/mount-globe";
-import { homePath } from "@/paths";
 
-const mapboxModulePromise =
-  typeof window === "undefined" || !process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-    ? null
-    : import("mapbox-gl").catch((cause: unknown) => {
-        console.error("The map could not load.", cause);
+let mapboxModulePromise: Promise<typeof import("mapbox-gl") | null> | null = null;
 
-        return null;
-      });
+function loadMapbox() {
+  if (typeof window === "undefined" || !process.env.NEXT_PUBLIC_MAPBOX_TOKEN) return null;
+
+  mapboxModulePromise ??= import("mapbox-gl").catch((cause: unknown) => {
+    console.error("The map could not load.", cause);
+    mapboxModulePromise = null;
+
+    return null;
+  });
+
+  return mapboxModulePromise;
+}
 
 export function MapCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
-  const pathname = usePathname();
-  const isMapRoute = pathname === homePath();
-  const isMapRouteRef = useRef(isMapRoute);
-
-  useEffect(() => {
-    isMapRouteRef.current = isMapRoute;
-  }, [isMapRoute]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -37,11 +34,11 @@ export function MapCanvas() {
     let isCancelled = false;
     let unmount: (() => void) | undefined;
 
-    mapboxModulePromise
+    loadMapbox()
       ?.then((mapboxModule) => {
         if (isCancelled || !mapboxModule) return;
 
-        const globe = mountGlobe(mapboxModule.default, container, () => isMapRouteRef.current);
+        const globe = mountGlobe(mapboxModule.default, container);
 
         mapRef.current = globe.map;
         unmount = () => {
@@ -66,13 +63,11 @@ export function MapCanvas() {
         className="h-full w-full"
         style={{ backgroundColor: STATE_COLORS.unmarked }}
       />
-      {isMapRoute && (
-        <ZoomControls
-          onZoomIn={() => mapRef.current?.zoomIn()}
-          onZoomOut={() => mapRef.current?.zoomOut()}
-          className="fixed bottom-24 right-6 z-30 hidden md:flex"
-        />
-      )}
+      <ZoomControls
+        onZoomIn={() => mapRef.current?.zoomIn()}
+        onZoomOut={() => mapRef.current?.zoomOut()}
+        className="fixed bottom-24 right-6 z-30 hidden md:flex"
+      />
     </>
   );
 }
