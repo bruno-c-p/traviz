@@ -384,15 +384,16 @@ test("check:bundle counts a lazy chunk reached through another lazy chunk", () =
   );
 });
 
-test("check:bundle ignores a reference to a chunk that is not on disk", () => {
+test("check:bundle fails when a chunk references a chunk that is not on disk", () => {
   const fixtureRoot = createBuildFixture();
   writeChunk(fixtureRoot, "home", ["missing"]);
-  runCheckBundle(fixtureRoot, "--write");
 
   const { exitCode, output } = runCheckBundle(fixtureRoot);
 
-  expect(lazyGzipBytesIn(output, "/")).toBe(0);
-  expect(exitCode).toBe(0);
+  expect(output).toContain(
+    ".next/static/chunks/home.js references .next/static/chunks/missing.js, which is not on disk",
+  );
+  expect(exitCode).toBe(1);
 });
 
 test("check:bundle does not count a first-load chunk as lazy when another chunk references it", () => {

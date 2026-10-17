@@ -99,10 +99,13 @@ function referencedChunkPaths(chunkPath: string): string[] {
 
   const source = readFileSync(join(buildRoot, chunkPath), "utf8");
 
-  const references = [...source.matchAll(/static\/chunks\/[\w.-]+\.js/g)].flatMap(([reference]) => {
+  const references = [...source.matchAll(/static\/chunks\/[\w.-]+\.js/g)].map(([reference]) => {
     const referencePath = `.next/${reference}`;
 
-    return existsSync(join(buildRoot, referencePath)) ? [referencePath] : [];
+    if (!existsSync(join(buildRoot, referencePath)))
+      fail(`${chunkPath} references ${referencePath}, which is not on disk. ${statsChangedHint}`);
+
+    return referencePath;
   });
 
   referencedChunkPathsByPath.set(chunkPath, references);
