@@ -26,7 +26,10 @@ const routeStatsSchema = z
 
 const budgetSchema = z.strictObject({
   tolerance: z.strictObject({ percent: z.number(), minBytes: z.number() }),
-  routes: z.record(z.string(), z.strictObject({ firstLoadGzipBytes: z.number().int() })),
+  routes: z.record(
+    z.string(),
+    z.strictObject({ firstLoadGzipBytes: z.number().int(), lazyGzipBytes: z.number().int() }),
+  ),
 });
 
 type Budget = z.infer<typeof budgetSchema>;
@@ -87,6 +90,48 @@ const firstLoadGzipBytesByRoute = new Map(
   ]),
 );
 
+function referencedChunkPaths(chunkPath: string): string[] {
+  const source = readFileSync(join(buildRoot, chunkPath), "utf8");
+
+  return [...source.matchAll(/static\/chunks\/[\w.-]+\.js/g)].flatMap(([reference]) => {
+    const referencePath = `.next/${reference}`;
+
+    return existsSync(join(buildRoot, referencePath)) ? [referencePath] : [];
+  });
+}
+
+function lazyChunkPathsOf(firstLoadChunkPaths: string[]): string[] {
+  const reached = new Set(firstLoadChunkPaths);
+  const lazyChunkPaths: string[] = [];
+  const pending = [...firstLoadChunkPaths];
+
+  for (let chunkPath = pending.pop(); chunkPath !== undefined; chunkPath = pending.pop()) {
+    for (const reference of referencedChunkPaths(chunkPath)) {
+      if (reached.has(reference)) continue;
+
+      reached.add(reference);
+      lazyChunkPaths.push(reference);
+      pending.push(reference);
+    }
+  }
+
+  return lazyChunkPaths.toSorted((left, right) => gzipBytesOf(right) - gzipBytesOf(left));
+}
+
+const lazyChunkPathsByRoute = new Map(
+  routeStats.map(({ route, firstLoadChunkPaths }) => [
+    route,
+    lazyChunkPathsOf(firstLoadChunkPaths),
+  ]),
+);
+
+const lazyGzipBytesByRoute = new Map(
+  [...lazyChunkPathsByRoute].map(([route, lazyChunkPaths]) => [
+    route,
+    lazyChunkPaths.reduce((total, chunkPath) => total + gzipBytesOf(chunkPath), 0),
+  ]),
+);
+
 function readBudget(): Budget | null {
   if (!existsSync(budgetPath)) return null;
 
@@ -101,7 +146,7 @@ function writeBudget(previous: Budget | null): Budget {
   const routes = Object.fromEntries(
     [...firstLoadGzipBytesByRoute].map(([route, firstLoadGzipBytes]) => [
       route,
-      { firstLoadGzipBytes },
+      { firstLoadGzipBytes, lazyGzipBytes: lazyGzipBytesByRoute.get(route) ?? 0 },
     ]),
   );
 
@@ -124,28 +169,49 @@ for (const route of Object.keys(budget.routes)) {
   }
 }
 
-console.log("route\tfirst-load gzip bytes\tbudget\tlimit");
+function limitOf(budgetBytes: number, tolerance: Budget["tolerance"]) {
+  const allowance = Math.max(
+    Math.ceil((budgetBytes * tolerance.percent) / 100),
+    tolerance.minBytes,
+  );
+
+  return { allowance, limit: budgetBytes + allowance };
+}
+
+console.log(
+  "route\tfirst-load gzip bytes\tbudget\tlimit\tlazy gzip bytes\tlazy budget\tlazy limit",
+);
 
 for (const [route, gzipBytes] of firstLoadGzipBytesByRoute) {
   const routeBudget = budget.routes[route];
+  const lazyGzipBytes = lazyGzipBytesByRoute.get(route) ?? 0;
 
   if (routeBudget === undefined) {
-    console.log(`${route}\t${gzipBytes}\tnone\tnone`);
+    console.log(`${route}\t${gzipBytes}\tnone\tnone\t${lazyGzipBytes}\tnone\tnone`);
     failures.push(`${route} has no budget. Add it with bun run check:bundle --write.`);
     continue;
   }
 
-  const allowance = Math.max(
-    Math.ceil((routeBudget.firstLoadGzipBytes * budget.tolerance.percent) / 100),
-    budget.tolerance.minBytes,
-  );
+  const { allowance, limit } = limitOf(routeBudget.firstLoadGzipBytes, budget.tolerance);
+  const lazy = limitOf(routeBudget.lazyGzipBytes, budget.tolerance);
 
-  const limit = routeBudget.firstLoadGzipBytes + allowance;
-  console.log(`${route}\t${gzipBytes}\t${routeBudget.firstLoadGzipBytes}\t${limit}`);
+  console.log(
+    `${route}\t${gzipBytes}\t${routeBudget.firstLoadGzipBytes}\t${limit}\t${lazyGzipBytes}\t${routeBudget.lazyGzipBytes}\t${lazy.limit}`,
+  );
 
   if (gzipBytes > limit) {
     failures.push(
       `${route} first-load JS is ${gzipBytes} B gzipped, over its limit of ${limit} B (budget ${routeBudget.firstLoadGzipBytes} B + ${allowance} B tolerance)`,
+    );
+  }
+
+  if (lazyGzipBytes > lazy.limit) {
+    const lazyChunks = (lazyChunkPathsByRoute.get(route) ?? [])
+      .map((chunkPath) => `${chunkPath} (${gzipBytesOf(chunkPath)} B)`)
+      .join(", ");
+
+    failures.push(
+      `${route} lazy JS is ${lazyGzipBytes} B gzipped, over its limit of ${lazy.limit} B (budget ${routeBudget.lazyGzipBytes} B + ${lazy.allowance} B tolerance): ${lazyChunks}`,
     );
   }
 }
