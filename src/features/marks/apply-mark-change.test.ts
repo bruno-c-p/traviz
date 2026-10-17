@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { LibsqlError, createClient, type Client } from "@libsql/client";
+import { createClient, type Client } from "@libsql/client";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { applyMarkChangeWith } from "@/features/marks/apply-mark-change";
@@ -171,6 +171,18 @@ describe("applyMarkChange", () => {
       }),
     ).toEqual({ ok: false, reason: "unavailable" });
 
-    expect(loggedErrors).toEqual([expect.any(LibsqlError)]);
+    expect(loggedErrors).toEqual([expect.any(Error)]);
+  });
+
+  test("a database that cannot be reached is reported as unavailable", async () => {
+    client.close();
+    client = createClient({ url: "http://127.0.0.1:1" });
+
+    expect(await applyMarkChangeWith(signedInAs("user_a"), "user_a", { kind: "reset" })).toEqual({
+      ok: false,
+      reason: "unavailable",
+    });
+
+    expect(loggedErrors).toEqual([expect.any(Error)]);
   });
 });

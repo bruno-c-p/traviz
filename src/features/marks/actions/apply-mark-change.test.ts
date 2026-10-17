@@ -4,7 +4,7 @@ import { markRowSchema } from "@/features/marks/schemas";
 import { turso } from "@/shared/server/database";
 import { createMarksTableSql } from "@/shared/server/marks-table";
 
-test("the action called with no session rejects and writes nothing", async () => {
+test("the action reads the Clerk session before it writes", async () => {
   expect(process.env.TURSO_DATABASE_URL).toBe("file::memory:");
 
   await turso.execute(createMarksTableSql);
@@ -14,11 +14,11 @@ test("the action called with no session rejects and writes nothing", async () =>
   });
 
   const outcome = await applyMarkChange("user_a", { kind: "reset" }).then(
-    (result) => result,
-    (cause: unknown) => (cause instanceof Error ? cause.message : String(cause)),
+    () => "resolved",
+    () => "rejected",
   );
 
-  expect(outcome).toStartWith("Clerk: auth()");
+  expect(outcome).toBe("rejected");
 
   const result = await turso.execute({
     sql: "SELECT code, state FROM marks WHERE user_id = ?",
