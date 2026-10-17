@@ -32,11 +32,11 @@ function metricsOf(scenario: Scenario, sample: Sample): string[] {
 
 test("the return from /list reports the globe frame, seeded marks and script bytes only", () => {
   expect(
-    metricsOf({ path: "/", visit: "return from /list", expectGlobe: true }, softNavigation),
+    metricsOf({ path: "/", visit: "return from /list, cold", expectGlobe: true }, softNavigation),
   ).toEqual([
-    "/ return from /list: seeded marks on screen",
-    "/ return from /list: first globe frame",
-    "/ return from /list: script bytes transferred",
+    "/ return from /list, cold: seeded marks on screen",
+    "/ return from /list, cold: first globe frame",
+    "/ return from /list, cold: script bytes transferred",
   ]);
 });
 

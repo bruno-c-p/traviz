@@ -71,19 +71,19 @@ const visitedCounter = `/(?<!\\d)${visitedCount}\\s*(of|\\/)\\s*\\d/.test(docume
 const visitedFilter = `/Visited\\s*${visitedCount}(?!\\d)/.test(document.querySelector('[aria-label="Filter by status"]')?.textContent ?? "")`;
 
 const routes = [
-  { path: homePath(), expectGlobe: true, expression: visitedCounter },
+  { path: homePath(), expectGlobe: true, expression: visitedCounter, hasReturnFromList: true },
   { path: listPath(), expectGlobe: false, expression: visitedFilter },
   { path: statsPath(), expectGlobe: false, expression: visitedCounter },
 ];
 
 const minimumRuns = 5;
 
-const returnVisit: Visit = "return from /list";
+const returnVisits = ["return from /list, warm", "return from /list, cold"] as const;
 
 const scenarios: Scenario[] = routes.flatMap((route) => [
   { ...route, visit: "first visit" as const },
   { ...route, visit: "repeat visit" as const },
-  ...(route.path === homePath() ? [{ ...route, visit: returnVisit }] : []),
+  ...(route.hasReturnFromList ? returnVisits.map((visit) => ({ ...route, visit })) : []),
 ]);
 
 const marks = seededMarks(
@@ -149,11 +149,20 @@ async function measureScenario(
       ["repeat visit", repeatVisit],
     ];
 
-    if (route.path === homePath())
+    if (route.hasReturnFromList) {
+      const listUrl = `${origin}${listPath()}`;
+
       visits.push([
-        returnVisit,
-        await page.measureSoftNavigation(`${origin}${listPath()}`, route.path, timeoutMs),
+        "return from /list, warm",
+        await page.measureSoftNavigation(listUrl, route.path, timeoutMs),
       ]);
+      await page.navigate("about:blank", timeoutMs);
+      await page.clearForFirstVisit(origin);
+      visits.push([
+        "return from /list, cold",
+        await page.measureSoftNavigation(listUrl, route.path, timeoutMs),
+      ]);
+    }
 
     return visits;
   } finally {
@@ -214,7 +223,7 @@ function printHeader(
     `blocked: ${blockedUrlPatterns.join(", ")} through Network.setBlockedURLs, which keeps the HTTP cache on.`,
   );
   console.log(
-    `runs: ${runs} per scenario and side, alternating which side goes first. Scenarios: ${scenarios.map(scenarioName).join(", ")}. The return from ${listPath()} loads ${listPath()} warm, then clicks the ${homePath()} nav link, and times from the click, so it has no TTFB, FCP or LCP. Data: ${marks.length} seeded marks, ${visitedCount} visited.`,
+    `runs: ${runs} per scenario and side, alternating which side goes first. Scenarios: ${scenarios.map(scenarioName).join(", ")}. Each return from ${listPath()} loads ${listPath()}, warm or after clearing the cache and storage, then clicks the ${homePath()} tab bar link and times from the click, so it has no TTFB, FCP or LCP. Data: ${marks.length} seeded marks, ${visitedCount} visited.`,
   );
   console.log(
     `noise: spread is the median absolute deviation (MAD). A timing counts as faster or slower only when an exact two-sided Mann-Whitney test gives p < ${significanceLevel}${runs === minimumRuns ? ` (with ${minimumRuns} runs a side, no overlap)` : ""} and the median moves by at least ${timingFloor.ms} ms or ${timingFloor.share * 100}%, whichever is larger. A byte delta counts above ${byteTolerance.bytes / 1024} KB or ${byteTolerance.share * 100}%, whichever is larger. Each load ends when its network is idle for 500 ms, so repeat visits start warm.`,

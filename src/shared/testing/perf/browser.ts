@@ -27,7 +27,8 @@ const softNavigationSchema = z.object({
   globeFrame: z.number(),
 });
 
-export type Sample = (z.infer<typeof sampleSchema> | z.infer<typeof softNavigationSchema>) & {
+export type Sample = Omit<z.infer<typeof sampleSchema>, "ttfb"> & {
+  ttfb?: number;
   scriptBytes: number;
   documentRedirects: number;
 };
@@ -108,9 +109,8 @@ function probeSource(readyProbes: ReadyProbe[]): string {
       clearInterval(timer);
     }, 50);
     Object.defineProperty(window, "__perfSoftNavigate", {
-      value: (path, timeoutMs) => new Promise((resolve) => {
-        const link = document.querySelector(\`a[href="\${path}"]\`);
-        if (!link) return resolve(null);
+      value: (selector, path, timeoutMs) => new Promise((resolve) => {
+        const link = document.querySelector(selector);
         const start = performance.now();
         const timings = {};
         watchDraws((now) => {
@@ -359,11 +359,16 @@ export class BrowserPage {
 
     const redirectsBefore = this.counters.documentRedirects;
 
+    const selector = JSON.stringify(`nav[aria-label="Main"]:not(header nav) a[href="${path}"]`);
+
+    if (!(await this.evaluate(`document.querySelector(${selector}) !== null`, z.boolean())))
+      throw new Error(`${fromUrl} has no tab bar link to ${path}.`);
+
     this.scriptBytes = 0;
     this.scriptRequests.clear();
 
     const timings = await this.evaluate(
-      `window.__perfSoftNavigate(${JSON.stringify(path)}, ${timeoutMs})`,
+      `window.__perfSoftNavigate(${selector}, ${JSON.stringify(path)}, ${timeoutMs})`,
       softNavigationSchema.nullable(),
     );
 
