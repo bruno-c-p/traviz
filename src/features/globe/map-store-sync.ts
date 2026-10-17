@@ -35,11 +35,22 @@ function bindMarksSync(map: SyncedMap, initialMarks: Marks) {
   });
 }
 
+function flyToPendingCountry(map: SyncedMap, stopSpin: () => void) {
+  const code = useSelectedCountryStore.getState().takePendingFly();
+  const center = code ? countryCenter(code) : null;
+
+  if (center) {
+    stopSpin();
+    map.flyTo({ center, zoom: Math.max(map.getZoom(), FLY_TO_ZOOM) });
+  }
+}
+
 function bindSelectionSync(map: SyncedMap, stopSpin: () => void) {
   map.setFilter(
     SELECTED_LAYER_ID,
     buildSelectedFilter(useSelectedCountryStore.getState().selectedCode),
   );
+  flyToPendingCountry(map, stopSpin);
 
   return useSelectedCountryStore.subscribe((state, previousState) => {
     if (state.selectedCode !== previousState.selectedCode) {
@@ -48,14 +59,7 @@ function bindSelectionSync(map: SyncedMap, stopSpin: () => void) {
       if (state.selectedCode) stopSpin();
     }
 
-    if (state.flyRequest && state.flyRequest !== previousState.flyRequest) {
-      const center = countryCenter(state.flyRequest.code);
-
-      if (center) {
-        stopSpin();
-        map.flyTo({ center, zoom: Math.max(map.getZoom(), FLY_TO_ZOOM) });
-      }
-    }
+    if (state.pendingFlyCode) flyToPendingCountry(map, stopSpin);
   });
 }
 

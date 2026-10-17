@@ -8,13 +8,13 @@ import type {
 import { countries } from "@/features/countries";
 import { COUNTRY_STATES, STATE_COLORS } from "@/features/marks";
 import type { Marks } from "@/features/marks";
+import { ISO_PROPERTY, tilesetCodes } from "@/features/globe/tileset-feature";
 
 export const SOURCE_ID = "country-boundaries";
 const COUNTRY_SOURCE_LAYER = "country_boundaries";
 export const FILL_LAYER_ID = "country-fill";
 const BORDER_LAYER_ID = "country-border";
 export const SELECTED_LAYER_ID = "country-selected";
-export const ISO_PROPERTY = "iso_3166_1_alpha_3";
 
 const WATER_COLOR = "#d3d9cd";
 const LABEL_COLOR = "#5e615c";
@@ -61,7 +61,11 @@ const WORLDVIEW_FILTER: FilterSpecification = [
 ];
 
 export function buildSelectedFilter(selectedCode: string | null): FilterSpecification {
-  return ["all", WORLDVIEW_FILTER, ["==", ["get", ISO_PROPERTY], selectedCode ?? ""]];
+  return [
+    "all",
+    WORLDVIEW_FILTER,
+    ["in", ["get", ISO_PROPERTY], ["literal", selectedCode ? tilesetCodes(selectedCode) : []]],
+  ];
 }
 
 function groupCodesByState(marks: Marks): Map<string, string[]> {
@@ -88,7 +92,7 @@ export function buildFillColorExpression(marks: Marks): ExpressionSpecification 
     const codes = groups.get(state);
 
     if (codes && codes.length > 0) {
-      cases.push(codes, STATE_COLORS[state]);
+      cases.push(codes.flatMap(tilesetCodes), STATE_COLORS[state]);
     }
   }
 
