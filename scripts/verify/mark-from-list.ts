@@ -35,6 +35,14 @@ async function waitForRow(expected: string | undefined): Promise<string | undefi
   return state;
 }
 
+function pressedIs(value: string | null, expected: string): [boolean, string] {
+  return [value === expected, `aria-pressed=${value ?? "missing"}`];
+}
+
+function rowIs(state: string | undefined, expected: string | undefined): [boolean, string] {
+  return [state === expected, `${code} row state ${state ?? "none"} in the worktree database`];
+}
+
 async function findVisitedButton(page: Page, baseUrl: string) {
   await openRoute(page, baseUrl, listPath());
   await page.getByRole("textbox", { name: "Search countries" }).fill(countryName);
@@ -54,14 +62,9 @@ await runJourney(`mark-from-list-${code}`, "reduce", async (journal, page, brows
     await settle(page);
     journal.record(
       "the Visited button is pressed after the click",
-      (await visited.getAttribute("aria-pressed")) === "true",
-      "aria-pressed",
+      ...pressedIs(await visited.getAttribute("aria-pressed"), "true"),
     );
-    journal.record(
-      "the marks row says visited",
-      (await waitForRow("visited")) === "visited",
-      `${code} in the worktree database`,
-    );
+    journal.record("the marks row says visited", ...rowIs(await waitForRow("visited"), "visited"));
     await journal.screenshot(page, "2-marked");
 
     const fresh = await openPage(browser, 1440, "reduce");
@@ -72,8 +75,7 @@ await runJourney(`mark-from-list-${code}`, "reduce", async (journal, page, brows
 
     journal.record(
       "a new session with empty storage shows the mark from the server",
-      (await freshVisited.getAttribute("aria-pressed")) === "true",
-      "aria-pressed in a new browser context",
+      ...pressedIs(await freshVisited.getAttribute("aria-pressed"), "true"),
     );
     await journal.screenshot(fresh.page, "3-new-session");
     await fresh.page.context().close();
@@ -81,14 +83,9 @@ await runJourney(`mark-from-list-${code}`, "reduce", async (journal, page, brows
     await settle(page);
     journal.record(
       "a second click clears the mark",
-      (await visited.getAttribute("aria-pressed")) === "false",
-      "aria-pressed",
+      ...pressedIs(await visited.getAttribute("aria-pressed"), "false"),
     );
-    journal.record(
-      "the marks row is gone",
-      (await waitForRow(undefined)) === undefined,
-      `${code} in the worktree database`,
-    );
+    journal.record("the marks row is gone", ...rowIs(await waitForRow(undefined), undefined));
     await journal.screenshot(page, "4-cleared");
   } finally {
     const leftover = readMarkRows().find((row) => row.code === code);

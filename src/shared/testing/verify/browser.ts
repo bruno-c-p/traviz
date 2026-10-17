@@ -9,6 +9,10 @@ export const viewportWidths = [375, 768, 1440] as const;
 
 const settleMs = 700;
 
+export function viewportHeight(width: number): number {
+  return width < 768 ? 812 : 900;
+}
+
 export type Motion = "reduce" | "no-preference";
 
 export type DrivenPage = { page: Page; problems: string[] };
@@ -32,7 +36,7 @@ export async function openPage(
   motion: Motion,
 ): Promise<DrivenPage> {
   const context = await browser.newContext({
-    viewport: { width, height: width < 768 ? 812 : 900 },
+    viewport: { width, height: viewportHeight(width) },
     reducedMotion: motion,
   });
 

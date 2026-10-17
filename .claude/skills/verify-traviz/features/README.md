@@ -6,7 +6,7 @@ This directory is the maintained source for verifying what a traviz user can see
 
 - `bun run setup` has run in this worktree, and `bun run verify:server start` printed `ready`.
 - `bun run verify:doctor` prints only `ok` lines.
-- The dev user `agent+clerk_test@example.com` has no marks: `sqlite3 .data/dev.db "select count(*) from marks"` prints `0`. If it does not, clear them with `Reset all data` in the `Danger zone` on `/stats`, or report the starting rows.
+- The dev user `agent+clerk_test@example.com` has no marks: `sqlite3 .data/dev.db "select count(*) from marks"` prints `0`. If it does not, clear your own leftovers on `/list` by clicking each pressed button again. Use `Reset all data` in the `Danger zone` on `/stats` only when every row is yours to erase. Otherwise report the starting rows.
 - Never drive a server that this run did not start, or that `.data/verify/server.json` in this worktree does not record.
 
 ## Driving conventions

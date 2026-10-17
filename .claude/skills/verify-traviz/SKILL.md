@@ -17,7 +17,7 @@ bun run setup
 bun run verify:server start
 ```
 
-- `bun run setup` writes `.env.local` with Clerk development keys and the Mapbox token. It migrates `.data/dev.db` and creates the dev user `agent+clerk_test@example.com`. It needs the `vercel` and `clerk` CLIs, both logged in. It is safe to run again.
+- `bun run setup` writes `.env.local` with Clerk development keys and the Mapbox token. It migrates `.data/dev.db` and creates the dev user `agent+clerk_test@example.com`. It needs the `vercel` and `clerk` CLIs, both logged in. It is safe to run again. Its closing `Next: run bun run dev` hint is for manual work. For verification, continue with `verify:server start`.
 - `verify:server start` refuses a remote database, a database outside `.data/` and a key that is not `pk_test_`. It then runs `bun run build`, starts `next start` on a free port and waits until `/sign-in` answers 200. It is ready when it prints `ready http://localhost:<port> pid <pid>`. The port and PID go to `.data/verify/server.json`. Logs go to `.data/verify/build.log` and `.data/verify/server.log`.
 - `verify:server start --no-build` reuses `.next`, but only when this worktree's `.env.local` built it.
 - One server runs per worktree, and a second `start` refuses. Separate worktrees run side by side, each with its own port and `.data/dev.db`. All of them share one Clerk dev user.
@@ -56,7 +56,7 @@ bun run verify:pixel-diff <before dir> <after dir>
 
 - `verify:mark-from-list [--code JPN]` marks a country Visited from `/list` and checks the database row. It opens a second browser context with empty storage and checks the mark comes back from the server, then clears it and checks the row is gone. It stops before it clicks anything when the country already has a row, and reports any mark it leaves behind.
 - `verify:globe-search [--code JPN --click FRA]` checks that the globe spins, that the search flies to the country's centre from the dataset and opens its card, that a click on the second country selects it, and that Zoom in adds one zoom level. The click step uses `map.jumpTo` as setup to put the country under the pointer. The click itself is a real mouse event.
-- `verify:shots [--route /list ...] [--motion no-preference]` signs in and takes full-page screenshots of `/`, `/list` and `/stats` (or the routes given) at 375, 768 and 1440 px. Motion is reduced by default. It exits 1 when a route lands elsewhere or any problem was collected.
+- `verify:shots [--route /list ...] [--motion no-preference]` signs in and screenshots `/`, `/list` and `/stats` (or the routes given) at 375, 768 and 1440 px. The app scrolls an inner container, so Playwright's `fullPage` captures only the viewport. The script grows the viewport to the tallest scroll height (up to 4000 px) before each shot, so the whole page is in the image. Motion is reduced by default. It exits 1 when a route lands elsewhere or any problem was collected.
 - `verify:pixel-diff` compares PNGs with the same name in two directories and prints the count of changed pixels and the largest channel delta per file. It exits 1 when any file differs or exists on one side only.
 
 ## Evidence

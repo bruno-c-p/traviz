@@ -1,10 +1,14 @@
 import { parseArgs } from "node:util";
 import { join } from "node:path";
+import type { Page } from "playwright-core";
+import { z } from "zod";
 import {
   launchBrowser,
   openPage,
   openRoute,
+  settle,
   signIn,
+  viewportHeight,
   viewportWidths,
 } from "@/shared/testing/verify/browser";
 import { evidenceDirectory, requireBaseUrl } from "@/shared/testing/verify/instance";
@@ -25,6 +29,22 @@ const directory = evidenceDirectory(options.label);
 const browser = await launchBrowser();
 const problems: string[] = [];
 
+async function growToContent(page: Page, width: number): Promise<void> {
+  const height = z
+    .number()
+    .parse(
+      await page.evaluate(
+        "Math.max(...Array.from(document.querySelectorAll('*'), (element) => element.scrollHeight))",
+      ),
+    );
+
+  await page.setViewportSize({
+    width,
+    height: Math.min(Math.max(height, viewportHeight(width)), 4_000),
+  });
+  await settle(page);
+}
+
 function fileName(route: string, width: number): string {
   const name =
     route === homePath() ? "home" : route.replaceAll(/[^A-Za-z0-9]+/g, "-").replace(/^-/, "");
@@ -40,10 +60,9 @@ try {
 
     for (const route of routes) {
       await openRoute(driven.page, baseUrl, route);
-      await driven.page.screenshot({
-        path: join(directory, fileName(route, width)),
-        fullPage: true,
-      });
+      await growToContent(driven.page, width);
+      await driven.page.screenshot({ path: join(directory, fileName(route, width)) });
+      await driven.page.setViewportSize({ width, height: viewportHeight(width) });
     }
 
     problems.push(...driven.problems);
