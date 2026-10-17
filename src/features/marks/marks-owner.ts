@@ -50,6 +50,7 @@ export function createMarksOwner(
   let session = 0;
   let nextSnapshotRead = 1;
   let newestSnapshotRead = 0;
+  let serverSnapshotRead = 0;
   const listeners = new Set<() => void>();
 
   const readCache = (): CachedMarks | null => {
@@ -92,6 +93,13 @@ export function createMarksOwner(
     newestSnapshotRead = 0;
   };
 
+  const takeSnapshotRead = () => {
+    const read = nextSnapshotRead;
+    nextSnapshotRead += 1;
+
+    return read;
+  };
+
   const acceptSnapshot = (snapshot: MarksSnapshot, read: number) => {
     if (read < newestSnapshotRead) return;
 
@@ -102,8 +110,7 @@ export function createMarksOwner(
 
   const readFreshSnapshot = (ownerId: string) => {
     const readSession = session;
-    const read = nextSnapshotRead;
-    nextSnapshotRead += 1;
+    const read = takeSnapshotRead();
 
     try {
       transport.readMarks(ownerId).then(
@@ -186,6 +193,7 @@ export function createMarksOwner(
     startSession: (ownerId) => {
       if (state.ownerId !== ownerId) beginSession();
 
+      serverSnapshotRead = takeSnapshotRead();
       handle({ type: "session-started", ownerId, cached: readCache() });
     },
     endSession: () => {
@@ -194,7 +202,7 @@ export function createMarksOwner(
       handle({ type: "session-ended" });
     },
     receiveSnapshot: (snapshot) => {
-      acceptSnapshot(snapshot, 0);
+      acceptSnapshot(snapshot, serverSnapshotRead);
     },
     requestChange: (change) => handle({ type: "change-requested", change }),
     dismissProblem: (scope) => handle({ type: "problem-dismissed", scope }),

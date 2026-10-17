@@ -533,20 +533,6 @@ describe("snapshot order", () => {
     expect(store.getState().marks).toEqual({ FRA: "want" });
   });
 
-  test("starting the same owner's session again keeps the count", async () => {
-    const { store, signIn, answer, expire, answerRead } = setup();
-    signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
-    await flush();
-    await expire(0);
-    await answer(0);
-    await answerRead(0, { DEU: "visited" });
-
-    signIn(OWNER);
-
-    expect(store.getState().marks).toEqual({ DEU: "visited" });
-  });
-
   test("a new session counts its snapshots from the start", async () => {
     const { store, signIn, answer, expire, answerRead } = setup();
     signIn(OWNER);
@@ -560,6 +546,36 @@ describe("snapshot order", () => {
     signIn(OWNER, { ITA: "want" });
 
     expect(store.getState().marks).toEqual({ ITA: "want" });
+  });
+});
+
+describe("server snapshots after a fresh read", () => {
+  test("a later server snapshot applies over an accepted fresh read", async () => {
+    const { store, signIn, answer, expire, answerRead } = setup();
+    signIn(OWNER);
+    store.getState().toggle("DEU", "visited");
+    await flush();
+    await expire(0);
+    await answer(0);
+    await answerRead(0, { DEU: "visited" });
+
+    signIn(OWNER, { DEU: "visited", ITA: "want" });
+
+    expect(store.getState().marks).toEqual({ DEU: "visited", ITA: "want" });
+  });
+
+  test("a fresh read requested before a later server snapshot is dropped when it lands after", async () => {
+    const { store, signIn, answer, expire, answerRead } = setup();
+    signIn(OWNER);
+    store.getState().toggle("DEU", "visited");
+    await flush();
+    await expire(0);
+    await answer(0);
+
+    signIn(OWNER, { DEU: "visited", ITA: "want" });
+    await answerRead(0, { DEU: "visited" });
+
+    expect(store.getState().marks).toEqual({ DEU: "visited", ITA: "want" });
   });
 });
 

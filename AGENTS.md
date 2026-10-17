@@ -73,7 +73,7 @@ Some older code still breaks these rules. Do not copy it. The table at the end s
 - Make every data change through a Server Action. Each action lives in `src/features/<name>/actions`, with one verb per file and `"use server"` at the top. Never use a route handler or a client `fetch` for a mutation.
 - Each action checks the user with `getUserId`, validates its input with zod, and only changes rows the user owns.
 - Never put `"use server"` on a services or lib module. It turns every export into a public endpoint. Keep the modules that import `server-only` out of client code. Import `zod`, `@libsql/client` and `@clerk/nextjs/server` only from a module that starts with `import "server-only"`, a `"use server"` action or `src/proxy.ts`. An `import type` of them is fine anywhere.
-- The marks actions must not call `revalidatePath` or `refresh`. That would rerender `MarksSession` and send a second snapshot that costs a round trip. The owner counts it as the session's first snapshot, so it is dropped once a fresh snapshot has landed.
+- The marks actions must not call `revalidatePath` or `refresh`. That would rerender `MarksSession` and send a second snapshot that costs a round trip.
 - Put one React component in each file. Name the file after it in kebab-case (`src/features/country-list/country-row.tsx` exports `CountryRow`).
 - Model each business operation once (single write path). Prefer one configurable component over near-copies, once a third copy appears.
 - Change the country dataset only in `scripts/build-countries.ts`, then run `bun run gen:countries`. Never edit `countries.generated.ts` by hand.
