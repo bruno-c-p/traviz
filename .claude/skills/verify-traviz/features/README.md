@@ -12,7 +12,7 @@ This directory is the maintained source for verifying what a traviz user can see
 ## Driving conventions
 
 - Scripts use the helpers in `@/shared/testing/verify/browser` (see the skill's Drive section). Sign in with `signIn(page, baseUrl)`, never through the email form, unless the journey is the email form itself.
-- Select by role and accessible name. Every name below is the exact accessible name.
+- Select by role and accessible name. Every name below is the exact accessible name, except where a file shows a regular expression because the name includes a count.
 - Call `settle(page)` after each action, before you read state.
 - Use reduced motion for every screenshot of `/`, except when the spin is the thing under test.
 - Undo every mark a journey adds. Never delete proof artifacts.
