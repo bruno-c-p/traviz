@@ -47,6 +47,20 @@ export async function loadMarksSnapshot(
   }
 }
 
+type OwnMarksReader = MarksReader & {
+  readonly getUserId: () => Promise<string | null>;
+};
+
+export function createReadMarks(reader: OwnMarksReader) {
+  return async (expectedOwnerId: string): Promise<MarksSnapshot> => {
+    const userId = await reader.getUserId();
+
+    if (userId !== expectedOwnerId) return { ok: false, ownerId: expectedOwnerId };
+
+    return loadMarksSnapshot(reader, userId);
+  };
+}
+
 function markChangeStatement(userId: string, change: MarkChange): InStatement {
   switch (change.kind) {
     case "set":

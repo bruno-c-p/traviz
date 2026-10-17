@@ -35,3 +35,8 @@ export async function applyMarkChangeWith(
 
   return { ok: true };
 }
+
+export function createApplyMarkChange(dependencies: MarkChangeDependencies) {
+  return async (expectedOwnerId: string, change: MarkChange): Promise<MarkChangeResult> =>
+    applyMarkChangeWith(dependencies, expectedOwnerId, change);
+}

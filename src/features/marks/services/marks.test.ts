@@ -1,8 +1,8 @@
-import { afterAll, afterEach, expect, test } from "bun:test";
+import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { createClient, type Client } from "@libsql/client";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { loadMarksSnapshot } from "@/features/marks/services/marks";
+import { createReadMarks, loadMarksSnapshot } from "@/features/marks/services/marks";
 import { createMarksTableSql } from "@/shared/server/marks-table";
 
 const databaseDirectory = join(
@@ -92,4 +92,39 @@ test("a database error gives a failed snapshot for that user", async () => {
     ownerId: "user_a",
   });
   expect(loggedErrors).toHaveLength(1);
+});
+
+describe("readMarks", () => {
+  async function seededReader(userId: string | null) {
+    const client = openDatabase();
+    await client.execute(createMarksTableSql);
+    await client.execute({
+      sql: "INSERT INTO marks (user_id, code, state, updated_at) VALUES (?, ?, ?, ?)",
+      args: ["user_a", "DEU", "want", "2026-10-16T00:00:00.000Z"],
+    });
+
+    return createReadMarks({ ...readerFor(client), getUserId: () => Promise.resolve(userId) });
+  }
+
+  test("a signed-out read gives a failed snapshot", async () => {
+    const readMarks = await seededReader(null);
+
+    expect(await readMarks("user_a")).toEqual({ ok: false, ownerId: "user_a" });
+  });
+
+  test("a read for another account gives a failed snapshot", async () => {
+    const readMarks = await seededReader("user_b");
+
+    expect(await readMarks("user_a")).toEqual({ ok: false, ownerId: "user_a" });
+  });
+
+  test("a read for the signed-in account gives that account's marks", async () => {
+    const readMarks = await seededReader("user_a");
+
+    expect(await readMarks("user_a")).toEqual({
+      ok: true,
+      ownerId: "user_a",
+      marks: { DEU: "want" },
+    });
+  });
 });
