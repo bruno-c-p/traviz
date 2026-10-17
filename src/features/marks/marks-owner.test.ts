@@ -42,6 +42,7 @@ function fakeTransport() {
       new Promise((resolve, reject) => {
         calls.push({ expectedOwnerId, change, resolve, reject });
       }),
+    readMarks: () => new Promise(() => {}),
   };
 
   const sent = () => calls.map((call) => [call.expectedOwnerId, call.change]);
@@ -83,6 +84,7 @@ function fakeCache(
       if (options.writeFails === true) throw new Error("quota exceeded");
       writes.push(cached);
     },
+    clear: () => {},
   };
 
   return { cache, writes };
@@ -317,7 +319,7 @@ describe("D1, appeared in 1d566f9, open on PR #41: a request that never settles 
       [OWNER, tapDeu],
       [OWNER, resetAll],
     ]);
-    expect(owner.getState().problems).toEqual([{ scope: "DEU", reason: "unavailable" }]);
+    expect(owner.getState().problems).toEqual([]);
 
     await answer(1);
     await answer(2);
@@ -420,6 +422,7 @@ describe("marks owner", () => {
 
         return Promise.resolve(SAVED);
       },
+      readMarks: () => new Promise(() => {}),
     };
 
     const owner = createMarksOwner(transport, fakeCache().cache, fakeDeadline().startDeadline);
@@ -540,5 +543,88 @@ describe("marks owner", () => {
     await flush();
 
     expect(sent()).toEqual([]);
+  });
+});
+
+describe("marks owner listeners", () => {
+  test("a listener hears every change until it unsubscribes", async () => {
+    const { owner, answer } = setup();
+    let heard = 0;
+
+    const unsubscribe = owner.subscribe(() => {
+      heard += 1;
+    });
+
+    owner.startSession(OWNER);
+    owner.requestChange(tapDeu);
+    await flush();
+
+    expect(heard).toBe(3);
+
+    unsubscribe();
+    await answer(0);
+
+    expect(heard).toBe(3);
+  });
+
+  test("an event that changes nothing reaches no listener and writes no cache", () => {
+    const { owner, writes } = setup();
+    owner.startSession(OWNER);
+    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
+    let heard = 0;
+    const writesBefore = writes.length;
+
+    owner.subscribe(() => {
+      heard += 1;
+    });
+    owner.startSession(OWNER);
+    owner.endSession();
+    owner.requestChange(tapDeu);
+
+    expect(heard).toBe(1);
+    expect(writes.length).toBe(writesBefore);
+  });
+});
+
+describe("marks owner cache preview", () => {
+  const stored: CachedMarks = { ownerId: OWNER, marks: { DEU: "visited" } };
+
+  test("a preview signed in as the cached owner shows the cache", () => {
+    const { owner } = setup({ stored });
+    const asked: string[] = [];
+
+    owner.previewCache((ownerId) => {
+      asked.push(ownerId);
+
+      return true;
+    });
+
+    expect(asked).toEqual([OWNER]);
+    expect(visibleMarks(owner.getState())).toEqual({ DEU: "visited" });
+    expect(owner.getState().ownerId).toBeNull();
+  });
+
+  test("a preview signed in as someone else shows nothing", () => {
+    const { owner } = setup({ stored });
+
+    owner.previewCache(() => false);
+
+    expect(visibleMarks(owner.getState())).toEqual({});
+  });
+
+  test("a preview with no cache shows nothing", () => {
+    const { owner } = setup();
+
+    owner.previewCache(() => true);
+
+    expect(visibleMarks(owner.getState())).toEqual({});
+  });
+
+  test("a preview whose cache read throws shows nothing", () => {
+    const { owner } = setup({ stored, readFails: true });
+
+    owner.previewCache(() => true);
+
+    expect(visibleMarks(owner.getState())).toEqual({});
   });
 });

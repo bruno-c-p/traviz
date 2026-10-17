@@ -63,13 +63,17 @@ export function startGlobe<T extends GlobeMap>(
 
 type HandoffOptions<T> = Omit<GlobeOptions<T>, "isSpinning"> & { prefersReducedMotion: boolean };
 
-export function createCameraHandoff() {
-  let lastCamera: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
+const DEFAULT_CAMERA: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
 
-  return function mountFromLastCamera<T extends GlobeMap>(
+export function createCameraHandoff() {
+  let lastCamera = DEFAULT_CAMERA;
+  let resetCount = 0;
+
+  function mountFromLastCamera<T extends GlobeMap>(
     createMap: (camera: GlobeCamera) => T,
     { prefersReducedMotion, ...options }: HandoffOptions<T>,
   ) {
+    const resetCountAtMount = resetCount;
     const map = createMap(lastCamera);
 
     const unmountGlobe = startGlobe(map, {
@@ -78,20 +82,41 @@ export function createCameraHandoff() {
     });
 
     function unmount() {
-      lastCamera = unmountGlobe();
+      const camera = unmountGlobe();
+
+      if (resetCount === resetCountAtMount) lastCamera = camera;
     }
 
     return { map, unmount };
+  }
+
+  return {
+    mountFromLastCamera,
+    reset: () => {
+      lastCamera = DEFAULT_CAMERA;
+      resetCount++;
+    },
   };
 }
 
-const mountFromLastCamera = createCameraHandoff();
+export function resetGlobeOnAccountChange(handoff: { reset: () => void }) {
+  return useCountriesStore.subscribe((state, previousState) => {
+    if (previousState.ownerId === null || state.ownerId === previousState.ownerId) return;
+
+    useSelectedCountryStore.getState().clearSelection();
+    handoff.reset();
+  });
+}
+
+const cameraHandoff = createCameraHandoff();
+
+resetGlobeOnAccountChange(cameraHandoff);
 
 export function mountGlobe(mapbox: typeof mapboxgl, container: HTMLDivElement) {
   const initialMarks = useCountriesStore.getState().marks;
   const initialSelectedCode = useSelectedCountryStore.getState().selectedCode;
 
-  return mountFromLastCamera(
+  return cameraHandoff.mountFromLastCamera(
     (camera) =>
       new mapbox.Map({
         container,

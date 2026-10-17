@@ -1,14 +1,17 @@
 import { describe, expect, test } from "bun:test";
+import { createFromReadableStream } from "next/dist/compiled/react-server-dom-turbopack/client.edge";
 import type { CountryState, Marks } from "@/features/marks/colors";
 import {
   applyChange,
   INITIAL_MARKS_SYNC_STATE,
   reduceMarksSync,
+  snapshotFromMarks,
   visibleMarks,
   type CachedMarks,
   type MarkChangeFailure,
   type MarksSyncEvent,
   type MarksSyncState,
+  type SyncProblem,
 } from "@/features/marks/marks-sync";
 
 const OWNER = "user_a";
@@ -459,5 +462,243 @@ describe("marks sync", () => {
 
     expect(state.pending).toEqual([]);
     expect(visibleMarks(state)).toEqual({});
+  });
+});
+
+describe("problems after unit 21", () => {
+  test("dismissing a problem removes only that scope", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("DEU", "visited"),
+      sent(1),
+      failed(1, "unavailable"),
+      setMark("FRA", "want"),
+      sent(2),
+      failed(2, "rejected"),
+      { type: "problem-dismissed", scope: "DEU" },
+    ]);
+
+    expect(state.problems).toEqual([{ scope: "FRA", reason: "rejected" }]);
+  });
+
+  test("a saved reset clears every change problem and keeps the snapshot problem", () => {
+    const state = play([
+      started(OWNER),
+      failedSnapshot(),
+      setMark("DEU", "visited"),
+      sent(1),
+      failed(1, "unavailable"),
+      reset(),
+      sent(2),
+      failed(2, "unavailable"),
+      reset(),
+      sent(3),
+      saved(3),
+    ]);
+
+    expect(state.problems).toEqual([{ scope: "snapshot", reason: "unavailable" }]);
+  });
+
+  test("a failed reset keeps the earlier change problems", () => {
+    const state = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("DEU", "visited"),
+      sent(1),
+      failed(1, "unavailable"),
+      reset(),
+      sent(2),
+      failed(2, "unavailable"),
+    ]);
+
+    expect(state.problems).toEqual([
+      { scope: "DEU", reason: "unavailable" },
+      { scope: "all-marks", reason: "unavailable" },
+    ]);
+  });
+});
+
+describe("events that change nothing", () => {
+  test("dismissing a scope with no problem returns the same state", () => {
+    const before = play([
+      started(OWNER),
+      snapshot({}),
+      setMark("DEU", "visited"),
+      sent(1),
+      failed(1, "unavailable"),
+    ]);
+
+    expect(reduceMarksSync(before, { type: "problem-dismissed", scope: "FRA" })).toBe(before);
+  });
+
+  test("ending a session that already ended returns the same state", () => {
+    const before = play([started(OWNER), snapshot({ FRA: "want" }), ended()]);
+
+    expect(reduceMarksSync(before, ended())).toBe(before);
+  });
+
+  test("ending a session before any started still records that it ended", () => {
+    const state = reduceMarksSync(INITIAL_MARKS_SYNC_STATE, ended());
+
+    expect(state.sessionEnded).toBe(true);
+  });
+
+  test("ending an ended session that shows a preview clears the preview", () => {
+    const before = play([
+      started(OWNER),
+      ended(),
+      { type: "cache-previewed", cached: { ownerId: OWNER, marks: { DEU: "visited" } } },
+    ]);
+
+    expect(visibleMarks(reduceMarksSync(before, ended()))).toEqual({});
+  });
+});
+
+describe("a late confirmation", () => {
+  const timedOut = () =>
+    play([
+      started(OWNER),
+      snapshot({}),
+      setMark("DEU", "visited"),
+      sent(1),
+      failed(1, "unavailable"),
+    ]);
+
+  const confirmLate = (problem: SyncProblem | undefined): MarksSyncEvent => {
+    if (problem === undefined) throw new Error("no deadline problem");
+
+    return {
+      type: "late-change-confirmed",
+      change: { kind: "set", code: "DEU", state: "visited" },
+      problem,
+    };
+  };
+
+  test("applies the change to the base and removes the deadline's problem", () => {
+    const state = timedOut();
+    const confirmed = play([confirmLate(state.problems[0])], state);
+
+    expect(visibleMarks(confirmed)).toEqual({ DEU: "visited" });
+    expect(confirmed.problems).toEqual([]);
+  });
+
+  test("keeps a newer problem for the same country", () => {
+    const state = timedOut();
+    const deadlineProblem = state.problems[0];
+    const newer = play([setMark("DEU", "want"), sent(2), failed(2, "rejected")], state);
+    const confirmed = play([confirmLate(deadlineProblem)], newer);
+
+    expect(visibleMarks(confirmed)).toEqual({ DEU: "visited" });
+    expect(confirmed.problems).toEqual([{ scope: "DEU", reason: "rejected" }]);
+  });
+});
+
+describe("the snapshot from the server render", () => {
+  test("loaded marks become an ok snapshot for that owner", async () => {
+    expect(await snapshotFromMarks(OWNER, Promise.resolve({ DEU: "visited" }))).toEqual({
+      ok: true,
+      ownerId: OWNER,
+      marks: { DEU: "visited" },
+    });
+  });
+
+  test("marks decoded by React's Flight client, whose then returns nothing, still become a snapshot", async () => {
+    const payload = new TextEncoder().encode('0:{"marks":"$@1"}\n1:{"DEU":"visited"}\n');
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(payload);
+        controller.close();
+      },
+    });
+
+    const decoded = await createFromReadableStream<{ marks: Promise<Marks> }>(stream, {
+      serverConsumerManifest: { moduleMap: {}, serverModuleMap: null, moduleLoading: null },
+    });
+
+    expect(await snapshotFromMarks(OWNER, decoded.marks)).toEqual({
+      ok: true,
+      ownerId: OWNER,
+      marks: { DEU: "visited" },
+    });
+  });
+
+  test("marks that failed to load become a failed snapshot for that owner", async () => {
+    expect(await snapshotFromMarks(OWNER, Promise.reject(new Error("hanging promise")))).toEqual({
+      ok: false,
+      ownerId: OWNER,
+    });
+  });
+});
+
+describe("the cache preview before the session starts", () => {
+  const cached: CachedMarks = { ownerId: OWNER, marks: { DEU: "visited" } };
+
+  const previewed = (preview: CachedMarks = cached): MarksSyncEvent => ({
+    type: "cache-previewed",
+    cached: preview,
+  });
+
+  test("a preview shows the cached marks with no owner", () => {
+    const state = play([previewed()]);
+
+    expect(visibleMarks(state)).toEqual({ DEU: "visited" });
+    expect(state.ownerId).toBeNull();
+  });
+
+  test("a session for the same owner keeps the preview, and its snapshot replaces it", () => {
+    const kept = play([previewed(), started(OWNER, cached)]);
+
+    expect(visibleMarks(kept)).toEqual({ DEU: "visited" });
+
+    expect(visibleMarks(play([snapshot({ FRA: "want" })], kept))).toEqual({ FRA: "want" });
+  });
+
+  test("a session for another owner drops the preview", () => {
+    const state = play([previewed(), started(OTHER_OWNER, cached)]);
+
+    expect(visibleMarks(state)).toEqual({});
+  });
+
+  test("a preview after the session started changes nothing", () => {
+    const before = play([started(OWNER)]);
+
+    expect(play([previewed()], before)).toBe(before);
+  });
+
+  test("a preview after a snapshot changes nothing", () => {
+    const before = play([started(OWNER), snapshot({ FRA: "want" })]);
+
+    expect(play([previewed()], before)).toBe(before);
+  });
+
+  test("a second preview changes nothing", () => {
+    const before = play([previewed()]);
+
+    expect(play([previewed({ ownerId: OWNER, marks: { FRA: "want" } })], before)).toBe(before);
+  });
+
+  test("a tap made over another owner's preview is dropped at the session start", () => {
+    const state = play([previewed(), setMark("FRA", "want"), started(OTHER_OWNER, cached)]);
+
+    expect(state.pending).toEqual([]);
+    expect(visibleMarks(state)).toEqual({});
+  });
+
+  test("a tap made over a preview the session start drops is dropped with it", () => {
+    const state = play([previewed(), setMark("FRA", "want"), started(OWNER)]);
+
+    expect(state.pending).toEqual([]);
+    expect(visibleMarks(state)).toEqual({});
+  });
+
+  test("a tap made during the preview survives the session start", () => {
+    const state = play([previewed(), setMark("FRA", "want"), started(OWNER, cached)]);
+
+    expect(visibleMarks(state)).toEqual({ DEU: "visited", FRA: "want" });
+    expect(state.pending.map((entry) => entry.change)).toEqual([
+      { kind: "set", code: "FRA", state: "want" },
+    ]);
   });
 });

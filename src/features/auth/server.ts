@@ -7,11 +7,3 @@ export const getUserId = cache(async () => {
 
   return userId;
 });
-
-export async function requireUserId(): Promise<string> {
-  const userId = await getUserId();
-
-  if (!userId) throw new Error("Unauthorized");
-
-  return userId;
-}

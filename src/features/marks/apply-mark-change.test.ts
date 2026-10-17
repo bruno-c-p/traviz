@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:tes
 import { createClient, type Client } from "@libsql/client";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { applyMarkChangeWith } from "@/features/marks/apply-mark-change";
+import { applyMarkChangeWith, createApplyMarkChange } from "@/features/marks/apply-mark-change";
 import { markRowSchema } from "@/features/marks/schemas";
 import { createMarksTableSql } from "@/shared/server/marks-table";
 
@@ -186,5 +186,34 @@ describe("applyMarkChange", () => {
     });
 
     expect(loggedErrors).toEqual([expect.any(Error)]);
+  });
+});
+
+describe("the applyMarkChange action", () => {
+  const change = { kind: "set", code: "FRA", state: "want" } as const;
+
+  test("a signed-out change writes nothing", async () => {
+    const applyMarkChange = createApplyMarkChange(signedInAs(null));
+
+    expect(await applyMarkChange("user_a", change)).toEqual({ ok: false, reason: "signed-out" });
+    expect(await storedMarks("user_a")).toEqual([]);
+  });
+
+  test("a change for another account writes nothing", async () => {
+    const applyMarkChange = createApplyMarkChange(signedInAs("user_b"));
+
+    expect(await applyMarkChange("user_a", change)).toEqual({
+      ok: false,
+      reason: "other-account",
+    });
+    expect(await storedMarks("user_a")).toEqual([]);
+    expect(await storedMarks("user_b")).toEqual([]);
+  });
+
+  test("a change for the signed-in account writes its mark", async () => {
+    const applyMarkChange = createApplyMarkChange(signedInAs("user_a"));
+
+    expect(await applyMarkChange("user_a", change)).toEqual({ ok: true });
+    expect(await storedMarks("user_a")).toEqual([{ code: "FRA", state: "want" }]);
   });
 });

@@ -45,11 +45,18 @@ export type MarksSyncEvent =
       readonly ownerId: string;
       readonly cached: CachedMarks | null;
     }
+  | { readonly type: "cache-previewed"; readonly cached: CachedMarks }
   | { readonly type: "session-ended" }
   | { readonly type: "snapshot-received"; readonly snapshot: MarksSnapshot }
   | { readonly type: "change-requested"; readonly change: MarkChange }
   | { readonly type: "change-sent"; readonly id: number }
-  | { readonly type: "change-settled"; readonly id: number; readonly result: MarkChangeResult };
+  | { readonly type: "change-settled"; readonly id: number; readonly result: MarkChangeResult }
+  | { readonly type: "problem-dismissed"; readonly scope: string }
+  | {
+      readonly type: "late-change-confirmed";
+      readonly change: MarkChange;
+      readonly problem: SyncProblem;
+    };
 
 export const INITIAL_MARKS_SYNC_STATE: MarksSyncState = {
   ownerId: null,
@@ -83,7 +90,20 @@ export function visibleMarks(state: MarksSyncState): Marks {
   return foldChanges(baseMarks(state.base), state.pending);
 }
 
-function changeScope(change: MarkChange): string {
+type MarksThenable = {
+  readonly then: (onLoaded: (marks: Marks) => void, onFailed: (cause: unknown) => void) => void;
+};
+
+export function snapshotFromMarks(ownerId: string, marks: MarksThenable): Promise<MarksSnapshot> {
+  return new Promise((resolve) => {
+    marks.then(
+      (loaded) => resolve({ ok: true, ownerId, marks: loaded }),
+      () => resolve({ ok: false, ownerId }),
+    );
+  });
+}
+
+export function changeScope(change: MarkChange): string {
   return change.kind === "reset" ? "all-marks" : change.code;
 }
 
@@ -126,12 +146,23 @@ function startSession(
   const base: MarkBase =
     cached?.ownerId === ownerId ? { source: "cache", marks: cached.marks } : { source: "empty" };
 
-  const pending = state.ownerId === null ? state.pending : [];
+  const keepsPending =
+    state.ownerId === null && (state.base.source === "empty" || base.source === "cache");
+
+  const pending = keepsPending ? state.pending : [];
 
   return { ...state, ownerId, base, pending, problems: [], sessionEnded: false };
 }
 
+function previewCache(state: MarksSyncState, cached: CachedMarks): MarksSyncState {
+  if (state.ownerId !== null || state.base.source !== "empty") return state;
+
+  return { ...state, base: { source: "cache", marks: cached.marks } };
+}
+
 function endSession(state: MarksSyncState): MarksSyncState {
+  if (state.sessionEnded && state.base.source === "empty") return state;
+
   return { ...INITIAL_MARKS_SYNC_STATE, lastChangeId: state.lastChangeId, sessionEnded: true };
 }
 
@@ -194,14 +225,25 @@ function settleChange(state: MarksSyncState, id: number, result: MarkChangeResul
     ...state,
     base: withConfirmedChange(state.base, entry.change),
     pending: withPhase(state.pending, id, "saved"),
-    problems: withoutProblem(state.problems, scope),
+    problems:
+      entry.change.kind === "reset"
+        ? state.problems.filter((problem) => problem.scope === "snapshot")
+        : withoutProblem(state.problems, scope),
   };
+}
+
+function dismissProblem(state: MarksSyncState, scope: string): MarksSyncState {
+  if (!state.problems.some((problem) => problem.scope === scope)) return state;
+
+  return { ...state, problems: withoutProblem(state.problems, scope) };
 }
 
 export function reduceMarksSync(state: MarksSyncState, event: MarksSyncEvent): MarksSyncState {
   switch (event.type) {
     case "session-started":
       return startSession(state, event.ownerId, event.cached);
+    case "cache-previewed":
+      return previewCache(state, event.cached);
     case "session-ended":
       return endSession(state);
     case "snapshot-received":
@@ -212,5 +254,13 @@ export function reduceMarksSync(state: MarksSyncState, event: MarksSyncEvent): M
       return markSent(state, event.id);
     case "change-settled":
       return settleChange(state, event.id, event.result);
+    case "problem-dismissed":
+      return dismissProblem(state, event.scope);
+    case "late-change-confirmed":
+      return {
+        ...state,
+        base: withConfirmedChange(state.base, event.change),
+        problems: state.problems.filter((problem) => problem !== event.problem),
+      };
   }
 }

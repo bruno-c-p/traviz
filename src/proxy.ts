@@ -1,10 +1,16 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { redirectFor } from "@/shared/route-gate";
+import { gateRequest } from "@/shared/route-gate";
 
 export default clerkMiddleware(async (auth, request) => {
-  const { isAuthenticated } = await auth();
-  const redirectPath = redirectFor(request.nextUrl.pathname, isAuthenticated);
+  const redirectPath = await gateRequest(
+    {
+      method: request.method,
+      hasActionHeader: request.headers.has("next-action"),
+      pathname: request.nextUrl.pathname,
+    },
+    async () => (await auth()).isAuthenticated,
+  );
 
   if (redirectPath !== undefined) {
     return NextResponse.redirect(new URL(redirectPath, request.url));

@@ -4,9 +4,9 @@ export type { Marks, StateColorKey } from "@/features/marks/colors";
 
 export { tallyMarks, tallyShare, tallyTotal } from "@/features/marks/tally";
 
-export { useCountriesStore } from "@/features/marks/marks-store";
+export { endMarksSession, useCountriesStore } from "@/features/marks/marks-store";
 
-export { forgetStoredMarks } from "@/features/marks/marks-storage";
+export { MarkStatus } from "@/features/marks/mark-status";
 
 export { ClearMarkButton } from "@/features/marks/clear-mark-button";
 

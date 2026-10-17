@@ -67,7 +67,7 @@ A proof follows these rules:
 
 - Drive the real user path: the button, the search box, a click on the globe. Never call store setters, Server Actions or Clerk APIs other than the ticket sign-in.
 - Capture the action and the state after it, such as a screenshot before and after, plus the attribute or text that changed (`aria-pressed`, the card heading, a total).
-- Check the side effect next to the screen. A mark is proven only when `readMarkRows()` shows the row. It persists only when a new browser context, with empty localStorage, shows it. A plain reload reads the `traviz-marks` cache first and proves nothing about the server.
+- Check the side effect next to the screen. A mark is proven only when `readMarkRows()` shows the row. It persists only when a new browser context, with empty localStorage, shows it. A plain reload reads the `traviz-marks-v2` cache first and proves nothing about the server.
 - Report the `problems` list. Any entry in it fails the proof unless you can explain it.
 - For a UI change, run `verify:shots` and look at every image for overlap, clipped text and low contrast.
 
