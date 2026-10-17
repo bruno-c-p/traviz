@@ -65,38 +65,53 @@ type HandoffOptions<T> = Omit<GlobeOptions<T>, "isSpinning"> & { prefersReducedM
 
 const DEFAULT_CAMERA: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
 
-export function createCameraHandoff(getOwnerId: () => string | null) {
+export function createCameraHandoff() {
   let lastCamera = DEFAULT_CAMERA;
-  let lastOwnerId: string | null = null;
 
-  return function mountFromLastCamera<T extends GlobeMap>(
+  function mountFromLastCamera<T extends GlobeMap>(
     createMap: (camera: GlobeCamera) => T,
     { prefersReducedMotion, ...options }: HandoffOptions<T>,
   ) {
-    const camera = getOwnerId() === lastOwnerId ? lastCamera : DEFAULT_CAMERA;
-    const map = createMap(camera);
+    const map = createMap(lastCamera);
 
     const unmountGlobe = startGlobe(map, {
       ...options,
-      isSpinning: camera.isSpinning && !prefersReducedMotion,
+      isSpinning: lastCamera.isSpinning && !prefersReducedMotion,
     });
 
     function unmount() {
       lastCamera = unmountGlobe();
-      lastOwnerId = getOwnerId();
     }
 
     return { map, unmount };
+  }
+
+  return {
+    mountFromLastCamera,
+    reset: () => {
+      lastCamera = DEFAULT_CAMERA;
+    },
   };
 }
 
-const mountFromLastCamera = createCameraHandoff(() => useCountriesStore.getState().ownerId);
+export function resetGlobeOnAccountChange(handoff: { reset: () => void }) {
+  return useCountriesStore.subscribe((state, previousState) => {
+    if (previousState.ownerId === null || state.ownerId === previousState.ownerId) return;
+
+    useSelectedCountryStore.getState().clearSelection();
+    handoff.reset();
+  });
+}
+
+const cameraHandoff = createCameraHandoff();
+
+resetGlobeOnAccountChange(cameraHandoff);
 
 export function mountGlobe(mapbox: typeof mapboxgl, container: HTMLDivElement) {
   const initialMarks = useCountriesStore.getState().marks;
   const initialSelectedCode = useSelectedCountryStore.getState().selectedCode;
 
-  return mountFromLastCamera(
+  return cameraHandoff.mountFromLastCamera(
     (camera) =>
       new mapbox.Map({
         container,

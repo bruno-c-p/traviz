@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { useCountriesStore } from "@/features/marks";
 
 interface SelectedCountryState {
   selectedCode: string | null;
@@ -28,7 +27,3 @@ export const useSelectedCountryStore = create<SelectedCountryState>()((set, get)
 
   clearSelection: () => set({ selectedCode: null, pendingFlyCode: null }),
 }));
-
-useCountriesStore.subscribe((state, previousState) => {
-  if (state.ownerId !== previousState.ownerId) useSelectedCountryStore.getState().clearSelection();
-});
