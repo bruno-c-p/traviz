@@ -7,5 +7,5 @@
     "jsx": "preserve"
   },
   "include": [],
-  "files": ["src/features/marks/marks-sync.ts"]
+  "files": ["src/features/marks/marks-sync.ts", "src/features/marks/marks-owner.ts"]
 }

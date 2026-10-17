@@ -27,26 +27,26 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Commands
 
-| Command                 | What it does                                                                                                                                                         |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bun run dev`           | Dev server. Needs the `.env.local` values that `bun run setup` writes.                                                                                               |
-| `bun run format`        | Format with oxfmt                                                                                                                                                    |
-| `bun run lint`          | oxlint with type-aware rules, plus the local `anti-slop` and `boundaries` plugins in `tools/oxlint`                                                                  |
-| `bun run typecheck`     | `next typegen` to write the route types, `tsc --noEmit`, then `tsconfig.pure.json`, which compiles `src/features/marks/marks-sync.ts` with no DOM, Bun or Node types |
-| `bun run check:docs`    | Fail when AGENTS.md, README.md or `docs/` names a missing path or script                                                                                             |
-| `bun run test`          | bun tests under `src`                                                                                                                                                |
-| `bun run test:rules`    | Lint rule tests in `tools/oxlint`, run with Node 24                                                                                                                  |
-| `bun run build`         | Production build                                                                                                                                                     |
-| `bun run check:bundle`  | Compare the last build's first-load JS and preloads with `bundle-budget.json`                                                                                        |
-| `bun run check:gates`   | Fail when a config change loosens a check                                                                                                                            |
-| `bun run check`         | CI's checks except fallow and react-doctor, in CI's order, with a build                                                                                              |
-| `bun run fallow`        | Dead code and complexity report                                                                                                                                      |
-| `bun run react-doctor`  | React rules                                                                                                                                                          |
-| `bun run setup`         | Fill in `.env.local` with development values, migrate `.data/dev.db` and create the dev test user                                                                    |
-| `bun run sign-in-token` | Print a sign-in token for the dev test user                                                                                                                          |
-| `bun run perf`          | A/B a production build of HEAD against `--baseline <ref>` (default `main`) in a throttled browser                                                                    |
-| `bun run db:migrate`    | Create the `marks` table                                                                                                                                             |
-| `bun run gen:countries` | Regenerate `src/features/countries/countries.generated.ts`. `--check` fails when it is out of date                                                                   |
+| Command                 | What it does                                                                                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun run dev`           | Dev server. Needs the `.env.local` values that `bun run setup` writes.                                                                               |
+| `bun run format`        | Format with oxfmt                                                                                                                                    |
+| `bun run lint`          | oxlint with type-aware rules, plus the local `anti-slop` and `boundaries` plugins in `tools/oxlint`                                                  |
+| `bun run typecheck`     | `next typegen` to write the route types, `tsc --noEmit`, then `tsconfig.pure.json`, which compiles the files it lists with no DOM, Bun or Node types |
+| `bun run check:docs`    | Fail when AGENTS.md, README.md or `docs/` names a missing path or script                                                                             |
+| `bun run test`          | bun tests under `src`                                                                                                                                |
+| `bun run test:rules`    | Lint rule tests in `tools/oxlint`, run with Node 24                                                                                                  |
+| `bun run build`         | Production build                                                                                                                                     |
+| `bun run check:bundle`  | Compare the last build's first-load JS and preloads with `bundle-budget.json`                                                                        |
+| `bun run check:gates`   | Fail when a config change loosens a check                                                                                                            |
+| `bun run check`         | CI's checks except fallow and react-doctor, in CI's order, with a build                                                                              |
+| `bun run fallow`        | Dead code and complexity report                                                                                                                      |
+| `bun run react-doctor`  | React rules                                                                                                                                          |
+| `bun run setup`         | Fill in `.env.local` with development values, migrate `.data/dev.db` and create the dev test user                                                    |
+| `bun run sign-in-token` | Print a sign-in token for the dev test user                                                                                                          |
+| `bun run perf`          | A/B a production build of HEAD against `--baseline <ref>` (default `main`) in a throttled browser                                                    |
+| `bun run db:migrate`    | Create the `marks` table                                                                                                                             |
+| `bun run gen:countries` | Regenerate `src/features/countries/countries.generated.ts`. `--check` fails when it is out of date                                                   |
 
 `bun run build` and `bun run dev` need `TURSO_DATABASE_URL`, plus `TURSO_AUTH_TOKEN` unless the URL starts with `file:`. `src/shared/server/env.ts` parses them once and throws an error that names any missing one. To build without a database, use the CI values `TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io` and `TURSO_AUTH_TOKEN=ci`. `bun run dev` also needs the Clerk values in README.md. Without a Mapbox token the globe shows a flat placeholder. Run `bun run setup` to write them to `.env.local`. It pulls the Clerk development keys and the Mapbox token, points `TURSO_DATABASE_URL` at `file:.data/dev.db` in this worktree, migrates it and creates the dev test user `agent+clerk_test@example.com`. It refuses a remote database URL, a database file outside this worktree's `.data/`, `pk_live_` or `sk_live_` keys and a Mapbox token that does not start with `pk.`. For a signed-in session, run `bun run sign-in-token`, open `/sign-in`, and after `window.Clerk.loaded` run `const signIn = await window.Clerk.client.signIn.create({ strategy: "ticket", ticket }); await window.Clerk.setActive({ session: signIn.createdSessionId });` with the printed token as `ticket`. `bun run check` sets its own build values, including a fixed `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, a fake `pk_live_` Clerk key and a fake Mapbox token, so its bundle bytes match CI's unless `.env.local` sets other `NEXT_PUBLIC_` values.
 
