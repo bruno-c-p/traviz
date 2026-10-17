@@ -25,8 +25,6 @@ type GlobeOptions<T> = {
   bindMapEvents: (map: T) => void;
 };
 
-let lastCamera: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
-
 export function startGlobe<T extends GlobeMap>(
   map: T,
   { initialMarks, frames, isSpinning, bindMapEvents }: GlobeOptions<T>,
@@ -63,33 +61,54 @@ export function startGlobe<T extends GlobeMap>(
   };
 }
 
+type HandoffOptions<T> = Omit<GlobeOptions<T>, "isSpinning"> & { prefersReducedMotion: boolean };
+
+export function createCameraHandoff() {
+  let lastCamera: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
+
+  return function mountFromLastCamera<T extends GlobeMap>(
+    createMap: (camera: GlobeCamera) => T,
+    { prefersReducedMotion, ...options }: HandoffOptions<T>,
+  ) {
+    const map = createMap(lastCamera);
+
+    const unmountGlobe = startGlobe(map, {
+      ...options,
+      isSpinning: lastCamera.isSpinning && !prefersReducedMotion,
+    });
+
+    function unmount() {
+      lastCamera = unmountGlobe();
+    }
+
+    return { map, unmount };
+  };
+}
+
+const mountFromLastCamera = createCameraHandoff();
+
 export function mountGlobe(mapbox: typeof mapboxgl, container: HTMLDivElement) {
   const initialMarks = useCountriesStore.getState().marks;
   const initialSelectedCode = useSelectedCountryStore.getState().selectedCode;
 
-  const map = new mapbox.Map({
-    container,
-    accessToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
-    style: buildMapStyle(initialMarks, initialSelectedCode),
-    localFontFamily: getComputedStyle(container).fontFamily,
-    projection: "globe",
-    center: lastCamera.center,
-    zoom: lastCamera.zoom,
-    minZoom: 1,
-    maxZoom: 8,
-  });
-
-  const unmountGlobe = startGlobe(map, {
-    initialMarks,
-    frames: window,
-    isSpinning:
-      lastCamera.isSpinning && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    bindMapEvents: bindCountryEvents,
-  });
-
-  function unmount() {
-    lastCamera = unmountGlobe();
-  }
-
-  return { map, unmount };
+  return mountFromLastCamera(
+    (camera) =>
+      new mapbox.Map({
+        container,
+        accessToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
+        style: buildMapStyle(initialMarks, initialSelectedCode),
+        localFontFamily: getComputedStyle(container).fontFamily,
+        projection: "globe",
+        center: camera.center,
+        zoom: camera.zoom,
+        minZoom: 1,
+        maxZoom: 8,
+      }),
+    {
+      initialMarks,
+      frames: window,
+      prefersReducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      bindMapEvents: bindCountryEvents,
+    },
+  );
 }

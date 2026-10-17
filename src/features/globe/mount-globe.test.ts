@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { countryCenter } from "@/features/countries";
 import { useCountriesStore } from "@/features/marks";
-import { startGlobe } from "@/features/globe/mount-globe";
+import { createCameraHandoff, startGlobe } from "@/features/globe/mount-globe";
+import type { GlobeCamera } from "@/features/globe/mount-globe";
 import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 type MapEvent = { originalEvent?: unknown };
@@ -221,5 +222,75 @@ describe("globe lifecycle", () => {
 
     expect(globe.frames.scheduledCount()).toBe(0);
     expect(globe.unmount().isSpinning).toBe(false);
+  });
+});
+
+describe("camera handoff", () => {
+  function mountFrom(
+    mountFromLastCamera: ReturnType<typeof createCameraHandoff>,
+    { prefersReducedMotion = false }: { prefersReducedMotion?: boolean } = {},
+  ) {
+    const frames = createFakeFrames();
+    const cameras: GlobeCamera[] = [];
+
+    const globe = mountFromLastCamera(
+      (camera) => {
+        cameras.push(camera);
+
+        return createFakeMap();
+      },
+      {
+        initialMarks: {},
+        frames: frames.scheduler,
+        prefersReducedMotion,
+        bindMapEvents: () => {},
+      },
+    );
+
+    return { ...globe, frames, cameras };
+  }
+
+  test("the next globe starts from the last globe's camera and keeps its stopped spin", () => {
+    const mountFromLastCamera = createCameraHandoff();
+    const firstGlobe = mountFrom(mountFromLastCamera);
+
+    firstGlobe.map.loadStyle();
+    firstGlobe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
+    firstGlobe.map.fire("mousedown");
+    firstGlobe.unmount();
+
+    const nextGlobe = mountFrom(mountFromLastCamera);
+    nextGlobe.map.loadStyle();
+    nextGlobe.frames.runFrames(3);
+
+    expect(nextGlobe.cameras).toEqual([{ center: [42, -12], zoom: 3.5, isSpinning: false }]);
+    expect(nextGlobe.frames.scheduledCount()).toBe(0);
+
+    nextGlobe.unmount();
+  });
+
+  test("the next globe keeps spinning when the user never stopped the last one", () => {
+    const mountFromLastCamera = createCameraHandoff();
+
+    mountFrom(mountFromLastCamera).unmount();
+
+    const nextGlobe = mountFrom(mountFromLastCamera);
+    nextGlobe.map.loadStyle();
+    nextGlobe.frames.runFrames(3);
+
+    expect(nextGlobe.frames.scheduledCount()).toBe(1);
+
+    nextGlobe.unmount();
+  });
+
+  test("reduced motion starts no spin", () => {
+    const globe = mountFrom(createCameraHandoff(), { prefersReducedMotion: true });
+
+    globe.map.loadStyle();
+    globe.frames.runFrames(3);
+
+    expect(globe.frames.scheduledCount()).toBe(0);
+
+    globe.unmount();
   });
 });
