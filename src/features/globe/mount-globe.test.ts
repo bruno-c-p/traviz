@@ -11,7 +11,12 @@ function createFakeMap() {
   const calls: string[] = [];
   const flights: unknown[] = [];
   let center = { lng: 0, lat: 20 };
+  let zoom = 1.4;
   let removals = 0;
+
+  function fire(type: string, event: MapEvent = {}) {
+    for (const listener of listeners.get(type) ?? []) listener(event);
+  }
 
   return {
     getCenter: () => ({ ...center }),
@@ -29,7 +34,7 @@ function createFakeMap() {
       flights.push(options.center);
       calls.push("flyTo");
     },
-    getZoom: () => 1.4,
+    getZoom: () => zoom,
     on: (type: string, listener: (event: MapEvent) => void) => {
       listeners.set(type, [...(listeners.get(type) ?? []), listener]);
     },
@@ -43,7 +48,12 @@ function createFakeMap() {
       removals++;
     },
     loadStyle: () => {
-      for (const listener of listeners.get("style.load") ?? []) listener({});
+      fire("style.load");
+    },
+    fire,
+    moveCamera: (nextCenter: { lng: number; lat: number }, nextZoom: number) => {
+      center = { ...nextCenter };
+      zoom = nextZoom;
     },
     calls,
     flights,
@@ -83,7 +93,7 @@ function createFakeFrames() {
   };
 }
 
-function mountFakeGlobe() {
+function mountFakeGlobe({ isSpinning = true }: { isSpinning?: boolean } = {}) {
   const map = createFakeMap();
   const frames = createFakeFrames();
   let mapEventBindings = 0;
@@ -91,7 +101,7 @@ function mountFakeGlobe() {
   const unmount = startGlobe(map, {
     initialMarks: useCountriesStore.getState().marks,
     frames: frames.scheduler,
-    prefersReducedMotion: false,
+    isSpinning,
     bindMapEvents: () => {
       mapEventBindings++;
     },
@@ -182,5 +192,34 @@ describe("globe lifecycle", () => {
     changeMarksAndSelection();
 
     expect(globe.map.calls).toEqual([]);
+  });
+
+  test("reports the camera it ends with, still spinning when the user never touched it", () => {
+    const globe = mountFakeGlobe();
+
+    globe.map.loadStyle();
+    globe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
+
+    expect(globe.unmount()).toEqual({ center: [42, -12], zoom: 3.5, isSpinning: true });
+  });
+
+  test("reports a spin the user stopped as not spinning", () => {
+    const globe = mountFakeGlobe();
+
+    globe.map.loadStyle();
+    globe.frames.runFrames(2);
+    globe.map.fire("mousedown");
+
+    expect(globe.unmount().isSpinning).toBe(false);
+  });
+
+  test("a globe started without spin schedules no frame after its style loads", () => {
+    const globe = mountFakeGlobe({ isSpinning: false });
+
+    globe.map.loadStyle();
+    globe.frames.runFrames(3);
+
+    expect(globe.frames.scheduledCount()).toBe(0);
+    expect(globe.unmount().isSpinning).toBe(false);
   });
 });

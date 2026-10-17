@@ -16,18 +16,22 @@ type GlobeMap = SpinnableMap &
     remove: () => void;
   };
 
+export type GlobeCamera = { center: [number, number]; zoom: number; isSpinning: boolean };
+
 type GlobeOptions<T> = {
   initialMarks: Marks;
   frames: FrameScheduler;
-  prefersReducedMotion: boolean;
+  isSpinning: boolean;
   bindMapEvents: (map: T) => void;
 };
 
+let lastCamera: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
+
 export function startGlobe<T extends GlobeMap>(
   map: T,
-  { initialMarks, frames, prefersReducedMotion, bindMapEvents }: GlobeOptions<T>,
+  { initialMarks, frames, isSpinning, bindMapEvents }: GlobeOptions<T>,
 ) {
-  const spin = createGlobeSpin(map, { prefersReducedMotion, frames });
+  const spin = createGlobeSpin(map, { startsStopped: !isSpinning, frames });
 
   let unsubscribeStores: (() => void) | undefined;
 
@@ -41,11 +45,21 @@ export function startGlobe<T extends GlobeMap>(
 
   map.on("style.load", handleStyleLoad);
 
-  return function unmount() {
+  return function unmount(): GlobeCamera {
+    const { lng, lat } = map.getCenter();
+
+    const camera: GlobeCamera = {
+      center: [lng, lat],
+      zoom: map.getZoom(),
+      isSpinning: !spin.isStopped(),
+    };
+
     map.off("style.load", handleStyleLoad);
     spin.stop();
     unsubscribeStores?.();
     map.remove();
+
+    return camera;
   };
 }
 
@@ -59,18 +73,23 @@ export function mountGlobe(mapbox: typeof mapboxgl, container: HTMLDivElement) {
     style: buildMapStyle(initialMarks, initialSelectedCode),
     localFontFamily: getComputedStyle(container).fontFamily,
     projection: "globe",
-    center: [0, 20],
-    zoom: 1.4,
+    center: lastCamera.center,
+    zoom: lastCamera.zoom,
     minZoom: 1,
     maxZoom: 8,
   });
 
-  const unmount = startGlobe(map, {
+  const unmountGlobe = startGlobe(map, {
     initialMarks,
     frames: window,
-    prefersReducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    isSpinning:
+      lastCamera.isSpinning && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     bindMapEvents: bindCountryEvents,
   });
+
+  function unmount() {
+    lastCamera = unmountGlobe();
+  }
 
   return { map, unmount };
 }

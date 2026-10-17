@@ -71,14 +71,14 @@ function createFakeFrames() {
   };
 }
 
-type SpinSetup = { prefersReducedMotion?: boolean };
+type SpinSetup = { startsStopped?: boolean };
 
-function startSpin({ prefersReducedMotion = false }: SpinSetup = {}) {
+function startSpin({ startsStopped = false }: SpinSetup = {}) {
   const map = createFakeMapbox();
   const frames = createFakeFrames();
 
   const spin = createGlobeSpin(map, {
-    prefersReducedMotion,
+    startsStopped,
     frames: frames.scheduler,
   });
 
@@ -110,19 +110,23 @@ describe("globe spin", () => {
     expect(isSpinning(spinning)).toBe(true);
   });
 
-  test("never starts when the user prefers reduced motion", () => {
-    const spinning = startSpin({ prefersReducedMotion: true });
+  test("never starts when created stopped", () => {
+    const spinning = startSpin({ startsStopped: true });
 
     expect(spinning.map.longitude()).toBe(0);
     expect(isSpinning(spinning)).toBe(false);
+    expect(spinning.spin.isStopped()).toBe(true);
   });
 
   test("stops on the first user drag without cancelling that drag", () => {
     const spinning = startSpin();
 
+    expect(spinning.spin.isStopped()).toBe(false);
+
     spinning.map.fire("movestart", USER_EVENT);
 
     expect(isSpinning(spinning)).toBe(false);
+    expect(spinning.spin.isStopped()).toBe(true);
     expect(spinning.map.isGestureCancelled()).toBe(false);
   });
 

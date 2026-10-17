@@ -14,17 +14,14 @@ export type SpinnableMap = {
 export type FrameScheduler = Pick<Window, "requestAnimationFrame" | "cancelAnimationFrame">;
 
 type GlobeSpinOptions = {
-  prefersReducedMotion: boolean;
+  startsStopped: boolean;
   frames: FrameScheduler;
 };
 
-export function createGlobeSpin(
-  map: SpinnableMap,
-  { prefersReducedMotion, frames }: GlobeSpinOptions,
-) {
+export function createGlobeSpin(map: SpinnableMap, { startsStopped, frames }: GlobeSpinOptions) {
   let spinFrameId: number | null = null;
   let lastFrameTime: number | null = null;
-  let stopped = prefersReducedMotion;
+  let stopped = startsStopped;
 
   function spinFrame(now: number) {
     const elapsedSeconds =
@@ -68,5 +65,5 @@ export function createGlobeSpin(
     });
   }
 
-  return { start, stop, stopOnUserInteraction };
+  return { start, stop, stopOnUserInteraction, isStopped: () => stopped };
 }

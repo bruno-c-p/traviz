@@ -43,7 +43,7 @@ function spinningGlobe() {
   } satisfies SpinnableMap & SyncedMap;
 
   const spin = createGlobeSpin(map, {
-    prefersReducedMotion: false,
+    startsStopped: false,
     frames: {
       requestAnimationFrame: (callback: (now: number) => void) => {
         const frameId = nextFrameId++;
