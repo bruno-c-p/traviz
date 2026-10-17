@@ -15,7 +15,7 @@ import {
 
 export type SavingScopes = "all" | readonly string[];
 
-export type MarksStoreState = {
+type MarksStoreState = {
   marks: Marks;
   ownerId: string | null;
   saving: SavingScopes;
