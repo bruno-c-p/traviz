@@ -21,6 +21,8 @@ export type MarksCache = {
   readonly write: (cached: CachedMarks) => void;
 };
 
+export type MarksDeadline = (onExpired: () => void) => void;
+
 export type MarksOwner = {
   readonly getState: () => MarksSyncState;
   readonly startSession: (ownerId: string) => void;
@@ -31,7 +33,11 @@ export type MarksOwner = {
 
 const UNAVAILABLE: MarkChangeResult = { ok: false, reason: "unavailable" };
 
-export function createMarksOwner(transport: MarksTransport, cache: MarksCache): MarksOwner {
+export function createMarksOwner(
+  transport: MarksTransport,
+  cache: MarksCache,
+  startDeadline: MarksDeadline,
+): MarksOwner {
   let state = INITIAL_MARKS_SYNC_STATE;
   let requestInFlight = false;
 
@@ -76,9 +82,14 @@ export function createMarksOwner(transport: MarksTransport, cache: MarksCache): 
     requestInFlight = true;
     dispatch({ type: "change-sent", id: entry.id });
 
+    const settle = (result: MarkChangeResult) =>
+      handle({ type: "change-settled", id: entry.id, result });
+
+    startDeadline(() => settle(UNAVAILABLE));
+
     void applyMarkChange(ownerId, entry.change).then((result) => {
       requestInFlight = false;
-      handle({ type: "change-settled", id: entry.id, result });
+      settle(result);
     });
   };
 

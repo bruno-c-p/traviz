@@ -3,6 +3,7 @@ import type { Marks } from "@/features/marks/colors";
 import {
   createMarksOwner,
   type MarksCache,
+  type MarksDeadline,
   type MarksTransport,
 } from "@/features/marks/marks-owner";
 import {
@@ -87,12 +88,33 @@ function fakeCache(
   return { cache, writes };
 }
 
+function fakeDeadline() {
+  const expiries: (() => void)[] = [];
+
+  const startDeadline: MarksDeadline = (onExpired) => {
+    expiries.push(onExpired);
+  };
+
+  const expire = async (index: number) => {
+    const onExpired = expiries[index];
+
+    if (onExpired === undefined) throw new Error(`no deadline ${index}`);
+
+    onExpired();
+
+    await flush();
+  };
+
+  return { startDeadline, expire };
+}
+
 function setup(cacheOptions: Parameters<typeof fakeCache>[0] = {}) {
   const fake = fakeTransport();
   const store = fakeCache(cacheOptions);
-  const owner = createMarksOwner(fake.transport, store.cache);
+  const deadline = fakeDeadline();
+  const owner = createMarksOwner(fake.transport, store.cache, deadline.startDeadline);
 
-  return { ...fake, ...store, owner };
+  return { ...fake, ...store, ...deadline, owner };
 }
 
 describe("write, reset, write, appeared in 81cc227, open on main: resetAll calls clearMarksAction outside scheduleWrite's per-country chain", () => {
@@ -257,6 +279,82 @@ describe("F5.2 and F5.3, appeared in 81cc227 (PR #5), open on main: clearLocal c
   });
 });
 
+describe("D1, appeared in 1d566f9, open on PR #41: a request that never settles holds every later change and account", () => {
+  test("a request that never settles rolls back and records why once the deadline passes", async () => {
+    const { owner, sent, expire } = setup();
+    owner.startSession(OWNER);
+    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: { FRA: "want" } });
+    owner.requestChange(tapDeu);
+    await flush();
+
+    expect(visibleMarks(owner.getState())).toEqual({ FRA: "want", DEU: "visited" });
+
+    await expire(0);
+
+    expect(sent()).toEqual([[OWNER, tapDeu]]);
+    expect(visibleMarks(owner.getState())).toEqual({ FRA: "want" });
+    expect(owner.getState().problems).toEqual([{ scope: "DEU", reason: "unavailable" }]);
+  });
+
+  test("a late reply after the deadline releases the lane, and the reset waits for it", async () => {
+    const { owner, sent, answer, expire } = setup();
+    owner.startSession(OWNER);
+    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
+    owner.requestChange(tapDeu);
+    await flush();
+    await expire(0);
+
+    owner.requestChange(resetAll);
+    owner.requestChange(tapFra);
+    await flush();
+
+    expect(sent()).toEqual([[OWNER, tapDeu]]);
+    expect(visibleMarks(owner.getState())).toEqual({ FRA: "want" });
+
+    await answer(0);
+
+    expect(sent()).toEqual([
+      [OWNER, tapDeu],
+      [OWNER, resetAll],
+    ]);
+    expect(owner.getState().problems).toEqual([{ scope: "DEU", reason: "unavailable" }]);
+
+    await answer(1);
+    await answer(2);
+
+    expect(sent()).toEqual([
+      [OWNER, tapDeu],
+      [OWNER, resetAll],
+      [OWNER, tapFra],
+    ]);
+  });
+
+  test("the next account's tap goes out once the stalled request settles and never shows the previous account's change", async () => {
+    const { owner, sent, answer, expire } = setup();
+    owner.startSession(OWNER);
+    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
+    owner.requestChange(tapDeu);
+    await flush();
+
+    owner.endSession();
+    owner.startSession(OTHER_OWNER);
+    owner.requestChange(tapIta);
+    await expire(0);
+
+    expect(sent()).toEqual([[OWNER, tapDeu]]);
+    expect(visibleMarks(owner.getState())).toEqual({ ITA: "visited" });
+
+    await answer(0);
+
+    expect(sent()).toEqual([
+      [OWNER, tapDeu],
+      [OTHER_OWNER, tapIta],
+    ]);
+    expect(visibleMarks(owner.getState())).toEqual({ ITA: "visited" });
+    expect(owner.getState().problems).toEqual([]);
+  });
+});
+
 describe("marks owner", () => {
   test("taps before the session starts are sent after it with that owner id", async () => {
     const { owner, sent } = setup();
@@ -324,7 +422,7 @@ describe("marks owner", () => {
       },
     };
 
-    const owner = createMarksOwner(transport, fakeCache().cache);
+    const owner = createMarksOwner(transport, fakeCache().cache, fakeDeadline().startDeadline);
 
     owner.startSession(OWNER);
     owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
