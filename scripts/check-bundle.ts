@@ -90,14 +90,24 @@ const firstLoadGzipBytesByRoute = new Map(
   ]),
 );
 
+const referencedChunkPathsByPath = new Map<string, string[]>();
+
 function referencedChunkPaths(chunkPath: string): string[] {
+  const cached = referencedChunkPathsByPath.get(chunkPath);
+
+  if (cached !== undefined) return cached;
+
   const source = readFileSync(join(buildRoot, chunkPath), "utf8");
 
-  return [...source.matchAll(/static\/chunks\/[\w.-]+\.js/g)].flatMap(([reference]) => {
+  const references = [...source.matchAll(/static\/chunks\/[\w.-]+\.js/g)].flatMap(([reference]) => {
     const referencePath = `.next/${reference}`;
 
     return existsSync(join(buildRoot, referencePath)) ? [referencePath] : [];
   });
+
+  referencedChunkPathsByPath.set(chunkPath, references);
+
+  return references;
 }
 
 function lazyChunkPathsOf(firstLoadChunkPaths: string[]): string[] {
