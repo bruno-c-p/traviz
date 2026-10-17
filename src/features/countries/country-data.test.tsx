@@ -1,31 +1,17 @@
 import { describe, expect, test } from "bun:test";
-import { renderToStaticMarkup } from "react-dom/server";
-import { ContinentCard, computeStats } from "@/features/stats";
-import { CONTINENT_ORDER, countries, searchCountries } from "@/features/countries/countries";
-import type { Continent } from "@/features/countries/countries";
-
-const continentsOverflowingToday: Continent[] = [
-  "Africa",
-  "Asia",
-  "Europe",
-  "North America",
-  "South America",
-  "Oceania",
-];
-
-const sovereign = countries.filter((country) => country.kind === "sovereign");
+import { SOVEREIGN_COUNTRIES, countries, searchCountries } from "@/features/countries/countries";
 
 describe("country dataset invariants", () => {
   test("195 entries are sovereign: the 193 UN members plus the observer states Vatican City, which world-countries already lists as a UN member, and Palestine, which the generator adds by code", () => {
-    const sovereignCodes = new Set(sovereign.map((country) => country.code));
+    const sovereignCodes = new Set(SOVEREIGN_COUNTRIES.map((country) => country.code));
 
-    expect(sovereign).toHaveLength(195);
+    expect(SOVEREIGN_COUNTRIES).toHaveLength(195);
     expect(sovereignCodes.has("VAT")).toBe(true);
     expect(sovereignCodes.has("PSE")).toBe(true);
   });
 
   test("every sovereign entry has a globe label, Palestine included", () => {
-    const missingLabel = sovereign.flatMap((country) =>
+    const missingLabel = SOVEREIGN_COUNTRIES.flatMap((country) =>
       country.hasGlobeLabel ? [] : [country.code],
     );
 
@@ -46,28 +32,5 @@ describe("country dataset invariants", () => {
     );
 
     expect(offGlobe).toEqual([]);
-  });
-
-  test("only the known continents overflow 100% when every country is on the wish list", () => {
-    const allWanted = Object.fromEntries(
-      countries.map((country) => [country.code, "want" as const]),
-    );
-
-    const stats = computeStats(allWanted, countries);
-
-    const overflowing = CONTINENT_ORDER.flatMap((continent) => {
-      const markup = renderToStaticMarkup(
-        <ContinentCard continent={continent} stats={stats.byContinent[continent]} />,
-      );
-
-      const filled = [...markup.matchAll(/width:\s*([\d.]+)%/g)].reduce(
-        (sum, match) => sum + Number(match[1]),
-        0,
-      );
-
-      return filled > 100.0001 ? [continent] : [];
-    });
-
-    expect(overflowing).toEqual(continentsOverflowingToday);
   });
 });

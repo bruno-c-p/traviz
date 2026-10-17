@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import type { StateColorKey } from "@/features/marks";
 import { buildListItems } from "@/features/country-list/country-list-items";
-import { countries, searchCountries } from "@/features/countries";
+import { countries, countriesInContinent, searchCountries } from "@/features/countries";
 import type { Continent } from "@/features/countries";
-import { countByState, useCountriesStore } from "@/features/marks";
+import { tallyMarks, useCountriesStore } from "@/features/marks";
 
 export function useCountryListItems(
   selectedContinent: Continent | null,
@@ -13,14 +13,11 @@ export function useCountryListItems(
   const marks = useCountriesStore((state) => state.marks);
 
   const continentPool = useMemo(
-    () =>
-      selectedContinent
-        ? countries.filter((country) => country.continent === selectedContinent)
-        : countries,
+    () => (selectedContinent ? countriesInContinent(selectedContinent) : countries),
     [selectedContinent],
   );
 
-  const stateCounts = useMemo(() => countByState(continentPool, marks), [continentPool, marks]);
+  const stateCounts = useMemo(() => tallyMarks(continentPool, marks), [continentPool, marks]);
 
   const stateFiltered = useMemo(() => {
     if (activeFilters.size === 0) return continentPool;

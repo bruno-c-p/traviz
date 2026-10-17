@@ -34,6 +34,14 @@ export const CONTINENT_ORDER: readonly Continent[] = [
 
 export const countries: readonly Country[] = COUNTRY_RECORDS;
 
+export const SOVEREIGN_COUNTRIES: readonly Country[] = countries.filter(
+  (country) => country.kind === "sovereign",
+);
+
+export function countriesInContinent(continent: Continent): readonly Country[] {
+  return countries.filter((country) => country.continent === continent);
+}
+
 export const COUNTRIES_BY_CODE: ReadonlyMap<string, Country> = new Map(
   countries.map((country) => [country.code, country]),
 );

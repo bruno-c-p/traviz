@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { STATE_COLORS, useCountriesStore } from "@/features/marks";
+import { STATE_COLORS, tallyMarks, useCountriesStore } from "@/features/marks";
 import { countries } from "@/features/countries";
-import { computeStats } from "@/features/stats/stats";
+import { visitedProgress } from "@/features/stats/visited-progress";
 import { cn } from "@/shared/cn";
 import { statsPath } from "@/paths";
 
@@ -40,9 +40,8 @@ type ProgressCardProps = {
 
 export function ProgressCard({ variant, className }: ProgressCardProps) {
   const marks = useCountriesStore((state) => state.marks);
-  const stats = computeStats(marks, countries);
-  const { visited, total } = stats.headline;
-  const percent = total > 0 ? (visited / total) * 100 : 0;
+  const { visited, total, percent } = visitedProgress(marks);
+  const allEntries = tallyMarks(countries, marks);
   const variantClasses = VARIANT_CLASSES[variant];
 
   const content = (
@@ -85,11 +84,11 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
         <>
           <span className="grid grid-cols-2 gap-3 pt-1">
             <span className="flex flex-col gap-0.5">
-              <span className="text-2xl font-bold tabular-nums">{stats.totals.want}</span>
+              <span className="text-2xl font-bold tabular-nums">{allEntries.want}</span>
               <span className="text-[13px] text-primary-neutral">want to go</span>
             </span>
             <span className="flex flex-col gap-0.5">
-              <span className="text-2xl font-bold tabular-nums">{stats.totals.not_interested}</span>
+              <span className="text-2xl font-bold tabular-nums">{allEntries.not_interested}</span>
               <span className="text-[13px] text-primary-neutral">not interested</span>
             </span>
           </span>

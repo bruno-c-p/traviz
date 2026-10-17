@@ -1,7 +1,6 @@
-import { CONTINENT_ORDER, countries } from "@/features/countries";
-import { computeStats } from "@/features/stats";
+import { CONTINENT_ORDER, countries, countriesInContinent } from "@/features/countries";
 import type { Continent } from "@/features/countries";
-import { useCountriesStore } from "@/features/marks";
+import { tallyMarks, useCountriesStore } from "@/features/marks";
 
 export type ContinentOption = {
   continent: Continent | null;
@@ -12,20 +11,23 @@ export type ContinentOption = {
 
 export function useContinentOptions(): ContinentOption[] {
   const marks = useCountriesStore((state) => state.marks);
-  const stats = computeStats(marks, countries);
 
   return [
     {
       continent: null,
       label: "All countries",
-      visited: stats.totals.visited,
+      visited: tallyMarks(countries, marks).visited,
       total: countries.length,
     },
-    ...CONTINENT_ORDER.map((continent) => ({
-      continent,
-      label: continent,
-      visited: stats.byContinent[continent].visited,
-      total: stats.byContinent[continent].total,
-    })),
+    ...CONTINENT_ORDER.map((continent) => {
+      const continentCountries = countriesInContinent(continent);
+
+      return {
+        continent,
+        label: continent,
+        visited: tallyMarks(continentCountries, marks).visited,
+        total: continentCountries.length,
+      };
+    }),
   ];
 }
