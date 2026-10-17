@@ -385,6 +385,19 @@ describe("a late reply after the deadline", () => {
     expect(readsFor()).toEqual([]);
   });
 
+  test("a late reply after switching accounts without ending the session reads nothing", async () => {
+    const { store, signIn, answer, expire, readsFor } = setup();
+    signIn(OWNER);
+    store.getState().toggle("DEU", "visited");
+    await flush();
+    await expire(0);
+
+    signIn(OTHER_OWNER);
+    await answer(0);
+
+    expect(readsFor()).toEqual([]);
+  });
+
   test("a fresh read that lands after the session changed is dropped", async () => {
     const { store, signIn, answer, expire, answerRead } = setup();
     signIn(OWNER);
@@ -463,6 +476,20 @@ describe("snapshot order", () => {
     store.getState().receiveSnapshot({ ok: true, ownerId: OWNER, marks: { FRA: "want" } });
 
     expect(store.getState().marks).toEqual({ FRA: "want" });
+  });
+
+  test("starting the same owner's session again keeps the count", async () => {
+    const { store, signIn, answer, expire, answerRead } = setup();
+    signIn(OWNER);
+    store.getState().toggle("DEU", "visited");
+    await flush();
+    await expire(0);
+    await answer(0);
+    await answerRead(0, { DEU: "visited" });
+
+    signIn(OWNER);
+
+    expect(store.getState().marks).toEqual({ DEU: "visited" });
   });
 
   test("a new session counts its snapshots from the start", async () => {
