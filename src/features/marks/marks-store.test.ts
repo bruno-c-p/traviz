@@ -641,3 +641,17 @@ describe("the cached marks", () => {
     expect(sent()).toEqual([[OWNER, { kind: "clear", code: "FRA" }]]);
   });
 });
+
+describe("hydration", () => {
+  test("a cache previewed before the store exists stays out of the initial state React hydrates with", () => {
+    const fake = fakeTransport();
+    const cache = fakeCache({ ownerId: OWNER, marks: { DEU: "visited" } });
+    const owner = createMarksOwner(fake.transport, cache.cache, fakeDeadline().startDeadline);
+    owner.previewCache(() => true);
+
+    const store = createMarksStore(owner);
+
+    expect(store.getInitialState().marks).toEqual({});
+    expect(store.getState().marks).toEqual({ DEU: "visited" });
+  });
+});

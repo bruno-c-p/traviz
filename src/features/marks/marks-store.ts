@@ -7,6 +7,7 @@ import { createMarksCache } from "@/features/marks/marks-cache";
 import { createMarksOwner, type MarksOwner } from "@/features/marks/marks-owner";
 import {
   changeScope,
+  INITIAL_MARKS_SYNC_STATE,
   visibleMarks,
   type MarksSnapshot,
   type MarksSyncState,
@@ -63,7 +64,7 @@ function project(state: MarksSyncState) {
 
 export function createMarksStore(owner: MarksOwner) {
   const store = create<MarksStoreState>()((_set, get) => ({
-    ...project(owner.getState()),
+    ...project(INITIAL_MARKS_SYNC_STATE),
     toggle: (code, state) =>
       owner.requestChange(
         get().marks[code] === state ? { kind: "clear", code } : { kind: "set", code, state },
@@ -76,7 +77,7 @@ export function createMarksStore(owner: MarksOwner) {
     receiveSnapshot: owner.receiveSnapshot,
   }));
 
-  owner.subscribe(() => {
+  const syncFromOwner = () => {
     const current = store.getState();
     const { marks, ownerId, saving, problems } = project(owner.getState());
     const keptMarks = sameMarks(current.marks, marks) ? current.marks : marks;
@@ -92,7 +93,10 @@ export function createMarksStore(owner: MarksOwner) {
     }
 
     store.setState({ marks: keptMarks, ownerId, saving: keptSaving, problems });
-  });
+  };
+
+  owner.subscribe(syncFromOwner);
+  syncFromOwner();
 
   return store;
 }
