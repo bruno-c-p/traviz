@@ -15,8 +15,16 @@ export function AccountSection({ className }: { className?: string }) {
   async function handleSignOut() {
     if (isSigningOut) return;
     setIsSigningOut(true);
+
+    try {
+      await signOut({ redirectUrl: signInPath() });
+    } catch {
+      setIsSigningOut(false);
+
+      return;
+    }
+
     endMarksSession();
-    await signOut({ redirectUrl: signInPath() });
   }
 
   return (
