@@ -8,8 +8,8 @@ import { cn } from "@/shared/cn";
 const PROBLEM_TEXT: Record<MarkChangeFailure, string> = {
   unavailable: "Couldn't save",
   rejected: "Couldn't save",
-  "signed-out": "Signed out. Sign in again to save.",
-  "other-account": "Another account is signed in.",
+  "signed-out": "Sign in to save",
+  "other-account": "Account changed",
 };
 
 function isScopeSaving(saving: SavingScopes, scope: string): boolean {
