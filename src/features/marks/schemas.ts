@@ -10,3 +10,9 @@ export const countryCodeSchema = z.string().refine((code) => COUNTRIES_BY_CODE.h
 export const countryStateSchema = z.literal(COUNTRY_STATES);
 
 export const markRowSchema = z.object({ code: z.string(), state: countryStateSchema });
+
+export const markChangeSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("set"), code: countryCodeSchema, state: countryStateSchema }),
+  z.object({ kind: z.literal("clear"), code: countryCodeSchema }),
+  z.object({ kind: z.literal("reset") }),
+]);
