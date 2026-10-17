@@ -26,7 +26,7 @@ Preconditions:
 - **Gate, signed in.** After `signIn(page, baseUrl)`, run `page.goto(baseUrl + "/sign-in")`. The page ends on `/`.
 - **Form.** In a fresh context, open `/sign-in` and wait for `window.Clerk?.loaded`. Fill `page.getByRole("textbox", { name: "Email" })` with `verify-<Date.now()>+clerk_test@example.com` and click `Continue with email`. The button reads `Sending link…` for about 4 s, so `settle` is too short. Wait for the text instead, with `page.getByText("We sent a sign-in link to").waitFor({ timeout: 20_000 })`. The address appears with it. `Use a different email` brings the form back with the address still filled in.
 - **Verify page.** Open `/sign-in/verify` with no link parameters. After Clerk loads, the heading reads `We couldn't verify this link` and a `Get a new link` link points to `/sign-in`.
-- **Sign out.** Signed in, open `/stats#account`. The section shows `agent+clerk_test@example.com`. Click `Sign out`. The button reads `Signing out…`, then the page lands on `/sign-in`. `localStorage.getItem("traviz-marks")` is `null` there.
+- **Sign out.** Signed in, open `/stats#account`. The section shows `agent+clerk_test@example.com`. Click `Sign out`. The button reads `Signing out…`, then the page lands on `/sign-in`. `localStorage.getItem("traviz-marks-v2")` is `null` there, because sign-out clears the marks cache once Clerk's sign-out resolves.
 - **Ticket sign-in.** `signIn` in `@/shared/testing/verify/browser` signs in without email. Use it for every journey that only needs a session.
 
 ## Gotchas
@@ -36,4 +36,4 @@ Preconditions:
 - A `+clerk_test` address never receives mail, so the full link click cannot run here. A complete email round trip needs a real inbox on the dev instance, and none is set up. Report the link click as not verified instead of faking it.
 - `prefetchUI={false}` is set, so Clerk's prebuilt UI never loads. The form is traviz's own code in `src/features/auth`.
 - `curl` sees only the proxy's redirect. A page-level redirect after Clerk loads needs the browser.
-- The sign-in page clears the `traviz-marks` localStorage key on load, so one user's cached marks never show for another.
+- The sign-in pages no longer clear any marks storage. The marks cache is tagged with its owner, and a cached owner shows only when Clerk's `__session` cookie names the same user, so one user's cached marks never show for another. See [marks.md](marks.md).
