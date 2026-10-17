@@ -15,3 +15,18 @@ export const decideGate = (access: RouteAccess, isAuthenticated: boolean): Route
 
 export const redirectFor = (pathname: string, isAuthenticated: boolean): Route | undefined =>
   decideGate(routeAccess(pathname), isAuthenticated);
+
+type GateRequest = {
+  readonly method: string;
+  readonly hasActionHeader: boolean;
+  readonly pathname: string;
+};
+
+export const gateRequest = async (
+  { method, hasActionHeader, pathname }: GateRequest,
+  isAuthenticated: () => Promise<boolean>,
+): Promise<Route | undefined> => {
+  if (method === "POST" && hasActionHeader) return undefined;
+
+  return redirectFor(pathname, await isAuthenticated());
+};

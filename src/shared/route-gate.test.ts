@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { Route } from "next";
 import { homePath, listPath, signInPath, signInVerifyPath, statsPath } from "@/paths";
 import type { RouteAccess } from "@/paths";
-import { decideGate, redirectFor, routeAccess } from "@/shared/route-gate";
+import { decideGate, gateRequest, redirectFor, routeAccess } from "@/shared/route-gate";
 
 describe("routeAccess", () => {
   const cases: { pathname: string; access: RouteAccess }[] = [
@@ -52,6 +52,41 @@ describe("redirectFor", () => {
     "$pathname with isAuthenticated=$isAuthenticated redirects to $redirect",
     ({ pathname, isAuthenticated, redirect }) => {
       expect(redirectFor(pathname, isAuthenticated)).toBe(redirect);
+    },
+  );
+});
+
+describe("gateRequest", () => {
+  const signedOut = () => Promise.resolve(false);
+
+  test("a Server Action POST to a signed-in route passes without reading the session", async () => {
+    let sessionReads = 0;
+
+    const redirect = await gateRequest(
+      { method: "POST", hasActionHeader: true, pathname: listPath() },
+      () => {
+        sessionReads += 1;
+
+        return Promise.resolve(false);
+      },
+    );
+
+    expect(redirect).toBeUndefined();
+    expect(sessionReads).toBe(0);
+  });
+
+  const redirectCases: { method: string; hasActionHeader: boolean }[] = [
+    { method: "GET", hasActionHeader: false },
+    { method: "POST", hasActionHeader: false },
+    { method: "GET", hasActionHeader: true },
+  ];
+
+  test.each(redirectCases)(
+    "a signed-out $method with hasActionHeader=$hasActionHeader goes to sign-in",
+    async ({ method, hasActionHeader }) => {
+      expect(await gateRequest({ method, hasActionHeader, pathname: listPath() }, signedOut)).toBe(
+        signInPath(),
+      );
     },
   );
 });
