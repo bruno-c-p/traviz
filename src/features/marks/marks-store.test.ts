@@ -13,7 +13,12 @@ import {
   type MarkChangeResult,
   type MarksSnapshot,
 } from "@/features/marks/marks-sync";
-import { createMarksStore, endMarksSession, useCountriesStore } from "@/features/marks/marks-store";
+import {
+  createBrowserMarksStore,
+  createMarksStore,
+  endMarksSession,
+  useCountriesStore,
+} from "@/features/marks/marks-store";
 import { createFakeStorage } from "@/shared/testing/fake-storage";
 
 const OWNER = "user_a";
@@ -653,5 +658,58 @@ describe("hydration", () => {
 
     expect(store.getInitialState().marks).toEqual({});
     expect(store.getState().marks).toEqual({ DEU: "visited" });
+  });
+});
+
+describe("the browser store", () => {
+  const base64Url = (text: string) =>
+    btoa(text).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+
+  const sessionCookieFor = (ownerId: string) =>
+    `__session=${base64Url('{"alg":"RS256"}')}.${base64Url(`{"sub":"${ownerId}"}`)}.signature`;
+
+  function browserSetup(cookie: string) {
+    const fake = fakeTransport();
+    const { storage } = createFakeStorage({ "traviz-marks-v2": "ownerId=user_a&FRA=want" });
+    const timers: { callback: () => void; milliseconds: number }[] = [];
+
+    const store = createBrowserMarksStore({
+      cookie: () => cookie,
+      storage: () => storage,
+      startTimer: (callback, milliseconds) => {
+        timers.push({ callback, milliseconds });
+      },
+      transport: fake.transport,
+    });
+
+    return { ...fake, store, timers };
+  }
+
+  test("another account's cached marks stay hidden", () => {
+    const { store } = browserSetup(sessionCookieFor(OTHER_OWNER));
+
+    expect(store.getState().marks).toEqual({});
+  });
+
+  test("the signed-in account's cached marks show at once", () => {
+    const { store } = browserSetup(sessionCookieFor(OWNER));
+
+    expect(store.getState().marks).toEqual({ FRA: "want" });
+  });
+
+  test("a send with no reply rolls back when its 8 s timer fires", async () => {
+    const { store, timers } = browserSetup("");
+    store.getState().startSession(OWNER);
+    store.getState().receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
+    store.getState().toggle("DEU", "visited");
+    await flush();
+
+    expect(store.getState().marks).toEqual({ DEU: "visited" });
+    expect(timers.map((timer) => timer.milliseconds)).toEqual([8000]);
+
+    timers[0]?.callback();
+
+    expect(store.getState().marks).toEqual({});
+    expect(store.getState().problems).toEqual([{ scope: "DEU", reason: "unavailable" }]);
   });
 });

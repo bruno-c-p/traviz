@@ -4,7 +4,11 @@ import type { CountryState, Marks } from "@/features/marks/colors";
 import { applyMarkChange } from "@/features/marks/actions/apply-mark-change";
 import { readMarks } from "@/features/marks/actions/read-marks";
 import { createMarksCache } from "@/features/marks/marks-cache";
-import { createMarksOwner, type MarksOwner } from "@/features/marks/marks-owner";
+import {
+  createMarksOwner,
+  type MarksOwner,
+  type MarksTransport,
+} from "@/features/marks/marks-owner";
 import {
   changeScope,
   INITIAL_MARKS_SYNC_STATE,
@@ -101,19 +105,36 @@ export function createMarksStore(owner: MarksOwner) {
   return store;
 }
 
-const marksOwner = createMarksOwner(
-  { applyMarkChange, readMarks },
-  createMarksCache(() => localStorage),
-  (onExpired) => {
-    setTimeout(onExpired, 8000);
-  },
-);
+type BrowserMarksDependencies = {
+  readonly cookie: () => string;
+  readonly storage: () => Storage;
+  readonly startTimer: (callback: () => void, milliseconds: number) => void;
+  readonly transport: MarksTransport;
+};
 
-if (typeof document !== "undefined") {
-  marksOwner.previewCache((ownerId) => isSignedInAs(document.cookie, ownerId));
+export function createBrowserMarksStore({
+  cookie,
+  storage,
+  startTimer,
+  transport,
+}: BrowserMarksDependencies) {
+  const owner = createMarksOwner(transport, createMarksCache(storage), (onExpired) => {
+    startTimer(onExpired, 8000);
+  });
+
+  owner.previewCache((ownerId) => isSignedInAs(cookie(), ownerId));
+
+  return createMarksStore(owner);
 }
 
-export const useCountriesStore = createMarksStore(marksOwner);
+export const useCountriesStore = createBrowserMarksStore({
+  cookie: () => (typeof document === "undefined" ? "" : document.cookie),
+  storage: () => localStorage,
+  startTimer: (callback, milliseconds) => {
+    setTimeout(callback, milliseconds);
+  },
+  transport: { applyMarkChange, readMarks },
+});
 
 export function endMarksSession() {
   useCountriesStore.getState().endSession();
