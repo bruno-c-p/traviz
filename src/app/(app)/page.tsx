@@ -1,5 +1,12 @@
-import { GlobeOverlay } from "@/features/globe";
+import { GlobeOverlay, MapCanvas } from "@/features/globe";
 
 export default function MapPage() {
-  return <GlobeOverlay />;
+  return (
+    <>
+      <div className="pointer-events-auto absolute inset-0">
+        <MapCanvas />
+      </div>
+      <GlobeOverlay />
+    </>
+  );
 }

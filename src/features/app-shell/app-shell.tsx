@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { MapCanvas } from "@/features/globe";
 import { homePath } from "@/paths";
 import { cn } from "@/shared/cn";
 
@@ -11,10 +10,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-canvas-soft">
-      <div className="absolute inset-0">
-        <MapCanvas />
-      </div>
-
       <div
         data-panel-scroll
         className={cn(

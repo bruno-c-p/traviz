@@ -71,14 +71,13 @@ function createFakeFrames() {
   };
 }
 
-type SpinSetup = { isSpinAllowed?: () => boolean; prefersReducedMotion?: boolean };
+type SpinSetup = { prefersReducedMotion?: boolean };
 
-function startSpin({ isSpinAllowed = () => true, prefersReducedMotion = false }: SpinSetup = {}) {
+function startSpin({ prefersReducedMotion = false }: SpinSetup = {}) {
   const map = createFakeMapbox();
   const frames = createFakeFrames();
 
   const spin = createGlobeSpin(map, {
-    isSpinAllowed,
     prefersReducedMotion,
     frames: frames.scheduler,
   });
@@ -116,17 +115,6 @@ describe("globe spin", () => {
 
     expect(spinning.map.longitude()).toBe(0);
     expect(isSpinning(spinning)).toBe(false);
-  });
-
-  test("holds still while spinning is not allowed and resumes when it is", () => {
-    let isAllowed = false;
-    const spinning = startSpin({ isSpinAllowed: () => isAllowed });
-
-    expect(isSpinning(spinning)).toBe(false);
-
-    isAllowed = true;
-
-    expect(isSpinning(spinning)).toBe(true);
   });
 
   test("stops on the first user drag without cancelling that drag", () => {
