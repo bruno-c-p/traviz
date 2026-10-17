@@ -67,11 +67,13 @@ const DEFAULT_CAMERA: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: tr
 
 export function createCameraHandoff() {
   let lastCamera = DEFAULT_CAMERA;
+  let resetCount = 0;
 
   function mountFromLastCamera<T extends GlobeMap>(
     createMap: (camera: GlobeCamera) => T,
     { prefersReducedMotion, ...options }: HandoffOptions<T>,
   ) {
+    const resetCountAtMount = resetCount;
     const map = createMap(lastCamera);
 
     const unmountGlobe = startGlobe(map, {
@@ -80,7 +82,9 @@ export function createCameraHandoff() {
     });
 
     function unmount() {
-      lastCamera = unmountGlobe();
+      const camera = unmountGlobe();
+
+      if (resetCount === resetCountAtMount) lastCamera = camera;
     }
 
     return { map, unmount };
@@ -90,6 +94,7 @@ export function createCameraHandoff() {
     mountFromLastCamera,
     reset: () => {
       lastCamera = DEFAULT_CAMERA;
+      resetCount++;
     },
   };
 }

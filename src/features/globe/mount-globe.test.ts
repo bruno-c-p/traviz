@@ -364,6 +364,47 @@ describe("camera handoff", () => {
         expect(nextCamera(handoff)).toEqual(DEFAULT_CAMERA);
       });
     }
+
+    function moveMountedGlobe(handoff: ReturnType<typeof createCameraHandoff>) {
+      const globe = mountFrom(handoff);
+      globe.map.loadStyle();
+      globe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
+      globe.map.fire("mousedown");
+
+      return globe;
+    }
+
+    test("an account change while a globe is mounted starts the next globe from the default camera", () => {
+      const handoff = bindHandoff();
+      useCountriesStore.setState({ ownerId: "user_a" });
+      const globe = moveMountedGlobe(handoff);
+
+      useCountriesStore.setState({ ownerId: "user_b" });
+      globe.unmount();
+
+      expect(nextCamera(handoff)).toEqual(DEFAULT_CAMERA);
+    });
+
+    test("a mounted globe with no account change hands its camera to the next globe", () => {
+      const handoff = bindHandoff();
+      useCountriesStore.setState({ ownerId: "user_a" });
+      const globe = moveMountedGlobe(handoff);
+
+      useCountriesStore.setState({ marks: { JPN: "visited" } });
+      globe.unmount();
+
+      expect(nextCamera(handoff)).toEqual(MOVED_CAMERA);
+    });
+
+    test("a globe mounted after an account change hands its camera to the next globe", () => {
+      const handoff = bindHandoff();
+      useCountriesStore.setState({ ownerId: "user_a" });
+      useCountriesStore.setState({ ownerId: "user_b" });
+
+      moveMountedGlobe(handoff).unmount();
+
+      expect(nextCamera(handoff)).toEqual(MOVED_CAMERA);
+    });
   });
 
   test("reduced motion starts no spin", () => {
