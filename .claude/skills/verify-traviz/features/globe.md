@@ -24,15 +24,15 @@ The `/` page shows a Mapbox globe that spins until the user touches it. The user
 Preconditions:
 
 - Baseline from the README. The `.env.local` has a Mapbox token (the doctor checks it). Without one the globe is a flat placeholder.
-- Wait for the map before you read it: `page.waitForFunction(\`${findMapExpression}?.isStyleLoaded() === true\`)`.
+- `openRoute(page, baseUrl, homePath())` waits for the map. After an in-app navigation back to `/` (a `Globe` link click), wait yourself: `page.waitForFunction(\`${findMapExpression}?.isStyleLoaded() === true\`)`.
 
 - **Spin.** Open `/` with motion `"no-preference"`. Read `readCamera(page)` twice, 2 s apart. `lng` changes. With motion `"reduce"` it does not change.
 - **Search.** Run `page.getByRole("combobox", { name: "Find a country" }).fill("Japan")`, then `settle`, then click `page.getByRole("option", { name: /Japan/ })`. After about 3.5 s, `readCamera` reads lng 138, lat 36, zoom 3, `moving: false`. A group named `Mark Japan` is visible.
 - **Click.** Project a point inside the country, then click it. Take the centre from the dataset: `const center = COUNTRIES_BY_CODE.get("FRA")?.center` (from `@/features/countries`). In `page.evaluate`: `const map = ${findMapExpression}; map.jumpTo({ center, zoom: 4 }); const p = map.project(center); const box = map.getContainer().getBoundingClientRect();`. Wait 1.5 s and run `page.mouse.click(box.left + p.x, box.top + p.y)`. A group named `Mark France` appears.
-- **Card.** In the `Globe details` aside, the card has the country name as its heading, a `Close` button, the `Mark <country>` group with the buttons `Visited`, `Want to go` and `Not interested`, and a `Clear mark` button once the country has a mark. Pressing `Escape` closes it, and the `How to mark countries` hint returns.
+- **Card.** In the `Globe details` aside, the card has the country name as its heading, a `Close` button, the `Mark <country>` group with the buttons `Visited`, `Want to go` and `Not interested`, and a `Clear mark` button once the country has a mark. Pressing `Escape` closes it, and the hint returns. The hint is `page.getByLabel("How to mark countries")`, an accessible name only. Its visible heading is `Pick a country`.
 - **Sheet.** At width 375, the same selection opens a `dialog` named after the country (`page.getByRole("dialog", { name: "Japan" })`), with a `Close` button, the same mark group and a `Clear mark` button once the country has a mark.
 - **Zoom.** Click `page.getByRole("button", { name: "Zoom in" })`. `(await readCamera(page))?.zoom` goes up by 1.
-- **Return.** With motion `"reduce"` (or after a drag stops the spin), click the `List` link, then the `Globe` link. `readCamera` reads the same centre and zoom as before you left. A globe that was spinning keeps spinning, so its centre moves. On `/list` and `/stats`, `document.querySelector(".mapboxgl-map")` is `null`.
+- **Return.** Open `/` with motion `"reduce"`, so the globe does not spin. Move the camera somewhere no selection would fly to: `page.evaluate(\`${findMapExpression}.jumpTo({ center: [-45, 7], zoom: 1.9 })\`)`. Read `readCamera`, click the `List`link, then the`Globe`link, and wait for the style.`readCamera`reads the same centre and zoom. On`/list`and`/stats`, `document.querySelector(".mapboxgl-map")`is`null`. For the spin half, open `/`with motion`"no-preference"`, leave and come back without touching the globe, and check that `lng` still changes. After a drag stops the spin, it stays stopped after the return.
 - **Script.** `bun run verify:globe-search [--code JPN --click FRA]` runs spin, search, card, click and zoom, and writes screenshots and `journal.json`.
 
 ## Gotchas
