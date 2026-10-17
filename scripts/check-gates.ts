@@ -65,10 +65,19 @@ function differingPaths(actual: JsonValue, expected: JsonValue, path: string): s
   });
 }
 
+const bundleBudgetSchema = z.strictObject({
+  tolerance: z.strictObject({ percent: z.number(), minBytes: z.number() }),
+  routes: z.record(
+    z.string(),
+    z.strictObject({ firstLoadGzipBytes: z.number(), lazyGzipBytes: z.number() }),
+  ),
+});
+
 const gatesSchema = z.strictObject({
   files: z.record(z.string(), jsonSchema),
   scripts: z.record(z.string(), z.string()),
   devEngines: jsonSchema,
+  bundleBudget: bundleBudgetSchema,
 });
 
 const gates = gatesSchema.parse(JSON.parse(readText("gates.json")));
@@ -85,6 +94,44 @@ for (const [filePath, expected] of Object.entries(gates.files)) {
   for (const differingPath of differingPaths(readConfig(filePath), expected, filePath))
     failures.push(
       `${differingPath} differs from gates.json. A tightening updates gates.json in the same change`,
+    );
+}
+
+const bundleBudget = bundleBudgetSchema.parse(JSON.parse(readText("bundle-budget.json")));
+
+const bundleBudgetRaiseHint =
+  "A raise from bun run check:bundle --write copies bundle-budget.json into bundleBudget in gates.json in the same change";
+
+function checkCeiling(name: string, actual: number, ceiling: number) {
+  if (actual > ceiling)
+    failures.push(
+      `bundle-budget.json ${name} is ${actual}, above ${ceiling} in gates.json. ${bundleBudgetRaiseHint}`,
+    );
+}
+
+for (const key of ["percent", "minBytes"] as const)
+  checkCeiling(`tolerance.${key}`, bundleBudget.tolerance[key], gates.bundleBudget.tolerance[key]);
+
+for (const [route, pinned] of Object.entries(gates.bundleBudget.routes)) {
+  const routeBudget = bundleBudget.routes[route];
+
+  if (routeBudget === undefined) {
+    failures.push(`bundle-budget.json drops ${route}, which gates.json budgets`);
+    continue;
+  }
+
+  checkCeiling(
+    `${route} firstLoadGzipBytes`,
+    routeBudget.firstLoadGzipBytes,
+    pinned.firstLoadGzipBytes,
+  );
+  checkCeiling(`${route} lazyGzipBytes`, routeBudget.lazyGzipBytes, pinned.lazyGzipBytes);
+}
+
+for (const route of Object.keys(bundleBudget.routes)) {
+  if (!(route in gates.bundleBudget.routes))
+    failures.push(
+      `bundle-budget.json budgets ${route}, which gates.json does not. ${bundleBudgetRaiseHint}`,
     );
 }
 
