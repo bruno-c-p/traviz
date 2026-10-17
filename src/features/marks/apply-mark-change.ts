@@ -1,21 +1,21 @@
 import "server-only";
-import { LibsqlError, type Client } from "@libsql/client";
-import { writeMarkChange } from "@/features/marks/marks-table";
+import type { Client } from "@libsql/client";
 import { markChangeSchema } from "@/features/marks/schemas";
 import type { MarkChange, MarkChangeResult } from "@/features/marks/marks-sync";
+import { writeMarkChange } from "@/features/marks/services/marks";
 
-export type MarkChangeServer = {
+type MarkChangeDependencies = {
   readonly client: Client;
   readonly getUserId: () => Promise<string | null>;
   readonly logWriteError: (cause: unknown) => void;
 };
 
-export async function applyMarkChangeOn(
-  server: MarkChangeServer,
+export async function applyMarkChangeWith(
+  dependencies: MarkChangeDependencies,
   expectedOwnerId: string,
   change: MarkChange,
 ): Promise<MarkChangeResult> {
-  const userId = await server.getUserId();
+  const userId = await dependencies.getUserId();
 
   if (userId === null) return { ok: false, reason: "signed-out" };
 
@@ -26,11 +26,9 @@ export async function applyMarkChangeOn(
   if (!parsedChange.success) return { ok: false, reason: "rejected" };
 
   try {
-    await writeMarkChange(server.client, userId, parsedChange.data);
+    await writeMarkChange(dependencies.client, userId, parsedChange.data);
   } catch (cause: unknown) {
-    if (!(cause instanceof LibsqlError)) throw cause;
-
-    server.logWriteError(cause);
+    dependencies.logWriteError(cause);
 
     return { ok: false, reason: "unavailable" };
   }

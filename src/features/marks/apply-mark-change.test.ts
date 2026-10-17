@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:tes
 import { LibsqlError, createClient, type Client } from "@libsql/client";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { applyMarkChangeOn } from "@/features/marks/apply-mark-change";
+import { applyMarkChangeWith } from "@/features/marks/apply-mark-change";
 import { markRowSchema } from "@/features/marks/schemas";
 import { createMarksTableSql } from "@/shared/server/marks-table";
 
@@ -72,7 +72,7 @@ afterAll(() => {
 describe("applyMarkChange", () => {
   test("a set change saves the mark and a second set replaces its state", async () => {
     expect(
-      await applyMarkChangeOn(signedInAs("user_a"), "user_a", {
+      await applyMarkChangeWith(signedInAs("user_a"), "user_a", {
         kind: "set",
         code: "FRA",
         state: "want",
@@ -80,7 +80,7 @@ describe("applyMarkChange", () => {
     ).toEqual({ ok: true });
 
     expect(
-      await applyMarkChangeOn(signedInAs("user_a"), "user_a", {
+      await applyMarkChangeWith(signedInAs("user_a"), "user_a", {
         kind: "set",
         code: "FRA",
         state: "visited",
@@ -97,7 +97,7 @@ describe("applyMarkChange", () => {
     ]);
 
     expect(
-      await applyMarkChangeOn(signedInAs("user_a"), "user_a", { kind: "clear", code: "FRA" }),
+      await applyMarkChangeWith(signedInAs("user_a"), "user_a", { kind: "clear", code: "FRA" }),
     ).toEqual({ ok: true });
 
     expect(await storedMarks("user_a")).toEqual([{ code: "DEU", state: "want" }]);
@@ -110,7 +110,7 @@ describe("applyMarkChange", () => {
     ]);
     await seed("user_b", [["BRA", "visited"]]);
 
-    expect(await applyMarkChangeOn(signedInAs("user_a"), "user_a", { kind: "reset" })).toEqual({
+    expect(await applyMarkChangeWith(signedInAs("user_a"), "user_a", { kind: "reset" })).toEqual({
       ok: true,
     });
 
@@ -123,13 +123,13 @@ describe("applyMarkChange", () => {
     await seed("user_b", [["BRA", "visited"]]);
 
     expect(
-      await applyMarkChangeOn(signedInAs("user_b"), "user_a", {
+      await applyMarkChangeWith(signedInAs("user_b"), "user_a", {
         kind: "set",
         code: "FRA",
         state: "want",
       }),
     ).toEqual({ ok: false, reason: "other-account" });
-    expect(await applyMarkChangeOn(signedInAs("user_b"), "user_a", { kind: "reset" })).toEqual({
+    expect(await applyMarkChangeWith(signedInAs("user_b"), "user_a", { kind: "reset" })).toEqual({
       ok: false,
       reason: "other-account",
     });
@@ -141,7 +141,7 @@ describe("applyMarkChange", () => {
   test("a change with no session is refused as signed out and writes nothing", async () => {
     await seed("user_a", [["DEU", "want"]]);
 
-    expect(await applyMarkChangeOn(signedInAs(null), "user_a", { kind: "reset" })).toEqual({
+    expect(await applyMarkChangeWith(signedInAs(null), "user_a", { kind: "reset" })).toEqual({
       ok: false,
       reason: "signed-out",
     });
@@ -153,7 +153,7 @@ describe("applyMarkChange", () => {
     await seed("user_a", [["DEU", "want"]]);
 
     expect(
-      await applyMarkChangeOn(signedInAs("user_a"), "user_a", { kind: "clear", code: "XXX" }),
+      await applyMarkChangeWith(signedInAs("user_a"), "user_a", { kind: "clear", code: "XXX" }),
     ).toEqual({ ok: false, reason: "rejected" });
 
     expect(await storedMarks("user_a")).toEqual([{ code: "DEU", state: "want" }]);
@@ -164,7 +164,7 @@ describe("applyMarkChange", () => {
     client = openDatabase();
 
     expect(
-      await applyMarkChangeOn(signedInAs("user_a"), "user_a", {
+      await applyMarkChangeWith(signedInAs("user_a"), "user_a", {
         kind: "set",
         code: "FRA",
         state: "want",
