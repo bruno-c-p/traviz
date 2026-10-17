@@ -52,9 +52,9 @@ export function requireBaseUrl(): string {
 
 export function isAlive(pid: number): boolean {
   try {
-    process.kill(pid, 0);
-
-    return true;
+    return execFileSync("ps", ["-o", "command=", "-p", String(pid)], {
+      encoding: "utf8",
+    }).startsWith("next-server");
   } catch {
     return false;
   }
