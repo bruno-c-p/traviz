@@ -3,9 +3,10 @@ import { NextResponse } from "next/server";
 import { redirectFor } from "@/shared/route-gate";
 
 export default clerkMiddleware(async (auth, request) => {
+  if (request.method === "POST" && request.headers.has("next-action")) return;
+
   const { isAuthenticated } = await auth();
-  const isServerAction = request.method === "POST" && request.headers.has("next-action");
-  const redirectPath = redirectFor(request.nextUrl.pathname, isAuthenticated, isServerAction);
+  const redirectPath = redirectFor(request.nextUrl.pathname, isAuthenticated);
 
   if (redirectPath !== undefined) {
     return NextResponse.redirect(new URL(redirectPath, request.url));
