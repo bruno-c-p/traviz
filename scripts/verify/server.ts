@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { closeSync, mkdirSync, openSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, rmSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import {
   findFreePort,
@@ -35,6 +35,8 @@ function fail(message: string): never {
 function build(environment: Environment): void {
   const tree = treeFingerprint();
   const log = openSync(buildLogFile, "w");
+
+  rmSync(buildStampFile, { force: true });
 
   console.log(`building, log at ${buildLogFile}`);
 
@@ -87,6 +89,15 @@ async function start(): Promise<void> {
   const port = await findFreePort();
   const server = startServer(repoRoot, port, environment, serverLogFile);
 
+  const stopOnSignal = () => {
+    stopServer(server);
+    fail("Interrupted before the server was ready. It was stopped.");
+  };
+
+  const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"];
+
+  for (const signal of signals) process.once(signal, stopOnSignal);
+
   try {
     await waitForServer(server, port, serverLogFile);
     await waitUntilReady(port);
@@ -99,6 +110,9 @@ async function start(): Promise<void> {
     instanceFile,
     JSON.stringify({ pid: server.pid, port, startedAt: new Date().toISOString() }),
   );
+
+  for (const signal of signals) process.off(signal, stopOnSignal);
+
   server.unref();
   console.log(`ready http://localhost:${port} pid ${server.pid}`);
 }
@@ -114,11 +128,12 @@ function signalGroup(pid: number, signal: NodeJS.Signals): void {
 async function stop(): Promise<void> {
   const instance = readInstance();
 
-  if (!instance) {
-    rmSync(instanceFile, { force: true });
+  if (!instance && existsSync(instanceFile))
+    fail(
+      `${instanceFile} is not a valid server record, so its server cannot be stopped safely. Read the file, stop that PID's process group by hand, then delete the file.`,
+    );
 
-    return console.log("no verify server recorded in this worktree");
-  }
+  if (!instance) return console.log("no verify server recorded in this worktree");
 
   try {
     if (isAlive(instance.pid)) signalGroup(instance.pid, "SIGTERM");

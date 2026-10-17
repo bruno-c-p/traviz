@@ -39,7 +39,7 @@ async function checkSpin(journal: Journal, page: Page): Promise<void> {
 async function checkSearch(journal: Journal, page: Page, country: Country): Promise<void> {
   await page.getByRole("combobox", { name: "Find a country" }).fill(country.name);
   await settle(page);
-  await page.getByRole("option").filter({ hasText: country.code }).first().click();
+  await page.locator(`[role="option"][id$="-${country.code}"]`).click();
   await page.waitForTimeout(3_500);
 
   const camera = await readCamera(page);

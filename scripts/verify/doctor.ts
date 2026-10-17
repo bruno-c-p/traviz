@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readPerfEnvironment } from "@/shared/testing/perf/environment";
 import { findSeededUserId, seededUserEmail } from "@/shared/testing/clerk-dev";
-import { launchBrowser, readMarkRows } from "@/shared/testing/verify/browser";
+import { launchBrowser, markTableExists } from "@/shared/testing/verify/browser";
 import {
   buildHasPublicValues,
   treeFingerprint,
@@ -50,10 +50,7 @@ check(
   failureOf(() => findSeededUserId() !== undefined),
 );
 
-check(
-  "the worktree database has a marks table",
-  failureOf(() => readMarkRows().length >= 0),
-);
+check("the worktree database has a marks table", failureOf(markTableExists));
 
 check(
   ".next was built with this worktree's Clerk key and Mapbox token, not bun run check's placeholders",

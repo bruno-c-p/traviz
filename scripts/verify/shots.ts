@@ -29,27 +29,32 @@ const directory = evidenceDirectory(options.label);
 const browser = await launchBrowser();
 const problems: string[] = [];
 
-async function growToContent(page: Page, width: number): Promise<void> {
-  const height = z
-    .number()
-    .parse(
-      await page.evaluate(
-        "Math.max(...Array.from(document.querySelectorAll('*'), (element) => element.scrollHeight))",
-      ),
-    );
+const contentBottom =
+  "Math.max(...Array.from(document.querySelectorAll('*'), (element) => element.getBoundingClientRect().top + element.scrollHeight))";
 
-  await page.setViewportSize({
-    width,
-    height: Math.min(Math.max(height, viewportHeight(width)), 4_000),
-  });
-  await settle(page);
+const heightCap = 4_000;
+
+async function growToContent(page: Page, width: number): Promise<void> {
+  let height = viewportHeight(width);
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const bottom = Math.ceil(z.number().parse(await page.evaluate(contentBottom)));
+
+    if (bottom <= height || height >= heightCap) break;
+
+    height = Math.min(bottom, heightCap);
+    await page.setViewportSize({ width, height });
+    await settle(page);
+  }
+
+  if (height >= heightCap) console.log(`${page.url()} at ${width} px was cut at ${heightCap} px`);
 }
 
-function fileName(route: string, width: number): string {
+function fileName(route: string, width: number, suffix: string): string {
   const name =
     route === homePath() ? "home" : route.replaceAll(/[^A-Za-z0-9]+/g, "-").replace(/^-/, "");
 
-  return `${name}-${width}.png`;
+  return `${name}-${width}${suffix}.png`;
 }
 
 try {
@@ -60,9 +65,13 @@ try {
 
     for (const route of routes) {
       await openRoute(driven.page, baseUrl, route);
-      await growToContent(driven.page, width);
-      await driven.page.screenshot({ path: join(directory, fileName(route, width)) });
-      await driven.page.setViewportSize({ width, height: viewportHeight(width) });
+      await driven.page.screenshot({ path: join(directory, fileName(route, width, "")) });
+
+      if (route !== homePath()) {
+        await growToContent(driven.page, width);
+        await driven.page.screenshot({ path: join(directory, fileName(route, width, "-full")) });
+        await driven.page.setViewportSize({ width, height: viewportHeight(width) });
+      }
     }
 
     problems.push(...driven.problems);

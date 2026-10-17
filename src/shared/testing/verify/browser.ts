@@ -134,6 +134,20 @@ const markRowsSchema = z.array(
 
 export type MarkRow = z.infer<typeof markRowsSchema>[number];
 
+export function markTableExists(): boolean {
+  return (
+    execFileSync(
+      "sqlite3",
+      [
+        "-readonly",
+        databasePath(),
+        "select count(*) from sqlite_master where type = 'table' and name = 'marks'",
+      ],
+      { encoding: "utf8" },
+    ).trim() === "1"
+  );
+}
+
 export function readMarkRows(): MarkRow[] {
   const output = execFileSync(
     "sqlite3",

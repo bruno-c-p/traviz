@@ -33,6 +33,12 @@ const compareSource = `async ([first, second]) => {
 
 const pngs = (directory: string) => readdirSync(directory).filter((name) => name.endsWith(".png"));
 const files = [...new Set([...pngs(before), ...pngs(after)])].toSorted();
+
+if (files.length === 0) {
+  console.error(`No PNG files in ${before} or ${after}.`);
+  process.exit(1);
+}
+
 const browser = await launchBrowser();
 const page = await browser.newPage();
 let differs = false;

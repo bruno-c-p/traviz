@@ -78,6 +78,11 @@ await runJourney(`mark-from-list-${code}`, "reduce", async (journal, page, brows
       ...pressedIs(await freshVisited.getAttribute("aria-pressed"), "true"),
     );
     await journal.screenshot(fresh.page, "3-new-session");
+    journal.record(
+      "the new session loaded without console errors or failed requests",
+      fresh.problems.length === 0,
+      fresh.problems.join(" | ") || "none",
+    );
     await fresh.page.context().close();
     await visited.click();
     await settle(page);

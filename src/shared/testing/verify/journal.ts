@@ -47,12 +47,24 @@ export type JourneyBody = (
 export async function runJourney(label: string, motion: Motion, body: JourneyBody): Promise<void> {
   const baseUrl = requireBaseUrl();
   const journal = new Journal(evidenceDirectory(label));
-  const browser = await launchBrowser();
-  const { page, problems } = await openPage(browser, 1440, motion);
+  let problems: string[] = [];
+
+  const browser = await launchBrowser().catch((cause: unknown) => {
+    journal.record(
+      "Chrome launched",
+      false,
+      cause instanceof Error ? cause.message : String(cause),
+    );
+  });
 
   try {
-    await signIn(page, baseUrl);
-    await body(journal, page, browser, baseUrl);
+    if (browser) {
+      const driven = await openPage(browser, 1440, motion);
+
+      problems = driven.problems;
+      await signIn(driven.page, baseUrl);
+      await body(journal, driven.page, browser, baseUrl);
+    }
   } catch (cause: unknown) {
     journal.record(
       "the journey ran to the end",
@@ -60,7 +72,7 @@ export async function runJourney(label: string, motion: Motion, body: JourneyBod
       cause instanceof Error ? cause.message : String(cause),
     );
   } finally {
-    await browser.close();
     journal.finish(problems);
+    await browser?.close();
   }
 }
