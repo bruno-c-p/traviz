@@ -7,14 +7,20 @@ import { ZoomControls } from "@/features/globe/zoom-controls";
 import { STATE_COLORS } from "@/features/marks";
 import { mountGlobe } from "@/features/globe/mount-globe";
 
-const mapboxModulePromise =
-  typeof window === "undefined" || !process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-    ? null
-    : import("mapbox-gl").catch((cause: unknown) => {
-        console.error("The map could not load.", cause);
+let mapboxModulePromise: Promise<typeof import("mapbox-gl") | null> | null = null;
 
-        return null;
-      });
+function loadMapbox() {
+  if (typeof window === "undefined" || !process.env.NEXT_PUBLIC_MAPBOX_TOKEN) return null;
+
+  mapboxModulePromise ??= import("mapbox-gl").catch((cause: unknown) => {
+    console.error("The map could not load.", cause);
+    mapboxModulePromise = null;
+
+    return null;
+  });
+
+  return mapboxModulePromise;
+}
 
 export function MapCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -28,7 +34,7 @@ export function MapCanvas() {
     let isCancelled = false;
     let unmount: (() => void) | undefined;
 
-    mapboxModulePromise
+    loadMapbox()
       ?.then((mapboxModule) => {
         if (isCancelled || !mapboxModule) return;
 
