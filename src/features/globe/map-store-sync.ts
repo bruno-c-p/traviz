@@ -1,37 +1,23 @@
-import type { ExpressionSpecification, FilterSpecification } from "mapbox-gl";
 import { countryCenter } from "@/features/countries";
 import type { Marks } from "@/features/marks";
-import {
-  FILL_LAYER_ID,
-  SELECTED_LAYER_ID,
-  buildFillColorExpression,
-  buildSelectedFilter,
-} from "@/features/globe/map-style";
 import { useCountriesStore } from "@/features/marks";
 import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 const FLY_TO_ZOOM = 3;
 
 export interface SyncedMap {
-  setPaintProperty(
-    layerId: string,
-    name: "fill-color",
-    value: ExpressionSpecification | string,
-  ): void;
-  setFilter(layerId: string, filter: FilterSpecification): void;
+  setMarks(marks: Marks): void;
+  setSelectedCode(code: string | null): void;
+  onCountryClick(listener: (code: string) => void): void;
   flyTo(options: { center: [number, number]; zoom: number }): void;
   getZoom(): number;
 }
 
-function bindMarksSync(map: SyncedMap, initialMarks: Marks) {
-  const currentMarks = useCountriesStore.getState().marks;
+function bindMarksSync(map: SyncedMap) {
+  map.setMarks(useCountriesStore.getState().marks);
 
-  if (currentMarks !== initialMarks) {
-    map.setPaintProperty(FILL_LAYER_ID, "fill-color", buildFillColorExpression(currentMarks));
-  }
-
-  return useCountriesStore.subscribe((state) => {
-    map.setPaintProperty(FILL_LAYER_ID, "fill-color", buildFillColorExpression(state.marks));
+  return useCountriesStore.subscribe((state, previousState) => {
+    if (state.marks !== previousState.marks) map.setMarks(state.marks);
   });
 }
 
@@ -46,15 +32,12 @@ function flyToPendingCountry(map: SyncedMap, stopSpin: () => void) {
 }
 
 function bindSelectionSync(map: SyncedMap, stopSpin: () => void) {
-  map.setFilter(
-    SELECTED_LAYER_ID,
-    buildSelectedFilter(useSelectedCountryStore.getState().selectedCode),
-  );
+  map.setSelectedCode(useSelectedCountryStore.getState().selectedCode);
   flyToPendingCountry(map, stopSpin);
 
   return useSelectedCountryStore.subscribe((state, previousState) => {
     if (state.selectedCode !== previousState.selectedCode) {
-      map.setFilter(SELECTED_LAYER_ID, buildSelectedFilter(state.selectedCode));
+      map.setSelectedCode(state.selectedCode);
 
       if (state.selectedCode) stopSpin();
     }
@@ -63,9 +46,11 @@ function bindSelectionSync(map: SyncedMap, stopSpin: () => void) {
   });
 }
 
-export function bindStoreSync(map: SyncedMap, initialMarks: Marks, stopSpin: () => void) {
-  const unsubscribeMarks = bindMarksSync(map, initialMarks);
+export function bindStoreSync(map: SyncedMap, stopSpin: () => void) {
+  const unsubscribeMarks = bindMarksSync(map);
   const unsubscribeSelection = bindSelectionSync(map, stopSpin);
+
+  map.onCountryClick((code) => useSelectedCountryStore.getState().select(code));
 
   return () => {
     unsubscribeMarks();

@@ -5,15 +5,15 @@
   },
   "routes": {
     "/list": {
-      "firstLoadGzipBytes": 228430,
+      "firstLoadGzipBytes": 228518,
       "lazyGzipBytes": 0
     },
     "/": {
-      "firstLoadGzipBytes": 223717,
-      "lazyGzipBytes": 517013
+      "firstLoadGzipBytes": 221864,
+      "lazyGzipBytes": 65899
     },
     "/stats": {
-      "firstLoadGzipBytes": 219363,
+      "firstLoadGzipBytes": 219451,
       "lazyGzipBytes": 0
     },
     "/sign-in": {

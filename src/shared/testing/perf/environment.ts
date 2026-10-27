@@ -37,9 +37,6 @@ export function readPerfEnvironment(root: string, inherited: Environment): PerfE
   if (!local.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith("pk_test_"))
     return refused("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must be a Clerk development key.");
 
-  if (!local.NEXT_PUBLIC_MAPBOX_TOKEN)
-    return refused("NEXT_PUBLIC_MAPBOX_TOKEN is missing, so there is no globe to measure.");
-
   const absoluteDatabaseUrl = `file:${databasePath}`;
 
   return {

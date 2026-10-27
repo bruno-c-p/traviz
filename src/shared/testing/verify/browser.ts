@@ -17,17 +17,8 @@ export type Motion = "reduce" | "no-preference";
 
 export type DrivenPage = { page: Page; problems: string[] };
 
-function isEmptyTile(status: number, url: string): boolean {
-  return (
-    status === 404 && url.startsWith("https://api.mapbox.com/v4/") && url.includes(".vector.pbf")
-  );
-}
-
 export function launchBrowser(): Promise<Browser> {
-  return chromium.launch({
-    channel: "chrome",
-    args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
-  });
+  return chromium.launch({ channel: "chrome" });
 }
 
 export async function openPage(
@@ -48,10 +39,7 @@ export async function openPage(
   });
   page.on("pageerror", (error) => problems.push(`page error: ${error.message}`));
   page.on("response", (response) => {
-    if (response.status() >= 400 && !isEmptyTile(response.status(), response.url()))
-      problems.push(
-        `http ${response.status()}: ${response.url().replace(/access_token=[^&]+/, "access_token=X")}`,
-      );
+    if (response.status() >= 400) problems.push(`http ${response.status()}: ${response.url()}`);
   });
 
   return { page, problems };
@@ -82,7 +70,7 @@ export async function openRoute(page: Page, baseUrl: string, route: string): Pro
   if (landed !== expected) throw new Error(`Opened ${route} but landed on ${landed}.`);
 
   if (expected === homePath())
-    await page.waitForFunction(`${findMapExpression}?.isStyleLoaded() === true`, null, {
+    await page.waitForFunction(`${findMapExpression}?.isLoaded() === true`, null, {
       timeout: 30_000,
     });
 
@@ -99,14 +87,14 @@ const cameraSchema = z
     lat: z.number(),
     zoom: z.number(),
     moving: z.boolean(),
-    styleLoaded: z.boolean(),
+    loaded: z.boolean(),
   })
   .nullable();
 
 export type Camera = z.infer<typeof cameraSchema>;
 
 export const findMapExpression = `(() => {
-  const element = document.querySelector(".mapboxgl-map");
+  const element = document.querySelector("[data-globe]");
   if (!element) return null;
   const fiberKey = Object.keys(element).find((key) => key.startsWith("__reactFiber$"));
   for (let fiber = element[fiberKey]; fiber; fiber = fiber.return)
@@ -122,7 +110,7 @@ export async function readCamera(page: Page): Promise<Camera> {
     const map = ${findMapExpression};
     if (!map) return null;
     const center = map.getCenter();
-    return { lng: center.lng, lat: center.lat, zoom: map.getZoom(), moving: map.isMoving(), styleLoaded: map.isStyleLoaded() };
+    return { lng: center.lng, lat: center.lat, zoom: map.getZoom(), moving: map.isMoving(), loaded: map.isLoaded() };
   })()`);
 
   return cameraSchema.parse(camera);

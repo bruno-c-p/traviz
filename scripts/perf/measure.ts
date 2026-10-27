@@ -218,7 +218,7 @@ function printHeader(
   console.log(
     `viewport: ${throttle.viewport.width}x${throttle.viewport.height} at ${throttle.viewport.deviceScaleFactor}x, mobile`,
   );
-  console.log("not throttled: Web Worker requests, so Mapbox tile fetches run at full speed.");
+  console.log("not throttled: Web Worker requests.");
   console.log(
     `blocked: ${blockedUrlPatterns.join(", ")} through Network.setBlockedURLs, which keeps the HTTP cache on.`,
   );

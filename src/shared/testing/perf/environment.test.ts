@@ -12,7 +12,6 @@ const validValues = {
   TURSO_DATABASE_URL: "file:.data/dev.db",
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_ZXhhbXBsZSQ",
   CLERK_SECRET_KEY: "sk_test_example",
-  NEXT_PUBLIC_MAPBOX_TOKEN: "pk.example",
 };
 
 afterAll(() => {
@@ -34,7 +33,7 @@ function fixtureWith(overrides: Partial<Record<keyof typeof validValues, string>
   return fixtureRoot;
 }
 
-test("a local database, development Clerk key and Mapbox token are ready", () => {
+test("a local database and development Clerk key are ready", () => {
   const fixtureRoot = fixtureWith({});
 
   expect(readPerfEnvironment(fixtureRoot, inherited)).toMatchObject({
@@ -99,12 +98,5 @@ test("refuses a production Clerk key", () => {
   ).toEqual({
     kind: "refused",
     reason: "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must be a Clerk development key.",
-  });
-});
-
-test("refuses a missing Mapbox token", () => {
-  expect(readPerfEnvironment(fixtureWith({ NEXT_PUBLIC_MAPBOX_TOKEN: "" }), inherited)).toEqual({
-    kind: "refused",
-    reason: "NEXT_PUBLIC_MAPBOX_TOKEN is missing, so there is no globe to measure.",
   });
 });

@@ -6,7 +6,7 @@ Mark the countries you've visited, want to visit, or aren't interested in, on an
 
 ## Features
 
-- **Interactive globe.** Spin and zoom the Mapbox globe, then click or tap a country to mark it. The globe keeps spinning until you interact with it.
+- **Interactive globe.** Spin and zoom the globe, then click or tap a country to mark it. The globe keeps spinning until you interact with it.
 - **Three states per country.** Visited, Want to go, and Not interested. Select the active state again, or use the clear button, to remove a mark.
 - **Searchable list.** Every country grouped by continent, with search and filters by state. Territories are labeled.
 - **Stats.** Progress toward the 195 countries in the headline count, with totals per state and a breakdown by continent.
@@ -44,10 +44,9 @@ bun run setup
 bun run dev
 ```
 
-`bun run setup` fills in `.env.local` for this worktree and keeps any value already there. It needs the `clerk` CLI logged in and linked to this app through the git remote, and the `vercel` CLI logged in. It does the following:
+`bun run setup` fills in `.env.local` for this worktree and keeps any value already there. It needs the `clerk` CLI logged in and linked to this app through the git remote. It does the following:
 
 - Pulls the Clerk development keys with `clerk env pull --instance dev`. It refuses to write a `pk_live_` or `sk_live_` key.
-- Pulls only `NEXT_PUBLIC_MAPBOX_TOKEN` from the Vercel development environment. It refuses a token that does not start with `pk.`, because a `NEXT_PUBLIC_` value ships to every browser. Without a token the globe shows a flat placeholder, and the list, stats and sign-in still work.
 - Sets `TURSO_DATABASE_URL=file:.data/dev.db` and runs `bun run db:migrate`. Marks live in `.data/dev.db` inside each worktree, so no worktree writes a shared database. Setup refuses to run when `.env.local` or the process environment (shell or `.env`) names a remote database, a database file outside this worktree's `.data/` or a live Clerk key.
 - Creates the Clerk development user `agent+clerk_test@example.com` if it does not exist yet.
 
@@ -66,7 +65,6 @@ The steps below set up the app by hand, for production or for a remote database.
 
 - Node.js 20.9 or later (required by Next.js 16)
 - Bun 1.4.3, the version CI pins. Bun does not check the `devEngines` version, so another version installs without a warning
-- A Mapbox public access token
 - A Turso database
 - A Clerk application set up for email link sign-in only
 
@@ -81,20 +79,18 @@ bun install
 Create a `.env.local` file in the project root:
 
 ```env
-NEXT_PUBLIC_MAPBOX_TOKEN=pk.your_mapbox_public_token
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key
 CLERK_SECRET_KEY=sk_test_your_clerk_secret_key
 TURSO_DATABASE_URL=libsql://your-database.turso.io
 TURSO_AUTH_TOKEN=your_turso_auth_token
 ```
 
-| Variable                            | Purpose                                                                                                            |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `NEXT_PUBLIC_MAPBOX_TOKEN`          | Public Mapbox token that renders the globe. Restrict it to your domains in the Mapbox dashboard before going live. |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Public Clerk key used to render sign-in and load the session in the browser.                                       |
-| `CLERK_SECRET_KEY`                  | Secret Clerk key used on the server to verify sessions. Never expose it to the client.                             |
-| `TURSO_DATABASE_URL`                | libSQL URL of the database that stores marks.                                                                      |
-| `TURSO_AUTH_TOKEN`                  | Auth token for that database.                                                                                      |
+| Variable                            | Purpose                                                                                |
+| ----------------------------------- | -------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Public Clerk key used to render sign-in and load the session in the browser.           |
+| `CLERK_SECRET_KEY`                  | Secret Clerk key used on the server to verify sessions. Never expose it to the client. |
+| `TURSO_DATABASE_URL`                | libSQL URL of the database that stores marks.                                          |
+| `TURSO_AUTH_TOKEN`                  | Auth token for that database.                                                          |
 
 Both Clerk keys are on the API Keys page of your Clerk dashboard.
 
@@ -141,7 +137,11 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 
 ## Country data
 
-`src/features/countries/countries.generated.ts` has 250 entries generated from the `world-countries` package. Each entry has a `kind`. The 195 `sovereign` entries count toward the headline total. The 55 `territory` entries appear on the map and in the list, but they aren't counted. Each entry also has the `center` the globe flies to and a `hasGlobeLabel` flag for the label layer. The file is committed, so only run `bun run gen:countries` after you update that dependency. `bun run check` runs `bun run gen:countries --check`, which fails when the committed file differs from a fresh run.
+`src/features/countries/countries.generated.ts` has 250 entries generated from the `world-countries` package. Each entry has a `kind`. The 195 `sovereign` entries count toward the headline total. The 55 `territory` entries appear on the map and in the list, but they aren't counted. Each entry also has the `center` the globe flies to and a `hasGlobeLabel` flag for its label.
+
+The globe draws the country outlines in `src/features/globe/country-topology.generated.ts`. They come from the Natural Earth 50m topology in the `world-atlas` package, keyed by the same codes, simplified and quantized to about 52 KB gzipped. Gibraltar, Tokelau, Tuvalu, Bouvet Island and the US Minor Outlying Islands are too small for that data, so they have no outline, and you mark them from the list or the search.
+
+`bun run gen:countries` writes both files. They are committed, so only run it after you update `world-countries` or `world-atlas`. `bun run check` runs `bun run gen:countries --check`, which fails when a committed file differs from a fresh run.
 
 ## Project structure
 
@@ -155,7 +155,7 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
     ├── features/auth/   Email link sign-in, the account button and section, and the server-only session helpers
     ├── features/countries/ Generated country dataset, search, and the country heading
     ├── features/country-list/ Country list page, with its search, status and continent filters
-    ├── features/globe/  Mapbox globe, its overlay, country card and sheet, search, and the selected-country store
+    ├── features/globe/  Canvas globe and its generated outlines, the overlay, country card and sheet, search, and the selected-country store
     ├── features/marks/  Marks store, mark controls, and the Server Actions and services that save and load marks
     ├── features/stats/  Stats page, progress card, and the totals by continent
     ├── shared/          Class name helper, brand mark, server-only database and env code, and test helpers

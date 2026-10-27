@@ -1,14 +1,10 @@
 const SPIN_DEGREES_PER_SECOND = 1.5;
 const MAX_SPIN_FRAME_SECONDS = 0.1;
 
-type SpinCenter = { lng: number; lat: number };
-
-type SpinStopEvent = "click" | "mousedown" | "touchstart" | "wheel" | "zoomstart" | "movestart";
-
 export type SpinnableMap = {
-  getCenter: () => SpinCenter;
-  jumpTo: (options: { center: SpinCenter }) => void;
-  on: (type: SpinStopEvent, listener: (event: { originalEvent?: unknown }) => void) => void;
+  getCenter: () => { lng: number; lat: number };
+  jumpTo: (options: { center: [number, number] }) => void;
+  onUserInteraction: (listener: () => void) => void;
 };
 
 export type FrameScheduler = Pick<Window, "requestAnimationFrame" | "cancelAnimationFrame">;
@@ -31,9 +27,9 @@ export function createGlobeSpin(map: SpinnableMap, { startsStopped, frames }: Gl
     spinFrameId = frames.requestAnimationFrame(spinFrame);
 
     if (elapsedSeconds > 0) {
-      const center = map.getCenter();
-      center.lng -= SPIN_DEGREES_PER_SECOND * elapsedSeconds;
-      map.jumpTo({ center });
+      const { lng, lat } = map.getCenter();
+
+      map.jumpTo({ center: [lng - SPIN_DEGREES_PER_SECOND * elapsedSeconds, lat] });
     }
   }
 
@@ -54,15 +50,7 @@ export function createGlobeSpin(map: SpinnableMap, { startsStopped, frames }: Gl
   }
 
   function stopOnUserInteraction() {
-    map.on("click", stop);
-    map.on("mousedown", stop);
-    map.on("touchstart", stop);
-    map.on("wheel", stop);
-    map.on("zoomstart", stop);
-    map.on("movestart", (event) => {
-      if (!event.originalEvent) return;
-      stop();
-    });
+    map.onUserInteraction(stop);
   }
 
   return { start, stop, stopOnUserInteraction, isStopped: () => stopped };

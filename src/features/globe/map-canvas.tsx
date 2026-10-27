@@ -1,30 +1,39 @@
 "use client";
 
-import "mapbox-gl/dist/mapbox-gl.css";
-import type { Map as MapboxMap } from "mapbox-gl";
 import { useEffect, useRef } from "react";
+import type { Globe } from "@/features/globe/create-globe";
 import { ZoomControls } from "@/features/globe/zoom-controls";
 import { STATE_COLORS } from "@/features/marks";
 import { mountGlobe } from "@/features/globe/mount-globe";
 
-let mapboxModulePromise: Promise<typeof import("mapbox-gl") | null> | null = null;
+function importGlobe() {
+  return Promise.all([
+    import("@/features/globe/create-globe"),
+    import("@/features/globe/country-topology.generated"),
+  ]).then(([engine, data]) => ({
+    createGlobe: engine.createGlobe,
+    topology: data.COUNTRY_TOPOLOGY,
+  }));
+}
 
-function loadMapbox() {
-  if (typeof window === "undefined" || !process.env.NEXT_PUBLIC_MAPBOX_TOKEN) return null;
+let globeModulesPromise: Promise<Awaited<ReturnType<typeof importGlobe>> | null> | null = null;
 
-  mapboxModulePromise ??= import("mapbox-gl").catch((cause: unknown) => {
-    console.error("The map could not load.", cause);
-    mapboxModulePromise = null;
+function loadGlobe() {
+  globeModulesPromise ??= importGlobe().catch((cause: unknown) => {
+    console.error("The globe could not load.", cause);
+    globeModulesPromise = null;
 
     return null;
   });
 
-  return mapboxModulePromise;
+  return globeModulesPromise;
 }
+
+if (typeof window !== "undefined") void loadGlobe();
 
 export function MapCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<MapboxMap | null>(null);
+  const mapRef = useRef<Globe | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -34,11 +43,11 @@ export function MapCanvas() {
     let isCancelled = false;
     let unmount: (() => void) | undefined;
 
-    loadMapbox()
-      ?.then((mapboxModule) => {
-        if (isCancelled || !mapboxModule) return;
+    loadGlobe()
+      .then((globeModules) => {
+        if (isCancelled || !globeModules) return;
 
-        const globe = mountGlobe(mapboxModule.default, container);
+        const globe = mountGlobe(globeModules, container);
 
         mapRef.current = globe.map;
         unmount = () => {
@@ -47,7 +56,7 @@ export function MapCanvas() {
         };
       })
       .catch((cause: unknown) => {
-        console.error("The map could not start.", cause);
+        console.error("The globe could not start.", cause);
       });
 
     return () => {
@@ -60,6 +69,7 @@ export function MapCanvas() {
     <>
       <div
         ref={containerRef}
+        data-globe
         className="h-full w-full"
         style={{ backgroundColor: STATE_COLORS.unmarked }}
       />
