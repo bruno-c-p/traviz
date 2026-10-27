@@ -9,6 +9,7 @@ import {
   useStateFilters,
 } from "@/features/country-list/use-country-list-items";
 import type { Continent } from "@/features/countries";
+import { MarksBoundary } from "@/features/marks";
 
 export function CountryList() {
   const [query, setQuery] = useState("");
@@ -40,7 +41,9 @@ export function CountryList() {
           stateCounts={stateCounts}
           onToggleFilter={toggleFilter}
         />
-        <CountryRows sections={sections} emptyMessage={emptyMessage} />
+        <MarksBoundary>
+          <CountryRows sections={sections} emptyMessage={emptyMessage} />
+        </MarksBoundary>
       </section>
     </div>
   );
