@@ -11,10 +11,12 @@ import type { Camera, LngLat } from "@/features/globe/globe-camera";
 import { createGestureTracker } from "@/features/globe/globe-gestures";
 import type { Point } from "@/features/globe/globe-gestures";
 import { keyAction } from "@/features/globe/globe-keys";
-import { buildMarkers, markerAt, placeMarkers } from "@/features/globe/globe-markers";
+import { buildMarkers, pickCountry, placeMarkers } from "@/features/globe/globe-markers";
 import { buildScene, countryAt, countryOutline, globeView } from "@/features/globe/globe-scene";
-import type { CountryTopology } from "@/features/globe/globe-scene";
+import type { CountryTopology, GlobeView } from "@/features/globe/globe-scene";
 import type { Marks } from "@/features/marks";
+import { countryCenter } from "@/features/countries";
+import type { TappedOutline } from "@/features/globe/globe-markers";
 import type { MultiLineString } from "geojson";
 
 const MAX_PIXEL_RATIO = 2;
@@ -70,6 +72,7 @@ export function createGlobe(
   canvas.tabIndex = 0;
   canvas.setAttribute("role", "region");
   canvas.setAttribute("aria-label", "Globe");
+  canvas.setAttribute("aria-keyshortcuts", "ArrowUp ArrowDown ArrowLeft ArrowRight + -");
   container.append(canvas);
 
   function view() {
@@ -194,11 +197,27 @@ export function createGlobe(
     animatePan(seconds * 1000, velocity.x * scale, velocity.y * scale);
   }
 
-  function countryAtPoint(point: Point): string | null {
-    const marker = markerAt(placeMarkers(markers, view()), point);
-    const lngLat = marker ? null : lngLatAt(point);
+  function tappedOutline(point: Point, currentView: GlobeView): TappedOutline | null {
+    const lngLat = lngLatAt(point);
+    const code = lngLat ? countryAt(scene, lngLat) : null;
 
-    return marker ?? (lngLat ? countryAt(scene, lngLat) : null);
+    if (code === null) return null;
+
+    const center = countryCenter(code);
+    const projected = center ? currentView.projection(center) : null;
+
+    return { code, center: projected ? { x: projected[0], y: projected[1] } : null };
+  }
+
+  function countryAtPoint(point: Point): string | null {
+    const currentView = view();
+
+    return pickCountry(
+      placeMarkers(markers, currentView),
+      point,
+      tappedOutline(point, currentView),
+      selectedCode,
+    );
   }
 
   function emitInteraction() {

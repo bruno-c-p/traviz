@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { countries, countryCenter } from "@/features/countries";
 import type { LngLat } from "@/features/globe/globe-camera";
 import { COUNTRY_TOPOLOGY } from "@/features/globe/country-topology.generated";
-import { buildMarkers, markerAt, placeMarkers } from "@/features/globe/globe-markers";
+import { buildMarkers, pickCountry, placeMarkers } from "@/features/globe/globe-markers";
 import { buildScene, countryAt, globeView } from "@/features/globe/globe-scene";
 
 const scene = buildScene(COUNTRY_TOPOLOGY);
@@ -59,21 +59,47 @@ describe("country markers", () => {
     expect(placedCodes([-170, 0], 1.4)).toContain("TUV");
   });
 
-  test("a tap within 12 px picks the nearest marker, before the outline under it", () => {
+  test("a tap near a small country's dot inside a large country picks the small country", () => {
     const sanMarino = centerOf("SMR");
-    const placed = placeMarkers(markers, globeView({ center: sanMarino, zoom: 4 }, 800, 600));
+    const view = globeView({ center: sanMarino, zoom: 4 }, 800, 600);
+    const placed = placeMarkers(markers, view);
+    const italyCenter = view.projection(centerOf("ITA"));
+
+    const italy = {
+      code: "ITA",
+      center: italyCenter ? { x: italyCenter[0], y: italyCenter[1] } : null,
+    };
 
     expect(countryAt(scene, sanMarino)).toBe("ITA");
-    expect(markerAt(placed, { x: 400, y: 310 })).toBe("SMR");
-    expect(markerAt(placed, { x: 400, y: 313 })).toBeNull();
-    expect(
-      markerAt(
-        [
-          { code: "FAR", x: 10, y: 0 },
-          { code: "NEAR", x: 4, y: 0 },
-        ],
-        { x: 0, y: 0 },
-      ),
-    ).toBe("NEAR");
+    expect(pickCountry(placed, { x: 400, y: 310 }, italy, null)).toBe("SMR");
+    expect(pickCountry(placed, { x: 400, y: 313 }, italy, null)).toBe("ITA");
+  });
+
+  test("a tap nearer a large country's centre than a neighbour's dot picks the large country", () => {
+    const dots = [{ code: "SVN", x: 6, y: 0 }];
+    const croatia = { code: "HRV", center: { x: 0, y: 0 } };
+
+    expect(pickCountry(dots, { x: 0, y: 0 }, croatia, null)).toBe("HRV");
+    expect(pickCountry(dots, { x: 4, y: 0 }, croatia, null)).toBe("SVN");
+  });
+
+  test("a tap on the ocean picks the nearest dot within 12 px", () => {
+    const dots = [
+      { code: "FAR", x: 10, y: 0 },
+      { code: "NEAR", x: 4, y: 0 },
+    ];
+
+    expect(pickCountry(dots, { x: 0, y: 0 }, null, null)).toBe("NEAR");
+    expect(pickCountry(dots, { x: -13, y: 0 }, null, null)).toBeNull();
+  });
+
+  test("where dots overlap, a tap on the selected dot picks it, as it is drawn on top", () => {
+    const dots = [
+      { code: "AIA", x: 2, y: 0 },
+      { code: "SXM", x: 4, y: 0 },
+    ];
+
+    expect(pickCountry(dots, { x: 3, y: 0 }, null, null)).toBe("AIA");
+    expect(pickCountry(dots, { x: 3, y: 0 }, null, "SXM")).toBe("SXM");
   });
 });

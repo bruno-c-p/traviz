@@ -7,6 +7,7 @@ import type { GlobeScene, GlobeView, Vector } from "@/features/globe/globe-scene
 
 const MIN_OUTLINE_PIXELS = 8;
 const TAP_RADIUS_PIXELS = 12;
+const DOT_HIT_PIXELS = 5.5;
 
 export type GlobeMarker = { code: string; center: LngLat; vector: Vector; size: number };
 
@@ -41,18 +42,34 @@ export function placeMarkers(markers: GlobeMarker[], view: GlobeView): PlacedMar
   });
 }
 
-export function markerAt(placed: PlacedMarker[], point: Point): string | null {
-  let nearest: string | null = null;
-  let nearestDistance = TAP_RADIUS_PIXELS;
+export type TappedOutline = { code: string; center: Point | null };
 
-  for (const { code, x, y } of placed) {
-    const distance = Math.hypot(x - point.x, y - point.y);
+export function pickCountry(
+  placed: readonly PlacedMarker[],
+  point: Point,
+  outline: TappedOutline | null,
+  selectedCode: string | null,
+): string | null {
+  const nearby = placed
+    .flatMap(({ code, x, y }) => {
+      const distance = Math.hypot(x - point.x, y - point.y);
 
-    if (distance <= nearestDistance) {
-      nearest = code;
-      nearestDistance = distance;
-    }
-  }
+      return distance <= TAP_RADIUS_PIXELS ? [{ code, distance }] : [];
+    })
+    .toSorted((left, right) => left.distance - right.distance);
 
-  return nearest;
+  const onDots = nearby.filter(({ distance }) => distance <= DOT_HIT_PIXELS);
+  const dot = onDots.find(({ code }) => code === selectedCode) ?? onDots[0];
+
+  if (dot) return dot.code;
+
+  const nearest = nearby[0];
+
+  if (outline === null) return nearest?.code ?? null;
+
+  const outlineDistance = outline.center
+    ? Math.hypot(outline.center.x - point.x, outline.center.y - point.y)
+    : Infinity;
+
+  return nearest && nearest.distance < outlineDistance ? nearest.code : outline.code;
 }
