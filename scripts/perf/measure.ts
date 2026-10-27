@@ -21,7 +21,11 @@ import {
   type Environment,
 } from "@/shared/testing/perf/builds";
 import { readPerfEnvironment } from "@/shared/testing/perf/environment";
-import { findGuardFailures, resolveBaseline } from "@/shared/testing/perf/guards";
+import {
+  findGuardFailures,
+  resolveBaseline,
+  type LockfilePolicy,
+} from "@/shared/testing/perf/guards";
 import { acquireLock, machineLockPath } from "@/shared/testing/perf/lock";
 import {
   buildRows,
@@ -56,6 +60,17 @@ const { values: options } = parseArgs({
 
 const root = resolve(options.root ?? join(import.meta.dirname, "..", ".."));
 const runs = Number(options.runs);
+
+const lockfilePolicy: LockfilePolicy = options["allow-lockfile-diff"]
+  ? "may-differ"
+  : "same-as-baseline";
+
+const LOCKFILE_NOTES: Record<LockfilePolicy, (baselineLabel: string) => string> = {
+  "same-as-baseline": (baselineLabel) => `bun.lock matches ${baselineLabel}.`,
+  "may-differ": (baselineLabel) =>
+    `--allow-lockfile-diff: each side installs its own bun.lock, so dependency changes since ${baselineLabel} count in the result.`,
+};
+
 const workDirectory = join(root, ".data", "perf");
 const timeoutMs = 60_000;
 const sides: Side[] = ["baseline", "candidate"];
@@ -249,15 +264,11 @@ async function prepare() {
 
   if (baseline.note !== "") console.log(baseline.note);
 
-  const lockfilePolicy = options["allow-lockfile-diff"] ? "may-differ" : "same-as-baseline";
   const failures = findGuardFailures(root, baseline, Bun.version, lockfilePolicy);
 
   if (failures.length > 0) fail(failures.join("\nRefusing: "));
 
-  if (lockfilePolicy === "may-differ")
-    console.log(
-      `--allow-lockfile-diff: each side installs its own bun.lock, so dependency changes since ${baseline.label} count in the result.`,
-    );
+  console.log(LOCKFILE_NOTES[lockfilePolicy](baseline.label));
 
   const localEnvironment = readPerfEnvironment(root, process.env);
 
