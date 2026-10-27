@@ -26,11 +26,11 @@ type ClerkSessionDependencies = {
   readonly loadScript: (attempt: number, abort: AbortSignal) => Promise<void>;
   readonly afterPageLoad: (callback: () => void) => void;
   readonly startTimer: (callback: () => void, milliseconds: number) => () => void;
-  readonly whenRecoverable: (callback: () => void) => void;
+  readonly whenRecoverable: (callback: () => void) => () => void;
   readonly reportLoadFailure: (cause: unknown) => void;
 };
 
-export const SCRIPT_TIMEOUT_MS = 15_000;
+export const LOAD_TIMEOUT_MS = 15_000;
 
 export const RETRY_DELAYS_MS = [1_000, 4_000] as const;
 
@@ -45,7 +45,9 @@ export function createClerkSession({
   const listeners = new Set<() => void>();
   let email: string | null = null;
   let loading: Promise<ClerkHandle> | null = null;
-  let watchesRecovery = false;
+  let initializing: Promise<void> | null = null;
+  let stopWatchingRecovery: (() => void) | null = null;
+  let reportedLoad: Promise<ClerkHandle> | null = null;
   let scriptAttempts = 0;
 
   function follow(clerk: ClerkHandle) {
@@ -68,36 +70,53 @@ export function createClerkSession({
     });
   }
 
-  function loadScriptWithinTimeout() {
+  function withinTimeout<T>(work: (abort: AbortSignal) => Promise<T>): Promise<T> {
     const controller = new AbortController();
-    const cancelTimeout = startTimer(() => controller.abort(), SCRIPT_TIMEOUT_MS);
-    scriptAttempts += 1;
 
-    return loadScript(scriptAttempts, controller.signal).finally(cancelTimeout);
+    return new Promise<T>((resolve, reject) => {
+      const cancelTimeout = startTimer(() => {
+        controller.abort();
+        reject(new Error("Timed out loading Clerk"));
+      }, LOAD_TIMEOUT_MS);
+
+      work(controller.signal).then(resolve, reject).finally(cancelTimeout);
+    });
   }
 
-  async function loadClerkOnce() {
-    if (currentClerk() === undefined) await loadScriptWithinTimeout();
+  function initialize(clerk: ClerkHandle) {
+    initializing ??= clerk.load().catch((error: unknown) => {
+      initializing = null;
+      throw error;
+    });
+
+    return initializing;
+  }
+
+  async function loadClerkOnce(abort: AbortSignal) {
+    if (currentClerk() === undefined) {
+      scriptAttempts += 1;
+      await loadScript(scriptAttempts, abort);
+    }
 
     const clerk = currentClerk();
 
     if (clerk === undefined) throw new Error("clerk-js loaded without defining window.Clerk");
 
-    if (!clerk.loaded) await clerk.load();
+    if (!clerk.loaded) await initialize(clerk);
 
-    return follow(clerk);
+    return clerk;
   }
 
   async function loadClerk(): Promise<ClerkHandle> {
     for (const delay of RETRY_DELAYS_MS) {
       try {
-        return await loadClerkOnce();
+        return follow(await withinTimeout(loadClerkOnce));
       } catch {
         await wait(delay);
       }
     }
 
-    return loadClerkOnce();
+    return follow(await withinTimeout(loadClerkOnce));
   }
 
   function load() {
@@ -110,14 +129,21 @@ export function createClerkSession({
   }
 
   function start() {
-    load().catch((error: unknown) => {
-      reportLoadFailure(error);
+    const attempt = load();
 
-      if (watchesRecovery) return;
+    if (attempt === reportedLoad) return;
 
-      watchesRecovery = true;
-      whenRecoverable(start);
-    });
+    reportedLoad = attempt;
+    attempt.then(
+      () => {
+        stopWatchingRecovery?.();
+        stopWatchingRecovery = null;
+      },
+      (error: unknown) => {
+        reportLoadFailure(error);
+        stopWatchingRecovery ??= whenRecoverable(start);
+      },
+    );
   }
 
   return {
@@ -134,7 +160,7 @@ export function createClerkSession({
       else afterPageLoad(start);
     },
     signOut: async (redirectUrl: string, onSignedOut: () => void) => {
-      const clerk = await load();
+      const clerk = await withinTimeout(load);
       await clerk.signOut({ redirectUrl });
       onSignedOut();
     },
@@ -180,10 +206,17 @@ function loadClerkScript(publishableKey: string, attempt: number, abort: AbortSi
 }
 
 function whenRecoverable(callback: () => void) {
-  window.addEventListener("online", callback);
-  document.addEventListener("visibilitychange", () => {
+  const onVisible = () => {
     if (document.visibilityState === "visible") callback();
-  });
+  };
+
+  window.addEventListener("online", callback);
+  document.addEventListener("visibilitychange", onVisible);
+
+  return () => {
+    window.removeEventListener("online", callback);
+    document.removeEventListener("visibilitychange", onVisible);
+  };
 }
 
 export const clerkSession = createClerkSession({
