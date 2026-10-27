@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { STATE_COLORS, tallyMarks, useCountriesStore } from "@/features/marks";
+import { STATE_COLORS, tallyMarks, useMarks } from "@/features/marks";
 import { countries } from "@/features/countries";
 import { visitedProgress } from "@/features/stats/visited-progress";
 import { cn } from "@/shared/cn";
@@ -39,7 +39,7 @@ type ProgressCardProps = {
 };
 
 export function ProgressCard({ variant, className }: ProgressCardProps) {
-  const marks = useCountriesStore((state) => state.marks);
+  const marks = useMarks();
   const { visited, total, percent } = visitedProgress(marks);
   const allEntries = tallyMarks(countries, marks);
   const variantClasses = VARIANT_CLASSES[variant];
@@ -55,25 +55,27 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
         <span className="flex flex-wrap items-baseline gap-x-2.5 tabular-nums">
           <span
             className={cn(
-              "font-bold leading-[0.9] tracking-tight text-primary",
+              "mark-count font-bold leading-[0.9] tracking-tight text-primary",
               variantClasses.number,
             )}
           >
             {visited}
           </span>
-          <span className={cn("text-primary-neutral", variantClasses.total)}>
+          <span className={cn("mark-count text-primary-neutral", variantClasses.total)}>
             {variant === "peek" ? `/ ${total} visited` : `of ${total} · ${percent.toFixed(1)}%`}
           </span>
         </span>
         {variant === "peek" && (
-          <span className="font-mono text-[13px] text-primary-neutral">{percent.toFixed(1)}%</span>
+          <span className="mark-count font-mono text-[13px] text-primary-neutral">
+            {percent.toFixed(1)}%
+          </span>
         )}
       </span>
       <span
         className={cn("block overflow-hidden rounded-full bg-ink-deep-soft", variantClasses.bar)}
       >
         <span
-          className="block h-full rounded-full transition-transform duration-300 ease-out"
+          className="mark-count block h-full rounded-full transition-transform duration-300 ease-out"
           style={{
             transform: `translateX(${percent - 100}%)`,
             backgroundColor: STATE_COLORS.visited,
@@ -84,11 +86,13 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
         <>
           <span className="grid grid-cols-2 gap-3 pt-1">
             <span className="flex flex-col gap-0.5">
-              <span className="text-2xl font-bold tabular-nums">{allEntries.want}</span>
+              <span className="mark-count text-2xl font-bold tabular-nums">{allEntries.want}</span>
               <span className="text-[13px] text-primary-neutral">want to go</span>
             </span>
             <span className="flex flex-col gap-0.5">
-              <span className="text-2xl font-bold tabular-nums">{allEntries.not_interested}</span>
+              <span className="mark-count text-2xl font-bold tabular-nums">
+                {allEntries.not_interested}
+              </span>
               <span className="text-[13px] text-primary-neutral">not interested</span>
             </span>
           </span>

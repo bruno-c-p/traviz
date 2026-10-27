@@ -2,14 +2,14 @@
 
 import { AccountSection } from "@/features/auth";
 import { ContinentCard } from "@/features/stats/continent-card";
-import { DangerZone, STATE_COLORS, tallyMarks, useCountriesStore } from "@/features/marks";
+import { DangerZone, STATE_COLORS, tallyMarks, useMarks } from "@/features/marks";
 import { ProgressCard } from "@/features/stats/progress-card";
 import { TotalTile } from "@/features/stats/total-tile";
 import { countries } from "@/features/countries";
 import { CONTINENT_POOLS } from "@/features/stats/continent-pools";
 
 export function StatsPanel() {
-  const marks = useCountriesStore((state) => state.marks);
+  const marks = useMarks();
   const allEntries = tallyMarks(countries, marks);
 
   return (

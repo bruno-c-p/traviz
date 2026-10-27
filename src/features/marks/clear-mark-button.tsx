@@ -2,9 +2,10 @@
 
 import { cn } from "@/shared/cn";
 import { useCountriesStore } from "@/features/marks/marks-store";
+import { useMark } from "@/features/marks/use-marks";
 
 export function ClearMarkButton({ code, className }: { code: string; className?: string }) {
-  const hasMark = useCountriesStore((state) => Boolean(state.marks[code]));
+  const hasMark = useMark(code) !== undefined;
   const clear = useCountriesStore((state) => state.clear);
 
   if (!hasMark) return null;

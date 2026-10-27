@@ -1,6 +1,6 @@
 import { CONTINENT_ORDER, countries, countriesInContinent } from "@/features/countries";
 import type { Continent } from "@/features/countries";
-import { tallyMarks, useCountriesStore } from "@/features/marks";
+import { tallyMarks, useMarks } from "@/features/marks";
 
 export type ContinentOption = {
   continent: Continent | null;
@@ -10,7 +10,7 @@ export type ContinentOption = {
 };
 
 export function useContinentOptions(): ContinentOption[] {
-  const marks = useCountriesStore((state) => state.marks);
+  const marks = useMarks();
 
   return [
     {

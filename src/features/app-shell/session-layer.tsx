@@ -1,18 +1,18 @@
 import { TabBar } from "@/features/app-shell/tab-bar";
 import { TopBar } from "@/features/app-shell/top-bar";
-import { MarksSession } from "@/features/marks/server";
-import { getUserId } from "@/features/auth/server";
+import { StartMarksSession } from "@/features/marks";
+import { loadSessionMarks } from "@/features/marks/server";
 
 export async function SessionLayer() {
-  const userId = await getUserId();
+  const snapshot = await loadSessionMarks();
 
-  if (!userId) return null;
+  if (snapshot === null) return null;
 
   return (
     <>
       <TopBar />
       <TabBar />
-      <MarksSession userId={userId} />
+      <StartMarksSession snapshot={snapshot} />
     </>
   );
 }

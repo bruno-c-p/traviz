@@ -1,16 +1,16 @@
 import { useMemo, useState } from "react";
 import type { StateColorKey } from "@/features/marks";
-import { buildListItems } from "@/features/country-list/country-list-items";
+import { buildListSections } from "@/features/country-list/country-list-items";
 import { countries, countriesInContinent, searchCountries } from "@/features/countries";
 import type { Continent } from "@/features/countries";
-import { tallyMarks, useCountriesStore } from "@/features/marks";
+import { tallyMarks, useMarks } from "@/features/marks";
 
 export function useCountryListItems(
   selectedContinent: Continent | null,
   activeFilters: ReadonlySet<StateColorKey>,
   query: string,
 ) {
-  const marks = useCountriesStore((state) => state.marks);
+  const marks = useMarks();
 
   const continentPool = useMemo(
     () => (selectedContinent ? countriesInContinent(selectedContinent) : countries),
@@ -32,8 +32,8 @@ export function useCountryListItems(
     [stateFiltered, trimmedQuery],
   );
 
-  const items = useMemo(
-    () => buildListItems(stateFiltered, searchResults),
+  const sections = useMemo(
+    () => buildListSections(stateFiltered, searchResults),
     [stateFiltered, searchResults],
   );
 
@@ -41,7 +41,7 @@ export function useCountryListItems(
     ? `No countries match “${trimmedQuery}”.`
     : "No countries match the selected filters.";
 
-  return { items, stateCounts, emptyMessage };
+  return { sections, stateCounts, emptyMessage };
 }
 
 export function useStateFilters() {

@@ -33,7 +33,12 @@ export function ContinentChips({ selectedContinent, onSelect, className }: Conti
             )}
           >
             {option.label}
-            <span className={cn("font-mono text-xs", isActive ? "text-primary" : "text-mute")}>
+            <span
+              className={cn(
+                "mark-count font-mono text-xs",
+                isActive ? "text-primary" : "text-mute",
+              )}
+            >
               {option.visited}/{option.total}
             </span>
           </button>

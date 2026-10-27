@@ -186,12 +186,6 @@
       },
       "overrides": [
         {
-          "files": ["src/features/country-list/virtual-country-list.tsx"],
-          "rules": {
-            "react/incompatible-library": "off"
-          }
-        },
-        {
           "files": ["./paths.ts"],
           "rules": {
             "typescript/consistent-type-assertions": "off"
@@ -285,15 +279,15 @@
     },
     "routes": {
       "/list": {
-        "firstLoadGzipBytes": 228430,
+        "firstLoadGzipBytes": 219737,
         "lazyGzipBytes": 0
       },
       "/": {
-        "firstLoadGzipBytes": 223717,
+        "firstLoadGzipBytes": 224015,
         "lazyGzipBytes": 517013
       },
       "/stats": {
-        "firstLoadGzipBytes": 219363,
+        "firstLoadGzipBytes": 219671,
         "lazyGzipBytes": 0
       },
       "/sign-in": {

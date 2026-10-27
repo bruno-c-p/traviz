@@ -1,4 +1,3 @@
-import type { Ref } from "react";
 import { ContinentFilter } from "@/features/country-list/continent-filter";
 import { ListSearchInput } from "@/features/country-list/list-search-input";
 import { StatusFilters } from "@/features/country-list/status-filters";
@@ -6,7 +5,6 @@ import type { StateColorKey } from "@/features/marks";
 import type { Continent } from "@/features/countries";
 
 type CountryListHeaderProps = {
-  headerRef: Ref<HTMLDivElement>;
   selectedContinent: Continent | null;
   onSelectContinent: (continent: Continent | null) => void;
   query: string;
@@ -17,7 +15,6 @@ type CountryListHeaderProps = {
 };
 
 export function CountryListHeader({
-  headerRef,
   selectedContinent,
   onSelectContinent,
   query,
@@ -27,7 +24,7 @@ export function CountryListHeader({
   onToggleFilter,
 }: CountryListHeaderProps) {
   return (
-    <div ref={headerRef} className="flex flex-col gap-4 pb-4">
+    <div className="flex flex-col gap-4 pb-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1
           id="country-list-heading"

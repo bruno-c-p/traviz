@@ -9,11 +9,10 @@ import {
 } from "@/features/marks/colors";
 import { STATE_ICONS } from "@/features/marks/state-icons";
 import { cn } from "@/shared/cn";
-import { useCountriesStore } from "@/features/marks/marks-store";
+import { useMarkToggle } from "@/features/marks/use-marks";
 
 export function StateSwitch({ code, countryName }: { code: string; countryName: string }) {
-  const currentState = useCountriesStore((state) => state.marks[code]);
-  const toggle = useCountriesStore((state) => state.toggle);
+  const { shown, toggle } = useMarkToggle(code);
 
   return (
     <div
@@ -23,7 +22,7 @@ export function StateSwitch({ code, countryName }: { code: string; countryName: 
     >
       {COUNTRY_STATES.map((countryState) => {
         const Icon = STATE_ICONS[countryState];
-        const isActive = currentState === countryState;
+        const isActive = shown === countryState;
 
         return (
           <button
@@ -32,7 +31,7 @@ export function StateSwitch({ code, countryName }: { code: string; countryName: 
             aria-pressed={isActive}
             aria-label={STATE_LABELS[countryState]}
             title={STATE_LABELS[countryState]}
-            onClick={() => toggle(code, countryState)}
+            onClick={() => toggle(countryState)}
             style={
               isActive
                 ? {
