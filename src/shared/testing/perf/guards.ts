@@ -95,7 +95,14 @@ export function resolveBaseline(root: string, baseRef: string): BaselineResoluti
   );
 }
 
-export function findGuardFailures(root: string, baseline: Baseline, bunVersion: string): string[] {
+export type LockfilePolicy = "same-as-baseline" | "may-differ";
+
+export function findGuardFailures(
+  root: string,
+  baseline: Baseline,
+  bunVersion: string,
+  lockfilePolicy: LockfilePolicy = "same-as-baseline",
+): string[] {
   const failures: string[] = [];
 
   const pinnedBunVersion = packageSchema.parse(
@@ -119,9 +126,9 @@ export function findGuardFailures(root: string, baseline: Baseline, bunVersion: 
   if (lockfileDiff.status !== 0 && lockfileDiff.status !== 1)
     failures.push(`git diff could not compare bun.lock with ${baseline.label}.`);
 
-  if (lockfileDiff.status === 1)
+  if (lockfileDiff.status === 1 && lockfilePolicy === "same-as-baseline")
     failures.push(
-      `bun.lock differs from ${baseline.label}, so the two builds would measure different dependencies.`,
+      `bun.lock differs from ${baseline.label}, so the two builds would measure different dependencies. Pass --allow-lockfile-diff when the dependency change is what you measure.`,
     );
 
   return failures;

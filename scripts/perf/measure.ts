@@ -41,6 +41,7 @@ const { values: options } = parseArgs({
   args: process.argv.slice(2).filter((argument) => argument !== "--"),
   options: {
     baseline: { type: "string", default: "main" },
+    "allow-lockfile-diff": { type: "boolean", default: false },
     runs: { type: "string", default: "5" },
     root: { type: "string" },
     chrome: {
@@ -248,9 +249,15 @@ async function prepare() {
 
   if (baseline.note !== "") console.log(baseline.note);
 
-  const failures = findGuardFailures(root, baseline, Bun.version);
+  const lockfilePolicy = options["allow-lockfile-diff"] ? "may-differ" : "same-as-baseline";
+  const failures = findGuardFailures(root, baseline, Bun.version, lockfilePolicy);
 
   if (failures.length > 0) fail(failures.join("\nRefusing: "));
+
+  if (lockfilePolicy === "may-differ")
+    console.log(
+      `--allow-lockfile-diff: each side installs its own bun.lock, so dependency changes since ${baseline.label} count in the result.`,
+    );
 
   const localEnvironment = readPerfEnvironment(root, process.env);
 
