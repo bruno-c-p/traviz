@@ -12,10 +12,11 @@ import {
 import {
   changeScope,
   INITIAL_MARKS_SYNC_STATE,
-  supersedesSeed,
+  seedCover,
   visibleMarks,
   type MarksSnapshot,
   type MarksSyncState,
+  type SeedCover,
   type SyncProblem,
 } from "@/features/marks/marks-sync";
 import { isSignedInAs } from "@/features/marks/session-cookie";
@@ -27,7 +28,7 @@ type MarksStoreState = {
   ownerId: string | null;
   saving: SavingScopes;
   problems: readonly SyncProblem[];
-  supersedesSeed: boolean;
+  seedCover: SeedCover;
   mark: (code: string, state: CountryState) => void;
   clear: (code: string) => void;
   resetAll: () => void;
@@ -59,13 +60,21 @@ function sameSaving(left: SavingScopes, right: SavingScopes): boolean {
   return left.length === right.length && left.every((scope, index) => scope === right[index]);
 }
 
+function sameCover(left: SeedCover, right: SeedCover): boolean {
+  if (left.kind === "overlays" && right.kind === "overlays") {
+    return left.ownerId === right.ownerId && left.pending === right.pending;
+  }
+
+  return left.kind === right.kind && left.ownerId === right.ownerId;
+}
+
 function project(state: MarksSyncState) {
   return {
     marks: visibleMarks(state),
     ownerId: state.ownerId,
     saving: savingScopes(state),
     problems: state.problems,
-    supersedesSeed: supersedesSeed(state),
+    seedCover: seedCover(state),
   };
 }
 
@@ -83,21 +92,28 @@ export function createMarksStore(owner: MarksOwner) {
 
   const syncFromOwner = () => {
     const current = store.getState();
-    const { marks, ownerId, saving, problems, supersedesSeed } = project(owner.getState());
+    const { marks, ownerId, saving, problems, seedCover } = project(owner.getState());
     const keptMarks = sameMarks(current.marks, marks) ? current.marks : marks;
     const keptSaving = sameSaving(current.saving, saving) ? current.saving : saving;
+    const keptCover = sameCover(current.seedCover, seedCover) ? current.seedCover : seedCover;
 
     if (
       keptMarks === current.marks &&
       ownerId === current.ownerId &&
       keptSaving === current.saving &&
       problems === current.problems &&
-      supersedesSeed === current.supersedesSeed
+      keptCover === current.seedCover
     ) {
       return;
     }
 
-    store.setState({ marks: keptMarks, ownerId, saving: keptSaving, problems, supersedesSeed });
+    store.setState({
+      marks: keptMarks,
+      ownerId,
+      saving: keptSaving,
+      problems,
+      seedCover: keptCover,
+    });
   };
 
   owner.subscribe(syncFromOwner);

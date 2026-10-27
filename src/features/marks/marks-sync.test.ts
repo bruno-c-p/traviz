@@ -536,10 +536,11 @@ describe("events that change nothing", () => {
     expect(reduceMarksSync(before, ended())).toBe(before);
   });
 
-  test("ending a session before any started still records that it ended", () => {
-    const state = reduceMarksSync(INITIAL_MARKS_SYNC_STATE, ended());
+  test("ending a session before any started still drops the taps after it", () => {
+    const state = play([ended(), setMark("DEU", "visited")]);
 
-    expect(state.sessionEnded).toBe(true);
+    expect(visibleMarks(state)).toEqual({});
+    expect(state.pending).toEqual([]);
   });
 
   test("ending an ended session that shows a preview clears the preview", () => {

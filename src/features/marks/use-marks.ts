@@ -1,15 +1,17 @@
 import { use } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { CountryState, Marks } from "@/features/marks/colors";
 import { useCountriesStore } from "@/features/marks/marks-store";
 import { MarksSeedContext } from "@/features/marks/marks-seed";
+import { shownMarks } from "@/features/marks/marks-sync";
 
 function useShownMarks<T>(select: (marks: Marks) => T): T {
   const seed = use(MarksSeedContext);
-  const stored = useCountriesStore((state) => select(state.marks));
-  const supersedesSeed = useCountriesStore((state) => state.supersedesSeed);
-  const snapshot = supersedesSeed || seed === null ? null : use(seed);
+  const snapshot = seed === null ? null : use(seed);
 
-  return snapshot?.ok ? select(snapshot.marks) : stored;
+  return useCountriesStore(
+    useShallow((state) => select(shownMarks(snapshot, state.seedCover, state.marks))),
+  );
 }
 
 export function useMarks(): Marks {

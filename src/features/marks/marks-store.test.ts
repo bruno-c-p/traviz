@@ -8,6 +8,7 @@ import {
 } from "@/features/marks/marks-owner";
 import {
   applyChange,
+  shownMarks,
   type CachedMarks,
   type MarkChange,
   type MarkChangeResult,
@@ -668,14 +669,22 @@ describe("the cached marks", () => {
 });
 
 describe("the server seed", () => {
-  test("the store starts and hydrates without superseding the seed", () => {
+  const seedFor = (ownerId: string, marks: Marks) => ({ ok: true, ownerId, marks }) as const;
+  const seed = seedFor(OWNER, { JPN: "visited", PER: "want" });
+
+  const shownOver = (store: ReturnType<typeof setup>["store"], shownSeed: MarksSnapshot | null) =>
+    shownMarks(shownSeed, store.getState().seedCover, store.getState().marks);
+
+  test("the store starts and hydrates showing the seed", () => {
     const { store } = setup();
 
-    expect(store.getInitialState().supersedesSeed).toBe(false);
-    expect(store.getState().supersedesSeed).toBe(false);
+    expect(shownMarks(seed, store.getInitialState().seedCover, store.getInitialState().marks)).toBe(
+      seed.marks,
+    );
+    expect(shownOver(store, seed)).toBe(seed.marks);
   });
 
-  test("a cache preview or a cached session start does not supersede the seed", () => {
+  test("a stale cache never shows over the seed, before or after the session starts", () => {
     const fake = fakeTransport();
     const cache = fakeCache({ ownerId: OWNER, marks: { FRA: "want" } });
     const owner = createMarksOwner(fake.transport, cache.cache, fakeDeadline().startDeadline);
@@ -683,24 +692,40 @@ describe("the server seed", () => {
     const store = createMarksStore(owner);
 
     expect(store.getState().marks).toEqual({ FRA: "want" });
-    expect(store.getState().supersedesSeed).toBe(false);
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
 
     store.getState().startSession(OWNER);
 
-    expect(store.getState().supersedesSeed).toBe(false);
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
   });
 
-  test("the server snapshot supersedes the seed, and no cache brings it back", () => {
+  test("a tap before the session starts shows over every other seeded mark", () => {
+    const { store } = setup();
+
+    store.getState().mark("DEU", "visited");
+    store.getState().clear("PER");
+
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", DEU: "visited" });
+  });
+
+  test("a tap over a stale cache shows over the seed, not over the cache", () => {
+    const { store } = setup({ stored: { ownerId: OWNER, marks: { FRA: "want" } } });
+    store.getState().startSession(OWNER);
+
+    store.getState().mark("DEU", "visited");
+
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want", DEU: "visited" });
+  });
+
+  test("the server snapshot takes over from the seed, and no cache brings the seed back", () => {
     const { store, signIn } = setup({ stored: { ownerId: OWNER, marks: { FRA: "want" } } });
     signIn(OWNER, { DEU: "visited" });
 
-    expect(store.getState().marks).toEqual({ DEU: "visited" });
-    expect(store.getState().supersedesSeed).toBe(true);
+    expect(shownOver(store, seed)).toEqual({ DEU: "visited" });
 
     store.getState().startSession(OWNER);
 
-    expect(store.getState().marks).toEqual({ DEU: "visited" });
-    expect(store.getState().supersedesSeed).toBe(true);
+    expect(shownOver(store, seed)).toEqual({ DEU: "visited" });
   });
 
   test("a failed snapshot leaves the seed in place", () => {
@@ -708,25 +733,62 @@ describe("the server seed", () => {
     store.getState().startSession(OWNER);
     store.getState().receiveSnapshot({ ok: false, ownerId: OWNER });
 
-    expect(store.getState().supersedesSeed).toBe(false);
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
   });
 
-  test("a tap before the snapshot supersedes the seed", () => {
+  test("a failed or missing seed shows the store's marks", () => {
+    const { store, signIn } = setup();
+    signIn(OWNER, { DEU: "visited" });
+
+    expect(shownOver(store, { ok: false, ownerId: OWNER })).toEqual({ DEU: "visited" });
+    expect(shownOver(store, null)).toEqual({ DEU: "visited" });
+  });
+
+  test("ending the session hides the ended owner's seed", () => {
+    const { store, signIn } = setup();
+    signIn(OWNER, { JPN: "visited" });
+
+    store.getState().endSession();
+
+    expect(shownOver(store, seed)).toEqual({});
+  });
+
+  test("ending the session before it started hides every seed", () => {
+    const { store } = setup();
+
+    store.getState().endSession();
+
+    expect(shownOver(store, seed)).toEqual({});
+  });
+
+  test("a seed for a new owner after a session end shows at once", () => {
+    const { store, signIn } = setup();
+    signIn(OWNER, { JPN: "visited" });
+    store.getState().endSession();
+
+    const nextSeed = seedFor(OTHER_OWNER, { BRA: "want" });
+
+    expect(shownOver(store, nextSeed)).toEqual({ BRA: "want" });
+  });
+
+  test("the ended owner's own seed shows again once their next session starts", () => {
+    const { store, signIn } = setup();
+    signIn(OWNER, { JPN: "visited" });
+    store.getState().endSession();
+
+    store.getState().startSession(OWNER);
+
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
+  });
+
+  test("another account's seed shows without this account's taps", () => {
     const { store } = setup();
     store.getState().startSession(OWNER);
     store.getState().mark("DEU", "visited");
 
-    expect(store.getState().marks).toEqual({ DEU: "visited" });
-    expect(store.getState().supersedesSeed).toBe(true);
-  });
+    const otherSeed = seedFor(OTHER_OWNER, { BRA: "want" });
 
-  test("ending the session supersedes the seed with no marks", () => {
-    const { store } = setup();
-    store.getState().startSession(OWNER);
-    store.getState().endSession();
-
-    expect(store.getState().marks).toEqual({});
-    expect(store.getState().supersedesSeed).toBe(true);
+    expect(shownOver(store, otherSeed)).toEqual({ BRA: "want" });
   });
 });
 
