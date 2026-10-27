@@ -68,8 +68,8 @@ const seedPlan = [
   ["not_interested", 7],
 ] as const satisfies SeedPlan<Marks[string]>;
 
-const visitedCounter = `/(?<!\\d)${visitedCount}\\s*(of|\\/)\\s*\\d/.test(document.body.textContent)`;
-const visitedFilter = `/Visited\\s*${visitedCount}(?!\\d)/.test(document.querySelector('[aria-label="Filter by status"]')?.textContent ?? "")`;
+const visitedCounter = `/(?<!\\d)${visitedCount}\\s*(of|\\/)\\s*\\d/.test(document.body.innerText)`;
+const visitedFilter = `/Visited\\s*${visitedCount}(?!\\d)/.test(document.querySelector('[aria-label="Filter by status"]')?.innerText ?? "")`;
 
 const routes = [
   { path: homePath(), expectGlobe: true, expression: visitedCounter, hasReturnFromList: true },
