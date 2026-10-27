@@ -19,7 +19,7 @@ export function ContinentSidebar({
   return (
     <nav
       aria-label="Continents"
-      className={cn("flex flex-col gap-1 rounded-3xl bg-canvas p-2.5 shadow-card", className)}
+      className={cn("flex-col gap-1 rounded-3xl bg-canvas p-2.5 shadow-card", className)}
     >
       {options.map((option) => {
         const isActive = option.continent === selectedContinent;

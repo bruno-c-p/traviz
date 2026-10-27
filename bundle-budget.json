@@ -5,23 +5,23 @@
   },
   "routes": {
     "/list": {
-      "firstLoadGzipBytes": 228430,
+      "firstLoadGzipBytes": 219711,
       "lazyGzipBytes": 0
     },
     "/": {
-      "firstLoadGzipBytes": 223717,
+      "firstLoadGzipBytes": 214993,
       "lazyGzipBytes": 517013
     },
     "/stats": {
-      "firstLoadGzipBytes": 219363,
-      "lazyGzipBytes": 0
-    },
-    "/sign-in": {
-      "firstLoadGzipBytes": 199341,
+      "firstLoadGzipBytes": 210643,
       "lazyGzipBytes": 0
     },
     "/sign-in/verify": {
       "firstLoadGzipBytes": 191947,
+      "lazyGzipBytes": 0
+    },
+    "/sign-in": {
+      "firstLoadGzipBytes": 190844,
       "lazyGzipBytes": 0
     },
     "/_not-found": {

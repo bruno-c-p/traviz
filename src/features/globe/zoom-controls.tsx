@@ -15,7 +15,7 @@ export function ZoomControls({ onZoomIn, onZoomOut, className }: ZoomControlsPro
     <div
       role="group"
       aria-label="Zoom"
-      className={cn("flex flex-col gap-1 rounded-2xl bg-canvas p-1 shadow-float", className)}
+      className={cn("flex-col gap-1 rounded-2xl bg-canvas p-1 shadow-float", className)}
     >
       <button type="button" aria-label="Zoom in" onClick={onZoomIn} className={ZOOM_BUTTON_CLASS}>
         <Plus size={18} aria-hidden />

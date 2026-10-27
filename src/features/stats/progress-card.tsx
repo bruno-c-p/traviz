@@ -53,12 +53,7 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
       )}
       <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="flex flex-wrap items-baseline gap-x-2.5 tabular-nums">
-          <span
-            className={cn(
-              "font-bold leading-[0.9] tracking-tight text-primary",
-              variantClasses.number,
-            )}
-          >
+          <span className={cn("font-bold tracking-tight text-primary", variantClasses.number)}>
             {visited}
           </span>
           <span className={cn("text-primary-neutral", variantClasses.total)}>

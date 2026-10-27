@@ -14,7 +14,7 @@ export function ClearMarkButton({ code, className }: { code: string; className?:
       type="button"
       onClick={() => clear(code)}
       className={cn(
-        "pressable min-h-11 rounded-full px-3 text-sm font-medium text-body underline underline-offset-4 hover:text-ink",
+        "pressable min-h-11 rounded-full text-sm font-medium text-body underline underline-offset-4 hover:text-ink",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink",
         className,
       )}

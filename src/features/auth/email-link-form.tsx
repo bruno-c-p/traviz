@@ -36,8 +36,8 @@ export function EmailLinkForm() {
         aria-describedby={errorMessage ? errorId : undefined}
         onChange={(event) => setEmailAddress(event.target.value)}
         className={cn(
-          "h-12 w-full rounded-full border border-line bg-canvas px-5 text-base text-ink placeholder:text-mute focus:border-ink focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60",
-          errorMessage && "border-negative focus:ring-negative",
+          "h-12 w-full rounded-full border bg-canvas px-5 text-base text-ink placeholder:text-mute focus:border-ink focus:outline-none focus:ring-2 disabled:opacity-60",
+          errorMessage ? "border-negative focus:ring-negative" : "border-line focus:ring-primary",
         )}
       />
       {errorMessage && (

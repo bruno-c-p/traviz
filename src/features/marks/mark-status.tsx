@@ -35,7 +35,7 @@ export function MarkStatus({ scope, className }: { scope: string; className?: st
 
   if (isSaving) {
     return (
-      <p role="status" className={cn("text-xs text-mute", className)}>
+      <p role="status" className={cn("text-mute", className)}>
         Saving…
       </p>
     );
@@ -46,7 +46,7 @@ export function MarkStatus({ scope, className }: { scope: string; className?: st
   return (
     <p
       role="status"
-      className={cn("flex min-w-0 items-center gap-1 text-xs text-negative-deep", className)}
+      className={cn("flex min-w-0 items-center gap-1 text-negative-deep", className)}
     >
       <span className="min-w-0 truncate">{problemText(problem)}</span>
       <button
