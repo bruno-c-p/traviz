@@ -6,6 +6,7 @@
       "name": "traviz",
       "dependencies": {
         "@clerk/nextjs": "^7.9.14",
+        "@clerk/shared": "^4.40.0",
         "@libsql/client": "^0.17.4",
         "client-only": "0.0.1",
         "clsx": "^2.1.1",

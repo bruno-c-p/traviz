@@ -34,6 +34,6 @@ Preconditions:
 - A new address logs one expected `http 422` from Clerk's `/v1/client/sign_ins` in `problems`, because no user has that address yet, and the form then sends a sign-up link. Any other Clerk error counts.
 - Clerk development returns 429 when one address submits twice in a short time. Use a new `+clerk_test` address for every submit.
 - A `+clerk_test` address never receives mail, so the full link click cannot run here. A complete email round trip needs a real inbox on the dev instance, and none is set up. Report the link click as not verified instead of faking it.
-- `prefetchUI={false}` is set, so Clerk's prebuilt UI never loads. The form is traviz's own code in `src/features/auth`.
+- `prefetchUI={false}` is set on the `ClerkProvider` in `src/app/sign-in/layout.tsx`, so Clerk's prebuilt UI never loads. The `(app)` routes have no `ClerkProvider`. They add `clerk.browser.js` themselves after the window `load` event, so `window.Clerk` is undefined there for the first moments of a hard load. The form is traviz's own code in `src/features/auth`.
 - `curl` sees only the proxy's redirect. A page-level redirect after Clerk loads needs the browser.
 - The sign-in pages no longer clear any marks storage. The marks cache is tagged with its owner, and a cached owner shows only when Clerk's `__session` cookie names the same user, so one user's cached marks never show for another. See [marks.md](marks.md).

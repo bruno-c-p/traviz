@@ -1,3 +1,4 @@
+import { KeepClerkSession } from "@/features/auth";
 import { TabBar } from "@/features/app-shell/tab-bar";
 import { TopBar } from "@/features/app-shell/top-bar";
 import { StartMarksSession } from "@/features/marks";
@@ -13,6 +14,7 @@ export async function SessionLayer() {
       <TopBar />
       <TabBar />
       <StartMarksSession snapshot={snapshot} />
+      <KeepClerkSession />
     </>
   );
 }
