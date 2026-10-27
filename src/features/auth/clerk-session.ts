@@ -23,20 +23,29 @@ type ClerkHandle = {
 
 type ClerkSessionDependencies = {
   readonly currentClerk: () => ClerkHandle | undefined;
-  readonly loadScript: () => Promise<void>;
+  readonly loadScript: (abort: AbortSignal) => Promise<void>;
   readonly afterPageLoad: (callback: () => void) => void;
+  readonly startTimer: (callback: () => void, milliseconds: number) => () => void;
+  readonly whenRecoverable: (callback: () => void) => void;
   readonly reportLoadFailure: (cause: unknown) => void;
 };
+
+export const SCRIPT_TIMEOUT_MS = 15_000;
+
+export const RETRY_DELAYS_MS = [1_000, 4_000] as const;
 
 export function createClerkSession({
   currentClerk,
   loadScript,
   afterPageLoad,
+  startTimer,
+  whenRecoverable,
   reportLoadFailure,
 }: ClerkSessionDependencies) {
   const listeners = new Set<() => void>();
   let email: string | null = null;
   let loading: Promise<ClerkHandle> | null = null;
+  let watchesRecovery = false;
 
   function follow(clerk: ClerkHandle) {
     clerk.addListener(({ user }) => {
@@ -52,8 +61,21 @@ export function createClerkSession({
     return clerk;
   }
 
-  async function loadClerk() {
-    if (currentClerk() === undefined) await loadScript();
+  function wait(milliseconds: number) {
+    return new Promise<void>((resolve) => {
+      startTimer(resolve, milliseconds);
+    });
+  }
+
+  function loadScriptWithinTimeout() {
+    const controller = new AbortController();
+    const cancelTimeout = startTimer(() => controller.abort(), SCRIPT_TIMEOUT_MS);
+
+    return loadScript(controller.signal).finally(cancelTimeout);
+  }
+
+  async function loadClerkOnce() {
+    if (currentClerk() === undefined) await loadScriptWithinTimeout();
 
     const clerk = currentClerk();
 
@@ -62,6 +84,18 @@ export function createClerkSession({
     if (!clerk.loaded) await clerk.load();
 
     return follow(clerk);
+  }
+
+  async function loadClerk(): Promise<ClerkHandle> {
+    for (const delay of RETRY_DELAYS_MS) {
+      try {
+        return await loadClerkOnce();
+      } catch {
+        await wait(delay);
+      }
+    }
+
+    return loadClerkOnce();
   }
 
   function load() {
@@ -74,7 +108,14 @@ export function createClerkSession({
   }
 
   function start() {
-    load().catch(reportLoadFailure);
+    load().catch((error: unknown) => {
+      reportLoadFailure(error);
+
+      if (watchesRecovery) return;
+
+      watchesRecovery = true;
+      whenRecoverable(start);
+    });
   }
 
   return {
@@ -114,7 +155,7 @@ export function clerkScriptUrl(publishableKey: string) {
   return `https://${frontendApi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`;
 }
 
-function loadClerkScript(publishableKey: string) {
+function loadClerkScript(publishableKey: string, abort: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
     script.src = clerkScriptUrl(publishableKey);
@@ -122,23 +163,37 @@ function loadClerkScript(publishableKey: string) {
     script.crossOrigin = "anonymous";
     script.dataset.clerkJsScript = "";
     script.dataset.clerkPublishableKey = publishableKey;
+
+    const fail = (reason: string) => {
+      script.remove();
+      reject(new Error(`${reason} ${script.src}`));
+    };
+
     script.addEventListener("load", () => resolve(), { once: true });
-    script.addEventListener(
-      "error",
-      () => {
-        script.remove();
-        reject(new Error(`Failed to load ${script.src}`));
-      },
-      { once: true },
-    );
+    script.addEventListener("error", () => fail("Failed to load"), { once: true });
+    abort.addEventListener("abort", () => fail("Timed out loading"), { once: true });
     document.body.append(script);
+  });
+}
+
+function whenRecoverable(callback: () => void) {
+  window.addEventListener("online", callback);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") callback();
   });
 }
 
 export const clerkSession = createClerkSession({
   currentClerk: () => window.Clerk,
-  loadScript: () => loadClerkScript(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? ""),
+  loadScript: (abort) =>
+    loadClerkScript(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "", abort),
   afterPageLoad,
+  startTimer: (callback, milliseconds) => {
+    const timer = setTimeout(callback, milliseconds);
+
+    return () => clearTimeout(timer);
+  },
+  whenRecoverable,
   reportLoadFailure: (cause: unknown) => {
     console.error(cause);
   },
