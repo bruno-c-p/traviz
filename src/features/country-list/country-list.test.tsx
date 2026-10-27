@@ -13,7 +13,7 @@ function rowGroup(html: string, countryName: string): string {
 }
 
 describe("the /list server render", () => {
-  test("the shell holds the list chrome and the rows' height, then every row streams with the seed's marks", async () => {
+  test("the shell holds the list chrome and the rows' height, then the first rows stream with the seed's marks and the rest keep their height", async () => {
     const seed = Promise.withResolvers<{ ok: true; ownerId: string; marks: Marks }>();
 
     const stream = await renderToReadableStream(
@@ -34,7 +34,7 @@ describe("the /list server render", () => {
     seed.resolve({
       ok: true,
       ownerId: "user_a",
-      marks: { JPN: "visited", FRA: "visited", BRA: "visited", PER: "want" },
+      marks: { DZA: "visited", JPN: "visited", FRA: "visited", AGO: "want" },
     });
 
     let streamed = "";
@@ -55,10 +55,14 @@ describe("the /list server render", () => {
     expect(shell).not.toContain('aria-label="Mark ');
     expect(shell).toContain(`height:${countries.length * 60 + continentCount * 40}px`);
 
-    expect(streamed.match(/aria-label="Mark /g)?.length).toBe(countries.length);
-    expect(rowGroup(streamed, "Japan")).toContain('aria-pressed="true" aria-label="Visited"');
-    expect(rowGroup(streamed, "Peru")).toContain('aria-pressed="true" aria-label="Want to go"');
-    expect(rowGroup(streamed, "Germany")).not.toContain('aria-pressed="true"');
+    const africanCount = countries.filter((country) => country.continent === "Africa").length;
+
+    expect(streamed.match(/aria-label="Mark /g)?.length).toBe(20);
+    expect(rowGroup(streamed, "Algeria")).toContain('aria-pressed="true" aria-label="Visited"');
+    expect(rowGroup(streamed, "Angola")).toContain('aria-pressed="true" aria-label="Want to go"');
+    expect(rowGroup(streamed, "Benin")).not.toContain('aria-pressed="true"');
+    expect(rowGroup(streamed, "Japan")).toBe("");
+    expect(streamed).toContain(`height:${(africanCount - 20) * 60}px`);
     expect(streamed).toMatch(/Visited<span[^>]*>3<\/span>/);
   });
 });

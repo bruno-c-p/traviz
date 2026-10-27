@@ -1,6 +1,6 @@
 # Country list
 
-The `/list` page lists all 250 countries and territories, grouped by continent, with a three-way mark switch on each row. The user narrows the list by continent, by mark status and by name. The server renders every row, and rows off screen skip layout and paint through `content-visibility: auto`.
+The `/list` page lists all 250 countries and territories, grouped by continent, with a three-way mark switch on each row. The user narrows the list by continent, by mark status and by name. The server renders the first 20 rows and a spacer as tall as the rest, and the browser renders the rest right after hydration. Rows off screen skip layout and paint through `content-visibility: auto`.
 
 ## Sub-features
 
@@ -30,7 +30,7 @@ Preconditions:
 ## Gotchas
 
 - `bun run verify:shots --route /list` logs a cut at 4000 px at every width. That is expected, because 250 rows are taller than the cap.
-- Every row is in the DOM, but a row far off screen is not laid out until it nears the viewport. Search or scroll to it before you click it.
+- After hydration every row is in the DOM, but a row far off screen is not laid out until it nears the viewport. Search or scroll to it before you click it.
 - The list counts territories. The sidebar shows `Africa 0 / 59`, while the `/stats` card shows `Africa 0 / 54`. Both are correct.
 - Territory rows show a `Territory` tag. They can be marked like countries.
 - `Search countries` only filters the list. It does not set a globe fly-to. The globe's search is the `Find a country` combobox on `/`.

@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { ClearMarkButton, MarkChoices, MarkStatus } from "@/features/marks";
 import { CountryHeading } from "@/features/countries";
 import { useDraggableSheet } from "@/features/globe/use-draggable-sheet";
-import { useIsClient } from "@/features/globe/use-is-client";
+import { useIsClient } from "@/shared/use-is-client";
 import type { Country } from "@/features/countries";
 
 export function CountrySheet({ country }: { country: Country }) {
