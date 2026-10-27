@@ -110,11 +110,13 @@ function createHarness({
   const clock = createFakeClock();
   let scriptRan = alreadyLoaded;
   let scriptBehaviour: ScriptBehaviour = "runs";
+  const attempts: number[] = [];
 
   const session = createClerkSession({
     currentClerk: () => (scriptRan ? fake.clerk : undefined),
-    loadScript: (abort) => {
+    loadScript: (attempt, abort) => {
       events.push("loadScript");
+      attempts.push(attempt);
 
       if (scriptBehaviour === "fails") return Promise.reject(new Error("offline"));
 
@@ -160,6 +162,7 @@ function createHarness({
       await flush();
     },
     recoveryWatchers: () => recoveryCallbacks.length,
+    attempts,
   };
 }
 
@@ -244,6 +247,19 @@ describe("loading clerk-js", () => {
     await harness.advance(RETRY_DELAYS_MS[0]);
 
     expect(harness.events).toEqual(["loadScript", "script removed", "loadScript", "load"]);
+  });
+
+  test("every script attempt, recoveries included, is numbered apart so none reuses a stalled request", async () => {
+    const harness = createHarness();
+    harness.setScript("fails");
+
+    harness.session.loadAfterPage();
+    harness.finishPageLoad();
+    await harness.advance(ALL_RETRIES_MS);
+    harness.setScript("runs");
+    await harness.recover();
+
+    expect(harness.attempts).toEqual(Array.from({ length: ATTEMPTS + 1 }, (_, index) => index + 1));
   });
 
   test("when every attempt fails, the failure is reported once and coming back loads Clerk", async () => {

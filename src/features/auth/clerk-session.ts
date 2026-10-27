@@ -23,7 +23,7 @@ type ClerkHandle = {
 
 type ClerkSessionDependencies = {
   readonly currentClerk: () => ClerkHandle | undefined;
-  readonly loadScript: (abort: AbortSignal) => Promise<void>;
+  readonly loadScript: (attempt: number, abort: AbortSignal) => Promise<void>;
   readonly afterPageLoad: (callback: () => void) => void;
   readonly startTimer: (callback: () => void, milliseconds: number) => () => void;
   readonly whenRecoverable: (callback: () => void) => void;
@@ -46,6 +46,7 @@ export function createClerkSession({
   let email: string | null = null;
   let loading: Promise<ClerkHandle> | null = null;
   let watchesRecovery = false;
+  let scriptAttempts = 0;
 
   function follow(clerk: ClerkHandle) {
     clerk.addListener(({ user }) => {
@@ -70,8 +71,9 @@ export function createClerkSession({
   function loadScriptWithinTimeout() {
     const controller = new AbortController();
     const cancelTimeout = startTimer(() => controller.abort(), SCRIPT_TIMEOUT_MS);
+    scriptAttempts += 1;
 
-    return loadScript(controller.signal).finally(cancelTimeout);
+    return loadScript(scriptAttempts, controller.signal).finally(cancelTimeout);
   }
 
   async function loadClerkOnce() {
@@ -155,10 +157,11 @@ export function clerkScriptUrl(publishableKey: string) {
   return `https://${frontendApi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`;
 }
 
-function loadClerkScript(publishableKey: string, abort: AbortSignal) {
+function loadClerkScript(publishableKey: string, attempt: number, abort: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = clerkScriptUrl(publishableKey);
+    const url = clerkScriptUrl(publishableKey);
+    script.src = attempt === 1 ? url : `${url}?attempt=${attempt}`;
     script.async = true;
     script.crossOrigin = "anonymous";
     script.dataset.clerkJsScript = "";
@@ -185,8 +188,8 @@ function whenRecoverable(callback: () => void) {
 
 export const clerkSession = createClerkSession({
   currentClerk: () => window.Clerk,
-  loadScript: (abort) =>
-    loadClerkScript(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "", abort),
+  loadScript: (attempt, abort) =>
+    loadClerkScript(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "", attempt, abort),
   afterPageLoad,
   startTimer: (callback, milliseconds) => {
     const timer = setTimeout(callback, milliseconds);
