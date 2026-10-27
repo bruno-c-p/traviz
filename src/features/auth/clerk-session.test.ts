@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { clerkJSScriptUrl } from "@clerk/shared/loadClerkJsScript";
-import { clerkScriptUrl, createClerkSession } from "@/features/auth/clerk-session";
+import {
+  clerkScriptUrl,
+  createClerkSession,
+  RETRY_DELAYS_MS,
+  SCRIPT_TIMEOUT_MS,
+} from "@/features/auth/clerk-session";
 
 type FakeUser = { readonly primaryEmailAddress: { readonly emailAddress: string } | null };
 
@@ -55,6 +60,44 @@ function createFakeClerk(events: string[], initialUser: FakeUser | null, loaded:
   };
 }
 
+type ScriptBehaviour = "runs" | "fails" | "stalls";
+
+function createFakeClock() {
+  const timers: { at: number; callback: () => void; live: boolean }[] = [];
+  let now = 0;
+
+  const startTimer = (callback: () => void, milliseconds: number) => {
+    const timer = { at: now + milliseconds, callback, live: true };
+    timers.push(timer);
+
+    return () => {
+      timer.live = false;
+    };
+  };
+
+  const advance = async (milliseconds: number) => {
+    const until = now + milliseconds;
+
+    for (;;) {
+      await flush();
+
+      const due = timers
+        .filter((timer) => timer.live && timer.at <= until)
+        .toSorted((left, right) => left.at - right.at)[0];
+
+      if (due === undefined) break;
+
+      now = due.at;
+      due.live = false;
+      due.callback();
+    }
+
+    now = until;
+  };
+
+  return { startTimer, advance };
+}
+
 function createHarness({
   alreadyLoaded = false,
   user = userWithEmail("ada@example.com"),
@@ -62,21 +105,40 @@ function createHarness({
   const events: string[] = [];
   const failures: unknown[] = [];
   const pageLoadCallbacks: (() => void)[] = [];
+  const recoveryCallbacks: (() => void)[] = [];
   const fake = createFakeClerk(events, user, alreadyLoaded);
+  const clock = createFakeClock();
   let scriptRan = alreadyLoaded;
-  let scriptFailure: Error | null = null;
+  let scriptBehaviour: ScriptBehaviour = "runs";
+  const attempts: number[] = [];
 
   const session = createClerkSession({
     currentClerk: () => (scriptRan ? fake.clerk : undefined),
-    loadScript: async () => {
+    loadScript: (attempt, abort) => {
       events.push("loadScript");
+      attempts.push(attempt);
 
-      if (scriptFailure) throw scriptFailure;
+      if (scriptBehaviour === "fails") return Promise.reject(new Error("offline"));
+
+      if (scriptBehaviour === "stalls") {
+        return new Promise((_resolve, reject) => {
+          abort.addEventListener("abort", () => {
+            events.push("script removed");
+            reject(new Error("timed out"));
+          });
+        });
+      }
 
       scriptRan = true;
+
+      return Promise.resolve();
     },
     afterPageLoad: (callback) => {
       pageLoadCallbacks.push(callback);
+    },
+    startTimer: clock.startTimer,
+    whenRecoverable: (callback) => {
+      recoveryCallbacks.push(callback);
     },
     reportLoadFailure: (cause) => {
       failures.push(cause);
@@ -88,14 +150,24 @@ function createHarness({
     events,
     failures,
     fake,
+    advance: clock.advance,
     finishPageLoad: () => {
       for (const callback of pageLoadCallbacks.splice(0)) callback();
     },
-    failScript: (error: Error | null) => {
-      scriptFailure = error;
+    setScript: (behaviour: ScriptBehaviour) => {
+      scriptBehaviour = behaviour;
     },
+    recover: async () => {
+      for (const callback of recoveryCallbacks) callback();
+      await flush();
+    },
+    recoveryWatchers: () => recoveryCallbacks.length,
+    attempts,
   };
 }
+
+const ALL_RETRIES_MS = RETRY_DELAYS_MS.reduce((total, delay) => total + delay, 0);
+const ATTEMPTS = RETRY_DELAYS_MS.length + 1;
 
 describe("loading clerk-js", () => {
   test("nothing loads until the page has finished loading", async () => {
@@ -135,21 +207,109 @@ describe("loading clerk-js", () => {
     expect(harness.session.email()).toBe("ada@example.com");
   });
 
-  test("a failed load is reported and the next request tries again", async () => {
+  test("a dropped script is tried again after a backoff, and the retry loads Clerk once", async () => {
     const harness = createHarness();
-    const outage = new Error("offline");
-    harness.failScript(outage);
+    harness.setScript("fails");
 
     harness.session.loadAfterPage();
     harness.finishPageLoad();
     await flush();
 
-    expect(harness.failures).toEqual([outage]);
+    expect(harness.events).toEqual(["loadScript"]);
 
-    harness.failScript(null);
+    harness.setScript("runs");
+    await harness.advance(RETRY_DELAYS_MS[0] - 1);
+
+    expect(harness.events).toEqual(["loadScript"]);
+
+    await harness.advance(1);
+
+    expect(harness.events).toEqual(["loadScript", "loadScript", "load"]);
+    expect(harness.failures).toEqual([]);
+    expect(harness.session.email()).toBe("ada@example.com");
+  });
+
+  test("a script that stalls times out after 15 s, loses its tag and is tried again", async () => {
+    const harness = createHarness();
+    harness.setScript("stalls");
+
+    harness.session.loadAfterPage();
+    harness.finishPageLoad();
+    await harness.advance(SCRIPT_TIMEOUT_MS - 1);
+
+    expect(harness.events).toEqual(["loadScript"]);
+
+    harness.setScript("runs");
+    await harness.advance(1);
+
+    expect(harness.events).toEqual(["loadScript", "script removed"]);
+
+    await harness.advance(RETRY_DELAYS_MS[0]);
+
+    expect(harness.events).toEqual(["loadScript", "script removed", "loadScript", "load"]);
+  });
+
+  test("every script attempt, recoveries included, is numbered apart so none reuses a stalled request", async () => {
+    const harness = createHarness();
+    harness.setScript("fails");
+
+    harness.session.loadAfterPage();
+    harness.finishPageLoad();
+    await harness.advance(ALL_RETRIES_MS);
+    harness.setScript("runs");
+    await harness.recover();
+
+    expect(harness.attempts).toEqual(Array.from({ length: ATTEMPTS + 1 }, (_, index) => index + 1));
+  });
+
+  test("when every attempt fails, the failure is reported once and coming back loads Clerk", async () => {
+    const harness = createHarness();
+    harness.setScript("fails");
+
+    harness.session.loadAfterPage();
+    harness.finishPageLoad();
+    await harness.advance(ALL_RETRIES_MS);
+
+    expect(harness.events).toEqual(Array.from({ length: ATTEMPTS }, () => "loadScript"));
+    expect(harness.failures).toHaveLength(1);
+
+    harness.setScript("runs");
+    await harness.recover();
+
+    expect(harness.events.slice(ATTEMPTS)).toEqual(["loadScript", "load"]);
+    expect(harness.session.email()).toBe("ada@example.com");
+
+    await harness.recover();
+
+    expect(harness.events.slice(ATTEMPTS)).toEqual(["loadScript", "load"]);
+  });
+
+  test("a recovery that fails again reports again without watching twice", async () => {
+    const harness = createHarness();
+    harness.setScript("fails");
+
+    harness.session.loadAfterPage();
+    harness.finishPageLoad();
+    await harness.advance(ALL_RETRIES_MS);
+    await harness.recover();
+    await harness.advance(ALL_RETRIES_MS);
+
+    expect(harness.failures).toHaveLength(2);
+    expect(harness.recoveryWatchers()).toBe(1);
+  });
+
+  test("a request during a failed load tries again", async () => {
+    const harness = createHarness();
+    harness.setScript("fails");
+
+    harness.session.loadAfterPage();
+    harness.finishPageLoad();
+    await harness.advance(ALL_RETRIES_MS);
+
+    harness.setScript("runs");
     await harness.session.signOut("/sign-in", () => {});
 
-    expect(harness.events).toEqual(["loadScript", "loadScript", "load", "signOut /sign-in"]);
+    expect(harness.events.slice(ATTEMPTS)).toEqual(["loadScript", "load", "signOut /sign-in"]);
   });
 });
 
@@ -209,6 +369,31 @@ describe("signing out", () => {
     await harness.session.signOut("/sign-in", () => harness.events.push("endMarksSession"));
 
     expect(harness.events).toEqual(["loadScript", "load", "signOut /sign-in", "endMarksSession"]);
+  });
+
+  test("a sign-out while the script stalls fails once every attempt times out", async () => {
+    const harness = createHarness();
+    harness.setScript("stalls");
+    let outcome = "waiting";
+
+    void harness.session
+      .signOut("/sign-in", () => harness.events.push("endMarksSession"))
+      .then(
+        () => {
+          outcome = "signed out";
+        },
+        () => {
+          outcome = "failed";
+        },
+      );
+    await harness.advance(ATTEMPTS * SCRIPT_TIMEOUT_MS + ALL_RETRIES_MS - 1);
+
+    expect(outcome).toBe("waiting");
+
+    await harness.advance(1);
+
+    expect(outcome).toBe("failed");
+    expect(harness.events).not.toContain("endMarksSession");
   });
 
   test("a failed sign-out rejects and keeps the marks session", async () => {

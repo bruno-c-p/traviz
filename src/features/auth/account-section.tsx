@@ -11,15 +11,18 @@ import { useAccountEmail } from "@/features/auth/use-account-email";
 export function AccountSection({ className }: { className?: string }) {
   const email = useAccountEmail();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutFailed, setSignOutFailed] = useState(false);
 
   async function handleSignOut() {
     if (isSigningOut) return;
     setIsSigningOut(true);
+    setSignOutFailed(false);
 
     try {
       await clerkSession.signOut(signInPath(), endMarksSession);
     } catch {
       setIsSigningOut(false);
+      setSignOutFailed(true);
     }
   }
 
@@ -50,6 +53,11 @@ export function AccountSection({ className }: { className?: string }) {
           {isSigningOut ? "Signing out…" : "Sign out"}
         </button>
       </div>
+      {signOutFailed && (
+        <p role="alert" className="text-sm text-negative-deep">
+          Couldn't sign out. Check your connection and try again.
+        </p>
+      )}
       <MarkStatus scope="all-marks" className="text-sm" />
       <MarkStatus scope="snapshot" className="text-sm" />
     </section>

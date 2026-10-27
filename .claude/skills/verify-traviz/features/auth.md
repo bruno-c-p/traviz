@@ -26,7 +26,7 @@ Preconditions:
 - **Gate, signed in.** After `signIn(page, baseUrl)`, run `page.goto(baseUrl + "/sign-in")`. The page ends on `/`.
 - **Form.** In a fresh context, open `/sign-in` and wait for `window.Clerk?.loaded`. Fill `page.getByRole("textbox", { name: "Email" })` with `verify-<Date.now()>+clerk_test@example.com` and click `Continue with email`. The button reads `Sending link…` for about 4 s, so `settle` is too short. Wait for the text instead, with `page.getByText("We sent a sign-in link to").waitFor({ timeout: 20_000 })`. The address appears with it. `Use a different email` brings the form back with the address still filled in.
 - **Verify page.** Open `/sign-in/verify` with no link parameters. After Clerk loads, the heading reads `We couldn't verify this link` and a `Get a new link` link points to `/sign-in`.
-- **Sign out.** Signed in, open `/stats#account`. The section shows `agent+clerk_test@example.com`. Click `Sign out`. The button reads `Signing out…`, then the page lands on `/sign-in`. `localStorage.getItem("traviz-marks-v2")` is `null` there, because sign-out clears the marks cache once Clerk's sign-out resolves.
+- **Sign out.** Signed in, open `/stats#account`. The section shows `agent+clerk_test@example.com`. Click `Sign out`. The button reads `Signing out…`, then the page lands on `/sign-in`. `localStorage.getItem("traviz-marks-v2")` is `null` there, because sign-out clears the marks cache once Clerk's sign-out resolves. When the sign-out fails, the button returns to `Sign out` and an alert reads `Couldn't sign out. Check your connection and try again.`
 - **Ticket sign-in.** `signIn` in `@/shared/testing/verify/browser` signs in without email. Use it for every journey that only needs a session.
 
 ## Gotchas

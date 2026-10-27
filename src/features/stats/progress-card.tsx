@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { STATE_COLORS, tallyMarks, useMarks } from "@/features/marks";
+import { STATE_COLORS, tallyMarks, useHasMarksSeed, useMarks } from "@/features/marks";
 import { countries } from "@/features/countries";
 import { visitedProgress } from "@/features/stats/visited-progress";
 import { cn } from "@/shared/cn";
@@ -40,6 +40,7 @@ type ProgressCardProps = {
 
 export function ProgressCard({ variant, className }: ProgressCardProps) {
   const marks = useMarks();
+  const hasMarksSeed = useHasMarksSeed();
   const { visited, total, percent } = visitedProgress(marks);
   const allEntries = tallyMarks(countries, marks);
   const variantClasses = VARIANT_CLASSES[variant];
@@ -117,7 +118,9 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
     return (
       <Link
         href={statsPath()}
-        aria-label={`${visited} of ${total} countries visited. See all stats`}
+        aria-label={
+          hasMarksSeed ? `${visited} of ${total} countries visited. See all stats` : "See all stats"
+        }
         className={cn(
           containerClassName,
           "pressable shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",

@@ -7,6 +7,7 @@ import { CountrySearch } from "@/features/globe/country-search";
 import { CountrySheet } from "@/features/globe/country-sheet";
 import { GlobeHint } from "@/features/globe/globe-hint";
 import { MapLegend } from "@/features/globe/map-legend";
+import { MarksBoundary } from "@/features/marks";
 import { ProgressCard } from "@/features/stats";
 import { COUNTRIES_BY_CODE } from "@/features/countries";
 import { useSelectedCountryStore } from "@/features/globe/selected-country";
@@ -39,8 +40,16 @@ export function GlobeOverlay() {
         aria-label="Globe details"
         className="pointer-events-auto fixed right-6 top-[88px] z-30 hidden max-h-[calc(100dvh-112px)] w-[340px] flex-col gap-4 overflow-y-auto md:flex lg:w-[380px]"
       >
-        {country ? <CountryCard country={country} /> : <GlobeHint />}
-        <ProgressCard variant="panel" />
+        {country ? (
+          <MarksBoundary>
+            <CountryCard country={country} />
+          </MarksBoundary>
+        ) : (
+          <GlobeHint />
+        )}
+        <MarksBoundary>
+          <ProgressCard variant="panel" />
+        </MarksBoundary>
       </aside>
 
       <MapLegend className="pointer-events-auto fixed bottom-10 left-6 z-30 hidden md:flex" />
@@ -49,10 +58,16 @@ export function GlobeOverlay() {
         className="pointer-events-auto fixed inset-x-4 z-30 md:hidden"
         style={{ bottom: "calc(max(1rem, env(safe-area-inset-bottom)) + 84px)" }}
       >
-        <ProgressCard variant="peek" />
+        <MarksBoundary>
+          <ProgressCard variant="peek" />
+        </MarksBoundary>
       </div>
 
-      {country && <CountrySheet country={country} />}
+      {country && (
+        <MarksBoundary>
+          <CountrySheet country={country} />
+        </MarksBoundary>
+      )}
     </>
   );
 }
