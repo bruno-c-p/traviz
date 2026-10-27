@@ -7,12 +7,14 @@ const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-instrument-sans",
+  preload: false,
 });
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-geist-mono",
+  preload: false,
 });
 
 export const metadata: Metadata = {
