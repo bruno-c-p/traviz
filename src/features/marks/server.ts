@@ -1,3 +1,3 @@
 import "server-only";
 
-export { MarksSession } from "@/features/marks/marks-session";
+export { loadSessionMarks } from "@/features/marks/session-marks";

@@ -15,7 +15,7 @@ export function ContinentCard({ pool, marks }: ContinentCardProps) {
     <article className="flex flex-col gap-3.5 rounded-3xl bg-canvas p-5 shadow-card">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-lg font-semibold text-ink">{pool.continent}</h3>
-        <span className="font-mono text-[13px] tabular-nums text-mute">
+        <span className="mark-count font-mono text-[13px] tabular-nums text-mute">
           {tally.visited} / {denominator}
         </span>
       </div>
@@ -30,7 +30,7 @@ export function ContinentCard({ pool, marks }: ContinentCardProps) {
           />
         ))}
       </div>
-      <p className="text-[13px] text-body">
+      <p className="mark-count text-[13px] text-body">
         {pool.isTerritoriesOnly
           ? "Territories only, not part of the 195 headline."
           : `${tally.want} on the wish list · ${tally.unmarked} unmarked`}

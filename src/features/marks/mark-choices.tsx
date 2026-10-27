@@ -10,7 +10,7 @@ import {
 import type { CountryState } from "@/features/marks/colors";
 import { STATE_ICONS } from "@/features/marks/state-icons";
 import { cn } from "@/shared/cn";
-import { useCountriesStore } from "@/features/marks/marks-store";
+import { useMarkToggle } from "@/features/marks/use-marks";
 
 const TILE_LABELS: Record<CountryState, string> = {
   visited: "Visited",
@@ -25,8 +25,7 @@ type MarkChoicesProps = {
 };
 
 export function MarkChoices({ code, countryName, layout }: MarkChoicesProps) {
-  const currentState = useCountriesStore((state) => state.marks[code]);
-  const toggle = useCountriesStore((state) => state.toggle);
+  const { shown, toggle } = useMarkToggle(code);
   const isTiles = layout === "tiles";
 
   return (
@@ -37,7 +36,7 @@ export function MarkChoices({ code, countryName, layout }: MarkChoicesProps) {
     >
       {COUNTRY_STATES.map((countryState) => {
         const Icon = STATE_ICONS[countryState];
-        const isActive = currentState === countryState;
+        const isActive = shown === countryState;
         const fill = STATE_COLORS[countryState];
         const onFill = STATE_ON_COLORS[countryState];
 
@@ -47,7 +46,7 @@ export function MarkChoices({ code, countryName, layout }: MarkChoicesProps) {
             type="button"
             aria-pressed={isActive}
             aria-label={isTiles ? STATE_LABELS[countryState] : undefined}
-            onClick={() => toggle(code, countryState)}
+            onClick={() => toggle(countryState)}
             style={isActive ? { backgroundColor: fill, color: onFill } : undefined}
             className={cn(
               "rounded-[18px] font-semibold pressable",

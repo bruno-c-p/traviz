@@ -50,6 +50,12 @@
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+@utility mark-count {
+  [data-marks-pending] & {
+    visibility: hidden;
+  }
+}
+
 @utility pressable {
   transition-property: color, background-color, border-color, scale;
   transition-duration: 160ms;

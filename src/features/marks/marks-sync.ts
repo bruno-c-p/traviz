@@ -90,17 +90,8 @@ export function visibleMarks(state: MarksSyncState): Marks {
   return foldChanges(baseMarks(state.base), state.pending);
 }
 
-type MarksThenable = {
-  readonly then: (onLoaded: (marks: Marks) => void, onFailed: (cause: unknown) => void) => void;
-};
-
-export function snapshotFromMarks(ownerId: string, marks: MarksThenable): Promise<MarksSnapshot> {
-  return new Promise((resolve) => {
-    marks.then(
-      (loaded) => resolve({ ok: true, ownerId, marks: loaded }),
-      () => resolve({ ok: false, ownerId }),
-    );
-  });
+export function supersedesSeed(state: MarksSyncState): boolean {
+  return state.base.source === "server" || state.pending.length > 0 || state.sessionEnded;
 }
 
 export function changeScope(change: MarkChange): string {

@@ -4,16 +4,16 @@
     "minBytes": 1024
   },
   "routes": {
-    "/list": {
-      "firstLoadGzipBytes": 219711,
-      "lazyGzipBytes": 0
-    },
     "/": {
-      "firstLoadGzipBytes": 214993,
+      "firstLoadGzipBytes": 215200,
       "lazyGzipBytes": 517013
     },
     "/stats": {
-      "firstLoadGzipBytes": 210643,
+      "firstLoadGzipBytes": 210858,
+      "lazyGzipBytes": 0
+    },
+    "/list": {
+      "firstLoadGzipBytes": 210929,
       "lazyGzipBytes": 0
     },
     "/sign-in/verify": {
