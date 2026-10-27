@@ -71,26 +71,24 @@ function probeSource(readyProbes: ReadyProbe[]): string {
     const marks = {};
     Object.defineProperty(window, "__perfMarks", { value: marks });
     const drawWatchers = new Set();
-    const contexts = [WebGLRenderingContext, WebGL2RenderingContext].map((context) => ({
-      prototype: context.prototype,
-      drawArrays: context.prototype.drawArrays,
-      drawElements: context.prototype.drawElements,
-    }));
-    const onDraw = () => {
+    const drawMethods = [
+      [WebGLRenderingContext, ["drawArrays", "drawElements"]],
+      [WebGL2RenderingContext, ["drawArrays", "drawElements"]],
+      [CanvasRenderingContext2D, ["fill", "stroke"]],
+    ].flatMap(([context, names]) =>
+      names.map((name) => ({ prototype: context.prototype, name, original: context.prototype[name] })),
+    );
+    const onDraw = (canvas) => {
+      if (!canvas.isConnected) return;
       const now = performance.now();
       for (const watcher of drawWatchers) if (watcher(now)) drawWatchers.delete(watcher);
       if (drawWatchers.size > 0) return;
-      for (const { prototype, drawArrays, drawElements } of contexts) {
-        prototype.drawArrays = drawArrays;
-        prototype.drawElements = drawElements;
-      }
+      for (const { prototype, name, original } of drawMethods) prototype[name] = original;
     };
     const watchDraws = (watcher) => {
       if (drawWatchers.size === 0)
-        for (const { prototype, drawArrays, drawElements } of contexts) {
-          prototype.drawArrays = function (...args) { onDraw(); return drawArrays.apply(this, args); };
-          prototype.drawElements = function (...args) { onDraw(); return drawElements.apply(this, args); };
-        }
+        for (const { prototype, name, original } of drawMethods)
+          prototype[name] = function (...args) { onDraw(this.canvas); return original.apply(this, args); };
       drawWatchers.add(watcher);
     };
     watchDraws((now) => {

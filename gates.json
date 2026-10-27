@@ -247,7 +247,10 @@
       "files": [
         "src/features/marks/marks-sync.ts",
         "src/features/marks/marks-owner.ts",
-        "src/features/marks/tally.ts"
+        "src/features/marks/tally.ts",
+        "src/features/globe/globe-camera.ts",
+        "src/features/globe/globe-gestures.ts",
+        "src/features/globe/globe-labels.ts"
       ]
     }
   },
@@ -263,7 +266,7 @@
     "check:gates": "bun scripts/check-gates.ts",
     "check:docs": "bun scripts/check-docs.ts",
     "check:bundle": "bun scripts/check-bundle.ts",
-    "check": "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run gen:countries --check && bun run test && bun run test:rules && NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k NEXT_PUBLIC_MAPBOX_TOKEN=pk.check-bundle TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && bun run check:bundle"
+    "check": "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run gen:countries --check && bun run test && bun run test:rules && NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && bun run check:bundle"
   },
   "devEngines": {
     "packageManager": {
@@ -278,24 +281,24 @@
       "minBytes": 1024
     },
     "routes": {
-      "/list": {
-        "firstLoadGzipBytes": 219737,
-        "lazyGzipBytes": 0
-      },
       "/": {
-        "firstLoadGzipBytes": 224015,
-        "lazyGzipBytes": 517013
+        "firstLoadGzipBytes": 213189,
+        "lazyGzipBytes": 65906
       },
       "/stats": {
-        "firstLoadGzipBytes": 219671,
+        "firstLoadGzipBytes": 210818,
         "lazyGzipBytes": 0
       },
-      "/sign-in": {
-        "firstLoadGzipBytes": 199341,
+      "/list": {
+        "firstLoadGzipBytes": 210510,
         "lazyGzipBytes": 0
       },
       "/sign-in/verify": {
         "firstLoadGzipBytes": 191947,
+        "lazyGzipBytes": 0
+      },
+      "/sign-in": {
+        "firstLoadGzipBytes": 190844,
         "lazyGzipBytes": 0
       },
       "/_not-found": {

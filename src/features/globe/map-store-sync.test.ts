@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { countries, searchCountries } from "@/features/countries";
+import type { Marks } from "@/features/marks";
+import { useCountriesStore } from "@/features/marks";
 import { createGlobeSpin } from "@/features/globe/map-spin";
 import type { SpinnableMap } from "@/features/globe/map-spin";
 import { bindStoreSync } from "@/features/globe/map-store-sync";
@@ -8,15 +10,23 @@ import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
 function recordingMap() {
   const flights: [number, number][] = [];
+  const paintedMarks: Marks[] = [];
+  const outlinedCodes: (string | null)[] = [];
+  const clickListeners: Array<(code: string) => void> = [];
 
   const map: SyncedMap = {
-    setPaintProperty: () => undefined,
-    setFilter: () => undefined,
+    setMarks: (marks) => paintedMarks.push(marks),
+    setSelectedCode: (code) => outlinedCodes.push(code),
+    onCountryClick: (listener) => clickListeners.push(listener),
     flyTo: (options) => flights.push(options.center),
     getZoom: () => 1.4,
   };
 
-  return { map, flights };
+  function clickCountry(code: string) {
+    for (const listener of clickListeners) listener(code);
+  }
+
+  return { map, flights, paintedMarks, outlinedCodes, clickCountry };
 }
 
 function spinningGlobe() {
@@ -28,13 +38,14 @@ function spinningGlobe() {
 
   const map = {
     getCenter: () => ({ ...center }),
-    jumpTo: (options: { center: { lng: number; lat: number } }) => {
-      center = { ...options.center };
+    jumpTo: (options: { center: [number, number] }) => {
+      center = { lng: options.center[0], lat: options.center[1] };
       cameraMoves.push("spin");
     },
-    on: () => undefined,
-    setPaintProperty: () => undefined,
-    setFilter: () => undefined,
+    onUserInteraction: () => undefined,
+    setMarks: () => undefined,
+    setSelectedCode: () => undefined,
+    onCountryClick: () => undefined,
     flyTo: (options: { center: [number, number] }) => {
       center = { lng: options.center[0], lat: options.center[1] };
       cameraMoves.push("fly");
@@ -71,7 +82,7 @@ function spinningGlobe() {
   function loadStyle() {
     spin.start();
 
-    return bindStoreSync(map, {}, spin.stop);
+    return bindStoreSync(map, spin.stop);
   }
 
   return { cameraMoves, runFrames, loadStyle, center: () => [center.lng, center.lat] };
@@ -85,14 +96,56 @@ function searchAndChoose(query: string, code: string) {
   useSelectedCountryStore.getState().selectAndFly(match.code);
 }
 
-describe("globe search fly-to", () => {
-  beforeEach(() => {
-    useSelectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
+beforeEach(() => {
+  useCountriesStore.setState({ marks: {} });
+  useSelectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
+});
+
+describe("globe colours and outline", () => {
+  test("paints the current marks when it binds and again when they change", () => {
+    const { map, paintedMarks } = recordingMap();
+
+    useCountriesStore.setState({ marks: { FRA: "visited" } });
+
+    const unbind = bindStoreSync(map, () => undefined);
+
+    useCountriesStore.setState({ marks: { FRA: "visited", JPN: "want" } });
+    unbind();
+    useCountriesStore.setState({ marks: {} });
+
+    expect(paintedMarks).toEqual([{ FRA: "visited" }, { FRA: "visited", JPN: "want" }]);
   });
 
+  test("outlines the selected country and clears the outline when the selection closes", () => {
+    const { map, outlinedCodes } = recordingMap();
+    const unbind = bindStoreSync(map, () => undefined);
+
+    useSelectedCountryStore.getState().select("BEL");
+    useSelectedCountryStore.getState().clearSelection();
+    unbind();
+
+    expect(outlinedCodes).toEqual([null, "BEL", null]);
+  });
+
+  test("a click on a country selects it without flying", () => {
+    const { map, flights, clickCountry } = recordingMap();
+    const unbind = bindStoreSync(map, () => undefined);
+
+    clickCountry("UNK");
+    unbind();
+
+    expect(useSelectedCountryStore.getState()).toMatchObject({
+      selectedCode: "UNK",
+      pendingFlyCode: null,
+    });
+    expect(flights).toEqual([]);
+  });
+});
+
+describe("globe search fly-to", () => {
   test("choosing any entry from a search of its name flies the globe to its center", () => {
     const { map, flights } = recordingMap();
-    const unbind = bindStoreSync(map, {}, () => undefined);
+    const unbind = bindStoreSync(map, () => undefined);
 
     const missedCenter = countries.flatMap((country) => {
       const flightsBefore = flights.length;
@@ -116,7 +169,7 @@ describe("globe search fly-to", () => {
 
   test("searching united s and choosing the Minor Outlying Islands flies there", () => {
     const { map, flights } = recordingMap();
-    const unbind = bindStoreSync(map, {}, () => undefined);
+    const unbind = bindStoreSync(map, () => undefined);
 
     searchAndChoose("united s", "UMI");
     unbind();
@@ -129,7 +182,7 @@ describe("globe search fly-to", () => {
 
     searchAndChoose("japan", "JPN");
 
-    const unbind = bindStoreSync(map, {}, () => undefined);
+    const unbind = bindStoreSync(map, () => undefined);
     unbind();
 
     expect(flights).toEqual([[138, 36]]);
@@ -140,7 +193,7 @@ describe("globe search fly-to", () => {
 
     searchAndChoose("japan", "JPN");
     searchAndChoose("france", "FRA");
-    bindStoreSync(map, {}, () => undefined)();
+    bindStoreSync(map, () => undefined)();
 
     expect(flights).toEqual([[2, 46]]);
   });
@@ -150,7 +203,7 @@ describe("globe search fly-to", () => {
 
     searchAndChoose("japan", "JPN");
     useSelectedCountryStore.getState().clearSelection();
-    bindStoreSync(map, {}, () => undefined)();
+    bindStoreSync(map, () => undefined)();
 
     expect(flights).toEqual([]);
   });
@@ -159,8 +212,8 @@ describe("globe search fly-to", () => {
     const { map, flights } = recordingMap();
 
     searchAndChoose("japan", "JPN");
-    bindStoreSync(map, {}, () => undefined)();
-    bindStoreSync(map, {}, () => undefined)();
+    bindStoreSync(map, () => undefined)();
+    bindStoreSync(map, () => undefined)();
 
     expect(flights).toHaveLength(1);
   });

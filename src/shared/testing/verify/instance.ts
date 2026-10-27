@@ -103,18 +103,13 @@ export function databasePath(): string {
 export function buildHasPublicValues(environment: Environment): boolean {
   const chunks = join(repoRoot, ".next", "static", "chunks");
 
-  const values = [
-    environment.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-    environment.NEXT_PUBLIC_MAPBOX_TOKEN,
-  ];
+  const publishableKey = environment.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-  if (!existsSync(chunks) || values.some((value) => !value)) return false;
+  if (!existsSync(chunks) || !publishableKey) return false;
 
-  const sources = readdirSync(chunks, { recursive: true, encoding: "utf8" })
+  return readdirSync(chunks, { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".js"))
-    .map((file) => readFileSync(join(chunks, file), "utf8"));
-
-  return values.every((value) => sources.some((source) => value && source.includes(value)));
+    .some((file) => readFileSync(join(chunks, file), "utf8").includes(publishableKey));
 }
 
 export function evidenceDirectory(label: string): string {

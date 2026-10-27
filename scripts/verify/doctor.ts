@@ -30,7 +30,7 @@ function run(command: string, args: string[]): string {
 const perfEnvironment = readPerfEnvironment(repoRoot, process.env);
 
 check(
-  ".env.local is local only (file: database in .data, pk_test_ Clerk key, Mapbox token)",
+  ".env.local is local only (file: database in .data, pk_test_ Clerk key)",
   perfEnvironment.kind === "refused" ? perfEnvironment.reason : undefined,
 );
 
@@ -53,7 +53,7 @@ check(
 check("the worktree database has a marks table", failureOf(markTableExists));
 
 check(
-  ".next was built with this worktree's Clerk key and Mapbox token, not bun run check's placeholders",
+  ".next was built with this worktree's Clerk key, not bun run check's placeholders",
   perfEnvironment.kind === "ready" && buildHasPublicValues(perfEnvironment.environment)
     ? undefined
     : "run bun run verify:server stop, then bun run verify:server start",

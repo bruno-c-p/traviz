@@ -1,6 +1,6 @@
 ---
 name: verify-traviz
-description: Launch, drive and capture evidence from traviz, the Next.js and Mapbox app where a signed-in user marks countries on a globe. Drives a local production build in real Chrome through playwright-core. Use it to prove a traviz change works in the browser (the globe on /, the country list on /list, stats on /stats, email-link sign-in, saving marks), to take the 375, 768 and 1440 px screenshots that AGENTS.md requires after a UI change, to pixel-diff two builds, or to check that a local traviz server is healthy before you drive it.
+description: Launch, drive and capture evidence from traviz, the Next.js app where a signed-in user marks countries on a canvas globe. Drives a local production build in real Chrome through playwright-core. Use it to prove a traviz change works in the browser (the globe on /, the country list on /list, stats on /stats, email-link sign-in, saving marks), to take the 375, 768 and 1440 px screenshots that AGENTS.md requires after a UI change, to pixel-diff two builds, or to check that a local traviz server is healthy before you drive it.
 ---
 
 # Verify traviz
@@ -17,7 +17,7 @@ bun run setup
 bun run verify:server start
 ```
 
-- `bun run setup` writes `.env.local` with Clerk development keys and the Mapbox token. It migrates `.data/dev.db` and creates the dev user `agent+clerk_test@example.com`. It needs the `vercel` and `clerk` CLIs, both logged in. It is safe to run again. Its closing `Next: run bun run dev, then bun run sign-in-token` hint is for manual work. For verification, continue with `verify:server start`.
+- `bun run setup` writes `.env.local` with Clerk development keys. It migrates `.data/dev.db` and creates the dev user `agent+clerk_test@example.com`. It needs the `clerk` CLI, logged in. It is safe to run again. Its closing `Next: run bun run dev, then bun run sign-in-token` hint is for manual work. For verification, continue with `verify:server start`.
 - `verify:server start` refuses a remote database, a database outside `.data/` and a key that is not `pk_test_`. It then runs `bun run build`, starts `next start` on a free port and waits until `/sign-in` answers 200. The build runs silently for about a minute, and its output goes to `.data/verify/build.log`. It is ready when it prints `ready http://localhost:<port> pid <pid>`. The port and PID go to `.data/verify/server.json`. Logs go to `.data/verify/build.log` and `.data/verify/server.log`.
 - `verify:server start --no-build` reuses `.next`, but only when this worktree's `.env.local` built it.
 - One server runs per worktree, and a second `start` refuses. Separate worktrees run side by side, each with its own port and `.data/dev.db`. All of them share one Clerk dev user.
@@ -28,18 +28,18 @@ bun run verify:server start
 bun run verify:doctor
 ```
 
-The doctor is read-only. Each line starts with `ok` or `FAIL`, and the exit code is 1 when any check fails. It checks that `.env.local` is local only, that `sqlite3` and `clerk` are on PATH, that the `clerk` CLI is logged in and the dev user exists, that the database has a `marks` table, that `.next` holds this worktree's Clerk key and Mapbox token (`bun run check` leaves a placeholder build), that the build matches HEAD plus your uncommitted changes, that the recorded PID is alive and owns the port, that `/sign-in` answers 200, and that Chrome launches. Run it first, and again whenever anything looks off. A stale build fails the doctor. Fix it with `bun run verify:server stop`, then `bun run verify:server start`.
+The doctor is read-only. Each line starts with `ok` or `FAIL`, and the exit code is 1 when any check fails. It checks that `.env.local` is local only, that `sqlite3` and `clerk` are on PATH, that the `clerk` CLI is logged in and the dev user exists, that the database has a `marks` table, that `.next` holds this worktree's Clerk key (`bun run check` leaves a placeholder build), that the build matches HEAD plus your uncommitted changes, that the recorded PID is alive and owns the port, that `/sign-in` answers 200, and that Chrome launches. Run it first, and again whenever anything looks off. A stale build fails the doctor. Fix it with `bun run verify:server stop`, then `bun run verify:server start`.
 
 ## Drive
 
-The driver is `playwright-core` running the installed Google Chrome with SwiftShader WebGL, which is the same browser that `bun run perf` uses. Import from `@/shared/testing/verify/browser`:
+The driver is `playwright-core` running the installed Google Chrome, which is the same browser that `bun run perf` uses. Import from `@/shared/testing/verify/browser`:
 
 - `launchBrowser()` starts headless Chrome.
-- `openPage(browser, width, motion)` opens a context at that width. `motion` is `"reduce"` or `"no-preference"`. It returns `{ page, problems }`, where `problems` collects console errors, page errors and responses with status 400 or higher. Mapbox's 404s for empty ocean tiles are left out.
+- `openPage(browser, width, motion)` opens a context at that width. `motion` is `"reduce"` or `"no-preference"`. It returns `{ page, problems }`, where `problems` collects console errors, page errors and responses with status 400 or higher.
 - `signIn(page, baseUrl)` gets a sign-in token for the dev user and signs in through `window.Clerk` with a ticket. No email is sent.
-- `openRoute(page, baseUrl, route)` takes a route string from a `paths.ts` function (`homePath()`, `listPath()`, `statsPath()`, imported from `@/paths`). It opens the route, throws when the page lands somewhere else (a lost session lands on `/sign-in`), waits for the globe's style on `/`, then settles.
+- `openRoute(page, baseUrl, route)` takes a route string from a `paths.ts` function (`homePath()`, `listPath()`, `statsPath()`, imported from `@/paths`). It opens the route, throws when the page lands somewhere else (a lost session lands on `/sign-in`), waits on `/` until the globe has drawn its outlines, then settles.
 - `settle(page)` waits 700 ms. Call it after every click, keypress or fill before you read state.
-- `readCamera(page)` returns `{ lng, lat, zoom, moving, styleLoaded }` for the globe, or `null` when no map is mounted. `findMapExpression` is the in-page expression that finds the mapbox-gl `Map` through the React fiber of `.mapboxgl-map`. Use it in `page.evaluate` to call `project`, `jumpTo` or `queryRenderedFeatures`.
+- `readCamera(page)` returns `{ lng, lat, zoom, moving, loaded }` for the globe, or `null` when no globe is mounted. `findMapExpression` is the in-page expression that finds the globe object through the React fiber of the `[data-globe]` container. Use it in `page.evaluate` to call `getCenter`, `getZoom`, `isMoving`, `isLoaded`, `jumpTo({ center, zoom })`, `project([lng, lat])` or `getContainer`.
 - `readMarkRows()` reads the `marks` table of the database `TURSO_DATABASE_URL` names (`.data/dev.db` after setup), read-only, as `{ user_id, code, state }[]`.
 - `runJourney(label, motion, async (journal, page, browser, baseUrl) => { ... })` from `@/shared/testing/verify/journal` is the frame for a new journey. It makes the evidence directory, signs in at 1440 x 900, records a thrown error as a failed step, closes the browser and writes `journal.json`, and sets exit code 1 on any failed step. Inside it, call `journal.record(step, ok, detail)` and `journal.screenshot(page, name)`. Its closing step, `no console errors or failed requests`, covers only the page it opened. A page from another `openPage` call has its own `problems`, so record them with `journal.record`.
 
@@ -85,7 +85,7 @@ bun run verify:server stop
 - Wait at least 700 ms after a click (`settle`). The card, the sheet and the fill colours update after a transition.
 - Clerk development returns 429 when the same address submits the email-link form twice in a short time. Give each submit a new address, such as `verify-<epoch ms>+clerk_test@example.com`. A `+clerk_test` address never sends a real email.
 - Throttle with CDP `Network.emulateNetworkConditions` and `Emulation.setCPUThrottlingRate` on a `page.context().newCDPSession(page)`. Take the values from `throttle` in `@/shared/testing/perf/browser` (`latencyMs`, `downloadBytesPerSecond`, `uploadBytesPerSecond`, `cpuSlowdown`), the same ones `bun run perf` uses. Never throttle with `context.route`, which turns off the HTTP cache.
-- To test the moment before the globe's style loads, hold the `mapbox-gl` chunk with CDP `Fetch.enable` on `*/_next/static/chunks/*` and continue the paused request later. The chunk is the file in `.next/static/chunks/` that contains the string `Mapbox GL`.
+- To test the moment before the globe loads, hold the globe chunks with CDP `Fetch.enable` on `*/_next/static/chunks/*` and continue the paused requests later. The engine chunk is the file in `.next/static/chunks/` that contains the string `The globe needs a 2D canvas.`, and the outline chunk is the one that contains `"GeometryCollection",geometries`.
 - Never point a helper at production. The server refuses a non-`file:` database, and `.env.local` never holds `pk_live_` keys. Never copy `.env*` files from another worktree.
 - `bun run check` rebuilds `.next` with placeholder keys. After it, run `bun run verify:server stop` and `bun run verify:server start` before you drive again. The doctor catches this.
 - `bun run perf -- --baseline <ref>` is the only way to measure performance. It holds a machine-wide lock and builds its own trees. Never measure performance with these helpers. Perf seeds 49 marks into `.data/dev.db` for the dev user, so a later journey can find marks it did not make.

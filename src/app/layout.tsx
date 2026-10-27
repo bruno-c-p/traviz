@@ -1,7 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Instrument_Sans } from "next/font/google";
-import { preconnect } from "react-dom";
 import { cn } from "@/shared/cn";
 import "./globals.css";
 
@@ -32,8 +31,6 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  preconnect("https://api.mapbox.com", { crossOrigin: "anonymous" });
-
   return (
     <html lang="en" className={cn(instrumentSans.variable, geistMono.variable)}>
       <body className="bg-canvas-soft font-sans text-ink">
