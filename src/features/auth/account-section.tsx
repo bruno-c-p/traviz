@@ -1,30 +1,29 @@
 "use client";
 
-import { useClerk, useUser } from "@clerk/nextjs";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/shared/cn";
 import { signInPath } from "@/paths";
 import { endMarksSession, MarkStatus } from "@/features/marks";
+import { clerkSession } from "@/features/auth/clerk-session";
+import { useAccountEmail } from "@/features/auth/use-account-email";
 
 export function AccountSection({ className }: { className?: string }) {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const email = useAccountEmail();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutFailed, setSignOutFailed] = useState(false);
 
   async function handleSignOut() {
     if (isSigningOut) return;
     setIsSigningOut(true);
+    setSignOutFailed(false);
 
     try {
-      await signOut({ redirectUrl: signInPath() });
+      await clerkSession.signOut(signInPath(), endMarksSession);
     } catch {
       setIsSigningOut(false);
-
-      return;
+      setSignOutFailed(true);
     }
-
-    endMarksSession();
   }
 
   return (
@@ -43,9 +42,7 @@ export function AccountSection({ className }: { className?: string }) {
         Your marks sync to your account. Sign in on any device to pick up where you left off.
       </p>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-canvas-soft py-1.5 pl-4 pr-1.5">
-        <span className="min-w-0 truncate text-sm font-medium text-ink">
-          {user?.primaryEmailAddress?.emailAddress ?? ""}
-        </span>
+        <span className="min-w-0 truncate text-sm font-medium text-ink">{email ?? ""}</span>
         <button
           type="button"
           onClick={handleSignOut}
@@ -56,6 +53,11 @@ export function AccountSection({ className }: { className?: string }) {
           {isSigningOut ? "Signing out…" : "Sign out"}
         </button>
       </div>
+      {signOutFailed && (
+        <p role="alert" className="text-sm text-negative-deep">
+          Couldn't sign out. Check your connection and try again.
+        </p>
+      )}
       <MarkStatus scope="all-marks" className="text-sm" />
       <MarkStatus scope="snapshot" className="text-sm" />
     </section>

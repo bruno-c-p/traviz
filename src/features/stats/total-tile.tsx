@@ -23,7 +23,7 @@ export function TotalTile({ label, value, color, className }: TotalTileProps) {
         />
         {label}
       </span>
-      <span className="order-1 text-3xl font-bold tabular-nums tracking-tight text-ink md:order-2">
+      <span className="mark-count order-1 text-3xl font-bold tabular-nums tracking-tight text-ink md:order-2">
         {value}
       </span>
     </div>

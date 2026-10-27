@@ -10,7 +10,7 @@ export const CountryRow = memo(function CountryRow({ country }: { country: Count
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-[15px] font-medium text-ink">{country.name}</span>
-        <MarkStatus scope={country.code} className="-my-1" />
+        <MarkStatus scope={country.code} className="-my-1 text-xs" />
       </div>
       {country.kind === "territory" && (
         <span

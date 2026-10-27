@@ -1,47 +1,35 @@
 import { CONTINENT_ORDER } from "@/features/countries";
 import type { Continent, Country } from "@/features/countries";
 
-export type ListItem =
-  | { type: "header"; continent: Continent; count: number }
-  | { type: "row"; country: Country };
+export type ListSection = { continent: Continent | null; countries: readonly Country[] };
 
-function groupByContinent(countryPool: readonly Country[]): Map<Continent, Country[]> {
-  const byContinent = new Map<Continent, Country[]>();
-
-  for (const country of countryPool) {
-    const bucket = byContinent.get(country.continent);
-
-    if (bucket) {
-      bucket.push(country);
-    } else {
-      byContinent.set(country.continent, [country]);
-    }
-  }
-
-  return byContinent;
-}
-
-export function buildListItems(
+export function buildListSections(
   countryPool: readonly Country[],
   searchResults: readonly Country[] | null,
-): ListItem[] {
+): ListSection[] {
   if (searchResults) {
-    return searchResults.map((country) => ({ type: "row", country }));
+    return searchResults.length > 0 ? [{ continent: null, countries: searchResults }] : [];
   }
 
-  const byContinent = groupByContinent(countryPool);
-  const flatItems: ListItem[] = [];
+  return CONTINENT_ORDER.flatMap((continent) => {
+    const continentCountries = countryPool.filter((country) => country.continent === continent);
 
-  for (const continent of CONTINENT_ORDER) {
-    const continentCountries = byContinent.get(continent);
+    return continentCountries.length > 0 ? [{ continent, countries: continentCountries }] : [];
+  });
+}
 
-    if (!continentCountries || continentCountries.length === 0) continue;
-    flatItems.push({ type: "header", continent, count: continentCountries.length });
+export type LimitedSection = ListSection & { readonly hiddenCount: number };
 
-    for (const country of continentCountries) {
-      flatItems.push({ type: "row", country });
-    }
-  }
+export function limitSectionRows(
+  sections: readonly ListSection[],
+  rowLimit: number,
+): LimitedSection[] {
+  let remaining = rowLimit;
 
-  return flatItems;
+  return sections.map((section) => {
+    const shown = section.countries.slice(0, Math.max(remaining, 0));
+    remaining -= shown.length;
+
+    return { ...section, countries: shown, hiddenCount: section.countries.length - shown.length };
+  });
 }

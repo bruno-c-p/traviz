@@ -30,13 +30,15 @@ export type MarkBase =
 
 export type SyncProblem = { readonly scope: string; readonly reason: MarkChangeFailure };
 
+export type EndedSession = { readonly ownerId: string | null };
+
 export type MarksSyncState = {
   readonly ownerId: string | null;
   readonly base: MarkBase;
   readonly pending: readonly PendingChange[];
   readonly problems: readonly SyncProblem[];
   readonly lastChangeId: number;
-  readonly sessionEnded: boolean;
+  readonly ended: EndedSession | null;
 };
 
 export type MarksSyncEvent =
@@ -64,7 +66,7 @@ export const INITIAL_MARKS_SYNC_STATE: MarksSyncState = {
   pending: [],
   problems: [],
   lastChangeId: 0,
-  sessionEnded: false,
+  ended: null,
 };
 
 export function applyChange(marks: Marks, change: MarkChange): Marks {
@@ -90,17 +92,28 @@ export function visibleMarks(state: MarksSyncState): Marks {
   return foldChanges(baseMarks(state.base), state.pending);
 }
 
-type MarksThenable = {
-  readonly then: (onLoaded: (marks: Marks) => void, onFailed: (cause: unknown) => void) => void;
-};
+export type SeedCover =
+  | { readonly kind: "replaces"; readonly ownerId: string | null }
+  | {
+      readonly kind: "overlays";
+      readonly ownerId: string | null;
+      readonly pending: readonly PendingChange[];
+    };
 
-export function snapshotFromMarks(ownerId: string, marks: MarksThenable): Promise<MarksSnapshot> {
-  return new Promise((resolve) => {
-    marks.then(
-      (loaded) => resolve({ ok: true, ownerId, marks: loaded }),
-      () => resolve({ ok: false, ownerId }),
-    );
-  });
+export function seedCover(state: MarksSyncState): SeedCover {
+  if (state.ended !== null) return { kind: "replaces", ownerId: state.ended.ownerId };
+
+  if (state.base.source === "server") return { kind: "replaces", ownerId: state.ownerId };
+
+  return { kind: "overlays", ownerId: state.ownerId, pending: state.pending };
+}
+
+export function shownMarks(seed: MarksSnapshot | null, cover: SeedCover, stored: Marks): Marks {
+  if (seed === null || !seed.ok) return stored;
+
+  if (cover.ownerId !== null && cover.ownerId !== seed.ownerId) return seed.marks;
+
+  return cover.kind === "replaces" ? stored : foldChanges(seed.marks, cover.pending);
 }
 
 export function changeScope(change: MarkChange): string {
@@ -151,7 +164,7 @@ function startSession(
 
   const pending = keepsPending ? state.pending : [];
 
-  return { ...state, ownerId, base, pending, problems: [], sessionEnded: false };
+  return { ...state, ownerId, base, pending, problems: [], ended: null };
 }
 
 function previewCache(state: MarksSyncState, cached: CachedMarks): MarksSyncState {
@@ -161,9 +174,13 @@ function previewCache(state: MarksSyncState, cached: CachedMarks): MarksSyncStat
 }
 
 function endSession(state: MarksSyncState): MarksSyncState {
-  if (state.sessionEnded && state.base.source === "empty") return state;
+  if (state.ended !== null && state.base.source === "empty") return state;
 
-  return { ...INITIAL_MARKS_SYNC_STATE, lastChangeId: state.lastChangeId, sessionEnded: true };
+  return {
+    ...INITIAL_MARKS_SYNC_STATE,
+    lastChangeId: state.lastChangeId,
+    ended: { ownerId: state.ownerId ?? state.ended?.ownerId ?? null },
+  };
 }
 
 function receiveSnapshot(state: MarksSyncState, snapshot: MarksSnapshot): MarksSyncState {
@@ -187,7 +204,7 @@ function receiveSnapshot(state: MarksSyncState, snapshot: MarksSnapshot): MarksS
 }
 
 function requestChange(state: MarksSyncState, change: MarkChange): MarksSyncState {
-  if (state.sessionEnded) return state;
+  if (state.ended !== null) return state;
 
   const id = state.lastChangeId + 1;
 

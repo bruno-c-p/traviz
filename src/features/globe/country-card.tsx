@@ -17,7 +17,7 @@ export function CountryCard({ country }: { country: Country }) {
     >
       <CountryHeading country={country} headingId={headingId} onClose={clearSelection} />
       <MarkChoices code={country.code} countryName={country.name} layout="tiles" />
-      <MarkStatus scope={country.code} className="-mt-3" />
+      <MarkStatus scope={country.code} className="-mt-3 text-xs" />
       <ClearMarkButton code={country.code} className="-my-2 self-start px-1" />
     </section>
   );

@@ -8,6 +8,7 @@ import {
 } from "@/features/marks/marks-owner";
 import {
   applyChange,
+  shownMarks,
   type CachedMarks,
   type MarkChange,
   type MarkChangeResult,
@@ -168,7 +169,7 @@ describe("R-9: a tap in the sync window survives the snapshot", () => {
   test("a tap before the snapshot shows on top of the snapshot and is sent", async () => {
     const { store, sent } = setup();
     store.getState().startSession(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     store.getState().receiveSnapshot({ ok: true, ownerId: OWNER, marks: { FRA: "want" } });
     await flush();
 
@@ -193,7 +194,7 @@ describe("F16.3: a rejected pre-sync edit is not replayed", () => {
   test("the snapshot after a rejected tap does not bring the tap back", async () => {
     const { store, answer } = setup();
     store.getState().startSession(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await answer(0, { ok: false, reason: "rejected" });
     store.getState().receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
@@ -207,7 +208,7 @@ describe("M3: a failed write rolls back and leaves a per-country problem", () =>
   test("a write that fails shows the earlier colour and a problem for that country", async () => {
     const { store, signIn, fail } = setup();
     signIn(OWNER, { FRA: "want" });
-    store.getState().toggle("FRA", "visited");
+    store.getState().mark("FRA", "visited");
     await flush();
 
     expect(store.getState().marks).toEqual({ FRA: "visited" });
@@ -223,8 +224,8 @@ describe("F5.1: one country's success keeps another country's problem", () => {
   test("a saved tap on France keeps Germany's problem", async () => {
     const { store, signIn, fail, answer } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
-    store.getState().toggle("FRA", "want");
+    store.getState().mark("DEU", "visited");
+    store.getState().mark("FRA", "want");
     await flush();
     await fail(0);
     await answer(1);
@@ -238,9 +239,9 @@ describe("write, reset, write", () => {
   test("the changes reach the server one at a time in tap order", async () => {
     const { store, signIn, sent, answer } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     store.getState().resetAll();
-    store.getState().toggle("FRA", "want");
+    store.getState().mark("FRA", "want");
     await flush();
 
     expect(sent()).toEqual([[OWNER, tapDeu]]);
@@ -262,12 +263,12 @@ describe("F5.2: a reply from the ended session never reaches the next account", 
   test("the previous account's saved tap does not show for the next account", async () => {
     const { store, signIn, sent, answer } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
 
     store.getState().endSession();
     signIn(OTHER_OWNER);
-    store.getState().toggle("FRA", "want");
+    store.getState().mark("FRA", "want");
     await answer(0);
 
     expect(store.getState().marks).toEqual({ FRA: "want" });
@@ -283,7 +284,7 @@ describe("two tabs on different accounts", () => {
   test("a write refused for another account rolls back and says so", async () => {
     const { store, signIn, answer } = setup();
     signIn(OWNER, { FRA: "want" });
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await answer(0, { ok: false, reason: "other-account" });
 
@@ -316,7 +317,7 @@ describe("notifications", () => {
     store.subscribe((state) => {
       seen.push(state.marks);
     });
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
 
     expect(seen.length).toBe(1);
 
@@ -331,7 +332,7 @@ describe("saving", () => {
   test("a country is saving until its write settles", async () => {
     const { store, signIn, answer } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     store.getState().clear("FRA");
     await flush();
 
@@ -349,7 +350,7 @@ describe("saving", () => {
   test("every country is saving while a reset is pending", async () => {
     const { store, signIn, answer } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     store.getState().resetAll();
     await flush();
 
@@ -366,7 +367,7 @@ describe("a late reply after the deadline", () => {
   test("a saved late reply brings the colour back and dismisses the problem", async () => {
     const { store, signIn, answer, expire, readsFor, answerRead } = setup();
     signIn(OWNER, { FRA: "want" });
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
 
@@ -386,7 +387,7 @@ describe("a late reply after the deadline", () => {
   test("a refused late reply keeps the problem and still reads a fresh snapshot", async () => {
     const { store, signIn, answer, expire, readsFor, answerRead } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
     await answer(0, { ok: false, reason: "rejected" });
@@ -402,7 +403,7 @@ describe("a late reply after the deadline", () => {
   test("a reply that settles before the deadline reads no snapshot", async () => {
     const { store, signIn, answer, expire, readsFor } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await answer(0);
     await expire(0);
@@ -414,7 +415,7 @@ describe("a late reply after the deadline", () => {
   test("a late reply from an ended session reads nothing for the next account", async () => {
     const { store, signIn, answer, expire, readsFor } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
 
@@ -428,7 +429,7 @@ describe("a late reply after the deadline", () => {
   test("a late reply after switching accounts without ending the session reads nothing", async () => {
     const { store, signIn, answer, expire, readsFor } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
 
@@ -441,7 +442,7 @@ describe("a late reply after the deadline", () => {
   test("a fresh read that lands after the session changed is dropped", async () => {
     const { store, signIn, answer, expire, answerRead } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
     await answer(0);
@@ -456,10 +457,10 @@ describe("a late reply after the deadline", () => {
   test("a newer failure on the same country survives the late reply", async () => {
     const { store, signIn, answer, expire, answerRead } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
-    store.getState().toggle("DEU", "want");
+    store.getState().mark("DEU", "want");
     await answer(0);
     await answer(1, { ok: false, reason: "rejected" });
     await answerRead(0);
@@ -472,12 +473,12 @@ describe("a late reply after the deadline", () => {
     test(`a saved late reply brings the colour back even when the fresh read ${readThrows ? "throws" : "fails"}`, async () => {
       const { store, signIn, answer, expire, failRead } = setup({ readThrows });
       signIn(OWNER);
-      store.getState().toggle("DEU", "visited");
+      store.getState().mark("DEU", "visited");
       await flush();
       await expire(0);
       await answer(0);
       await failRead(0);
-      store.getState().toggle("FRA", "want");
+      store.getState().mark("FRA", "want");
       await flush();
 
       expect(store.getState().marks).toEqual({ DEU: "visited", FRA: "want" });
@@ -488,7 +489,7 @@ describe("a late reply after the deadline", () => {
   test("a late reply after the same owner's session restarts still brings the colour back", async () => {
     const { store, signIn, answer, expire } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
 
@@ -504,7 +505,7 @@ describe("snapshot order", () => {
   test("the session's first snapshot arriving after a fresh read is dropped", async () => {
     const { store, answer, expire, answerRead } = setup();
     store.getState().startSession(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
     await answer(0);
@@ -518,10 +519,10 @@ describe("snapshot order", () => {
   test("an older fresh read arriving after a newer one is dropped", async () => {
     const { store, signIn, answer, expire, answerRead } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
-    store.getState().toggle("FRA", "want");
+    store.getState().mark("FRA", "want");
     await answer(0);
     await expire(1);
     await answer(1);
@@ -534,7 +535,7 @@ describe("snapshot order", () => {
   test("a failed fresh snapshot does not hide an older good one", async () => {
     const { store, answer, expire, refuseRead } = setup();
     store.getState().startSession(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
     await answer(0);
@@ -550,7 +551,7 @@ describe("snapshot order", () => {
   test("a new session counts its snapshots from the start", async () => {
     const { store, signIn, answer, expire, answerRead } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
     await answer(0);
@@ -567,7 +568,7 @@ describe("server snapshots after a fresh read", () => {
   test("a later server snapshot applies over an accepted fresh read", async () => {
     const { store, signIn, answer, expire, answerRead } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
     await answer(0);
@@ -581,7 +582,7 @@ describe("server snapshots after a fresh read", () => {
   test("a fresh read requested before a later server snapshot is dropped when it lands after", async () => {
     const { store, signIn, answer, expire, answerRead } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
     await expire(0);
     await answer(0);
@@ -645,8 +646,8 @@ describe("dismissing a problem", () => {
   test("dismissing a country's problem removes only that problem", async () => {
     const { store, signIn, fail } = setup();
     signIn(OWNER);
-    store.getState().toggle("DEU", "visited");
-    store.getState().toggle("FRA", "want");
+    store.getState().mark("DEU", "visited");
+    store.getState().mark("FRA", "want");
     await flush();
     await fail(0);
     await fail(1);
@@ -665,15 +666,129 @@ describe("the cached marks", () => {
     expect(store.getState().marks).toEqual({ FRA: "want" });
     expect(store.getState().ownerId).toBe(OWNER);
   });
+});
 
-  test("toggling the shown state clears the mark", async () => {
-    const { store, signIn, sent } = setup();
-    signIn(OWNER, { FRA: "want" });
-    store.getState().toggle("FRA", "want");
-    await flush();
+describe("the server seed", () => {
+  const seedFor = (ownerId: string, marks: Marks) => ({ ok: true, ownerId, marks }) as const;
+  const seed = seedFor(OWNER, { JPN: "visited", PER: "want" });
 
-    expect(store.getState().marks).toEqual({});
-    expect(sent()).toEqual([[OWNER, { kind: "clear", code: "FRA" }]]);
+  const shownOver = (store: ReturnType<typeof setup>["store"], shownSeed: MarksSnapshot | null) =>
+    shownMarks(shownSeed, store.getState().seedCover, store.getState().marks);
+
+  test("the store starts and hydrates showing the seed", () => {
+    const { store } = setup();
+
+    expect(shownMarks(seed, store.getInitialState().seedCover, store.getInitialState().marks)).toBe(
+      seed.marks,
+    );
+    expect(shownOver(store, seed)).toBe(seed.marks);
+  });
+
+  test("a stale cache never shows over the seed, before or after the session starts", () => {
+    const fake = fakeTransport();
+    const cache = fakeCache({ ownerId: OWNER, marks: { FRA: "want" } });
+    const owner = createMarksOwner(fake.transport, cache.cache, fakeDeadline().startDeadline);
+    owner.previewCache(() => true);
+    const store = createMarksStore(owner);
+
+    expect(store.getState().marks).toEqual({ FRA: "want" });
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
+
+    store.getState().startSession(OWNER);
+
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
+  });
+
+  test("a tap before the session starts shows over every other seeded mark", () => {
+    const { store } = setup();
+
+    store.getState().mark("DEU", "visited");
+    store.getState().clear("PER");
+
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", DEU: "visited" });
+  });
+
+  test("a tap over a stale cache shows over the seed, not over the cache", () => {
+    const { store } = setup({ stored: { ownerId: OWNER, marks: { FRA: "want" } } });
+    store.getState().startSession(OWNER);
+
+    store.getState().mark("DEU", "visited");
+
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want", DEU: "visited" });
+  });
+
+  test("the server snapshot takes over from the seed, and no cache brings the seed back", () => {
+    const { store, signIn } = setup({ stored: { ownerId: OWNER, marks: { FRA: "want" } } });
+    signIn(OWNER, { DEU: "visited" });
+
+    expect(shownOver(store, seed)).toEqual({ DEU: "visited" });
+
+    store.getState().startSession(OWNER);
+
+    expect(shownOver(store, seed)).toEqual({ DEU: "visited" });
+  });
+
+  test("a failed snapshot leaves the seed in place", () => {
+    const { store } = setup();
+    store.getState().startSession(OWNER);
+    store.getState().receiveSnapshot({ ok: false, ownerId: OWNER });
+
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
+  });
+
+  test("a failed or missing seed shows the store's marks", () => {
+    const { store, signIn } = setup();
+    signIn(OWNER, { DEU: "visited" });
+
+    expect(shownOver(store, { ok: false, ownerId: OWNER })).toEqual({ DEU: "visited" });
+    expect(shownOver(store, null)).toEqual({ DEU: "visited" });
+  });
+
+  test("ending the session hides the ended owner's seed", () => {
+    const { store, signIn } = setup();
+    signIn(OWNER, { JPN: "visited" });
+
+    store.getState().endSession();
+
+    expect(shownOver(store, seed)).toEqual({});
+  });
+
+  test("ending the session before it started hides every seed", () => {
+    const { store } = setup();
+
+    store.getState().endSession();
+
+    expect(shownOver(store, seed)).toEqual({});
+  });
+
+  test("a seed for a new owner after a session end shows at once", () => {
+    const { store, signIn } = setup();
+    signIn(OWNER, { JPN: "visited" });
+    store.getState().endSession();
+
+    const nextSeed = seedFor(OTHER_OWNER, { BRA: "want" });
+
+    expect(shownOver(store, nextSeed)).toEqual({ BRA: "want" });
+  });
+
+  test("the ended owner's own seed shows again once their next session starts", () => {
+    const { store, signIn } = setup();
+    signIn(OWNER, { JPN: "visited" });
+    store.getState().endSession();
+
+    store.getState().startSession(OWNER);
+
+    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
+  });
+
+  test("another account's seed shows without this account's taps", () => {
+    const { store } = setup();
+    store.getState().startSession(OWNER);
+    store.getState().mark("DEU", "visited");
+
+    const otherSeed = seedFor(OTHER_OWNER, { BRA: "want" });
+
+    expect(shownOver(store, otherSeed)).toEqual({ BRA: "want" });
   });
 });
 
@@ -731,7 +846,7 @@ describe("the browser store", () => {
     const { store, timers } = browserSetup("");
     store.getState().startSession(OWNER);
     store.getState().receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
-    store.getState().toggle("DEU", "visited");
+    store.getState().mark("DEU", "visited");
     await flush();
 
     expect(store.getState().marks).toEqual({ DEU: "visited" });

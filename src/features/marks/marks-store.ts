@@ -12,9 +12,11 @@ import {
 import {
   changeScope,
   INITIAL_MARKS_SYNC_STATE,
+  seedCover,
   visibleMarks,
   type MarksSnapshot,
   type MarksSyncState,
+  type SeedCover,
   type SyncProblem,
 } from "@/features/marks/marks-sync";
 import { isSignedInAs } from "@/features/marks/session-cookie";
@@ -26,7 +28,8 @@ type MarksStoreState = {
   ownerId: string | null;
   saving: SavingScopes;
   problems: readonly SyncProblem[];
-  toggle: (code: string, state: CountryState) => void;
+  seedCover: SeedCover;
+  mark: (code: string, state: CountryState) => void;
   clear: (code: string) => void;
   resetAll: () => void;
   dismissProblem: (scope: string) => void;
@@ -57,22 +60,28 @@ function sameSaving(left: SavingScopes, right: SavingScopes): boolean {
   return left.length === right.length && left.every((scope, index) => scope === right[index]);
 }
 
+function sameCover(left: SeedCover, right: SeedCover): boolean {
+  if (left.kind === "overlays" && right.kind === "overlays") {
+    return left.ownerId === right.ownerId && left.pending === right.pending;
+  }
+
+  return left.kind === right.kind && left.ownerId === right.ownerId;
+}
+
 function project(state: MarksSyncState) {
   return {
     marks: visibleMarks(state),
     ownerId: state.ownerId,
     saving: savingScopes(state),
     problems: state.problems,
+    seedCover: seedCover(state),
   };
 }
 
 export function createMarksStore(owner: MarksOwner) {
-  const store = create<MarksStoreState>()((_set, get) => ({
+  const store = create<MarksStoreState>()(() => ({
     ...project(INITIAL_MARKS_SYNC_STATE),
-    toggle: (code, state) =>
-      owner.requestChange(
-        get().marks[code] === state ? { kind: "clear", code } : { kind: "set", code, state },
-      ),
+    mark: (code, state) => owner.requestChange({ kind: "set", code, state }),
     clear: (code) => owner.requestChange({ kind: "clear", code }),
     resetAll: () => owner.requestChange({ kind: "reset" }),
     dismissProblem: owner.dismissProblem,
@@ -83,20 +92,28 @@ export function createMarksStore(owner: MarksOwner) {
 
   const syncFromOwner = () => {
     const current = store.getState();
-    const { marks, ownerId, saving, problems } = project(owner.getState());
+    const { marks, ownerId, saving, problems, seedCover } = project(owner.getState());
     const keptMarks = sameMarks(current.marks, marks) ? current.marks : marks;
     const keptSaving = sameSaving(current.saving, saving) ? current.saving : saving;
+    const keptCover = sameCover(current.seedCover, seedCover) ? current.seedCover : seedCover;
 
     if (
       keptMarks === current.marks &&
       ownerId === current.ownerId &&
       keptSaving === current.saving &&
-      problems === current.problems
+      problems === current.problems &&
+      keptCover === current.seedCover
     ) {
       return;
     }
 
-    store.setState({ marks: keptMarks, ownerId, saving: keptSaving, problems });
+    store.setState({
+      marks: keptMarks,
+      ownerId,
+      saving: keptSaving,
+      problems,
+      seedCover: keptCover,
+    });
   };
 
   owner.subscribe(syncFromOwner);

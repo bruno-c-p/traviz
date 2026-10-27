@@ -186,12 +186,6 @@
       },
       "overrides": [
         {
-          "files": ["src/features/country-list/virtual-country-list.tsx"],
-          "rules": {
-            "react/incompatible-library": "off"
-          }
-        },
-        {
           "files": ["./paths.ts"],
           "rules": {
             "typescript/consistent-type-assertions": "off"
@@ -253,7 +247,11 @@
       "files": [
         "src/features/marks/marks-sync.ts",
         "src/features/marks/marks-owner.ts",
-        "src/features/marks/tally.ts"
+        "src/features/marks/tally.ts",
+        "src/features/globe/globe-camera.ts",
+        "src/features/globe/globe-gestures.ts",
+        "src/features/globe/globe-keys.ts",
+        "src/features/globe/globe-labels.ts"
       ]
     }
   },
@@ -269,7 +267,7 @@
     "check:gates": "bun scripts/check-gates.ts",
     "check:docs": "bun scripts/check-docs.ts",
     "check:bundle": "bun scripts/check-bundle.ts",
-    "check": "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run gen:countries --check && bun run test && bun run test:rules && NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k NEXT_PUBLIC_MAPBOX_TOKEN=pk.check-bundle TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && bun run check:bundle"
+    "check": "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run gen:countries --check && bun run test && bun run test:rules && NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && bun run check:bundle"
   },
   "devEngines": {
     "packageManager": {
@@ -284,28 +282,28 @@
       "minBytes": 1024
     },
     "routes": {
-      "/list": {
-        "firstLoadGzipBytes": 228430,
-        "lazyGzipBytes": 0
-      },
-      "/": {
-        "firstLoadGzipBytes": 223717,
-        "lazyGzipBytes": 517013
-      },
-      "/stats": {
-        "firstLoadGzipBytes": 219363,
+      "/sign-in/verify": {
+        "firstLoadGzipBytes": 192170,
         "lazyGzipBytes": 0
       },
       "/sign-in": {
-        "firstLoadGzipBytes": 199341,
+        "firstLoadGzipBytes": 191067,
         "lazyGzipBytes": 0
       },
-      "/sign-in/verify": {
-        "firstLoadGzipBytes": 191947,
+      "/": {
+        "firstLoadGzipBytes": 163231,
+        "lazyGzipBytes": 66850
+      },
+      "/stats": {
+        "firstLoadGzipBytes": 160845,
+        "lazyGzipBytes": 0
+      },
+      "/list": {
+        "firstLoadGzipBytes": 160654,
         "lazyGzipBytes": 0
       },
       "/_not-found": {
-        "firstLoadGzipBytes": 187409,
+        "firstLoadGzipBytes": 135666,
         "lazyGzipBytes": 0
       }
     }

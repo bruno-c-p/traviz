@@ -21,7 +21,11 @@ import {
   type Environment,
 } from "@/shared/testing/perf/builds";
 import { readPerfEnvironment } from "@/shared/testing/perf/environment";
-import { findGuardFailures, resolveBaseline } from "@/shared/testing/perf/guards";
+import {
+  findGuardFailures,
+  resolveBaseline,
+  type LockfilePolicy,
+} from "@/shared/testing/perf/guards";
 import { acquireLock, machineLockPath } from "@/shared/testing/perf/lock";
 import {
   buildRows,
@@ -41,6 +45,7 @@ const { values: options } = parseArgs({
   args: process.argv.slice(2).filter((argument) => argument !== "--"),
   options: {
     baseline: { type: "string", default: "main" },
+    "allow-lockfile-diff": { type: "boolean", default: false },
     runs: { type: "string", default: "5" },
     root: { type: "string" },
     chrome: {
@@ -55,6 +60,17 @@ const { values: options } = parseArgs({
 
 const root = resolve(options.root ?? join(import.meta.dirname, "..", ".."));
 const runs = Number(options.runs);
+
+const lockfilePolicy: LockfilePolicy = options["allow-lockfile-diff"]
+  ? "may-differ"
+  : "same-as-baseline";
+
+const LOCKFILE_NOTES: Record<LockfilePolicy, (baselineLabel: string) => string> = {
+  "same-as-baseline": (baselineLabel) => `bun.lock matches ${baselineLabel}.`,
+  "may-differ": (baselineLabel) =>
+    `--allow-lockfile-diff: each side installs its own bun.lock, so dependency changes since ${baselineLabel} count in the result.`,
+};
+
 const workDirectory = join(root, ".data", "perf");
 const timeoutMs = 60_000;
 const sides: Side[] = ["baseline", "candidate"];
@@ -67,8 +83,8 @@ const seedPlan = [
   ["not_interested", 7],
 ] as const satisfies SeedPlan<Marks[string]>;
 
-const visitedCounter = `/(?<!\\d)${visitedCount}\\s*(of|\\/)\\s*\\d/.test(document.body.textContent)`;
-const visitedFilter = `/Visited\\s*${visitedCount}(?!\\d)/.test(document.querySelector('[aria-label="Filter by status"]')?.textContent ?? "")`;
+const visitedCounter = `/(?<!\\d)${visitedCount}\\s*(of|\\/)\\s*\\d/.test(document.body.innerText)`;
+const visitedFilter = `/Visited\\s*${visitedCount}(?!\\d)/.test(document.querySelector('[aria-label="Filter by status"]')?.innerText ?? "")`;
 
 const routes = [
   { path: homePath(), expectGlobe: true, expression: visitedCounter, hasReturnFromList: true },
@@ -218,7 +234,7 @@ function printHeader(
   console.log(
     `viewport: ${throttle.viewport.width}x${throttle.viewport.height} at ${throttle.viewport.deviceScaleFactor}x, mobile`,
   );
-  console.log("not throttled: Web Worker requests, so Mapbox tile fetches run at full speed.");
+  console.log("not throttled: Web Worker requests.");
   console.log(
     `blocked: ${blockedUrlPatterns.join(", ")} through Network.setBlockedURLs, which keeps the HTTP cache on.`,
   );
@@ -248,9 +264,11 @@ async function prepare() {
 
   if (baseline.note !== "") console.log(baseline.note);
 
-  const failures = findGuardFailures(root, baseline, Bun.version);
+  const failures = findGuardFailures(root, baseline, Bun.version, lockfilePolicy);
 
   if (failures.length > 0) fail(failures.join("\nRefusing: "));
+
+  console.log(LOCKFILE_NOTES[lockfilePolicy](baseline.label));
 
   const localEnvironment = readPerfEnvironment(root, process.env);
 

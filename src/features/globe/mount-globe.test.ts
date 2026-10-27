@@ -9,53 +9,41 @@ import {
 import type { GlobeCamera } from "@/features/globe/mount-globe";
 import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
-type MapEvent = { originalEvent?: unknown };
-
 function createFakeMap() {
-  const listeners = new Map<string, Array<(event: MapEvent) => void>>();
+  const interactionListeners: Array<() => void> = [];
   const calls: string[] = [];
   const flights: unknown[] = [];
   let center = { lng: 0, lat: 20 };
   let zoom = 1.4;
   let removals = 0;
 
-  function fire(type: string, event: MapEvent = {}) {
-    for (const listener of listeners.get(type) ?? []) listener(event);
-  }
-
   return {
     getCenter: () => ({ ...center }),
-    jumpTo: (options: { center: { lng: number; lat: number } }) => {
-      center = { ...options.center };
+    jumpTo: (options: { center: [number, number] }) => {
+      center = { lng: options.center[0], lat: options.center[1] };
       calls.push("jumpTo");
     },
-    setPaintProperty: () => {
-      calls.push("setPaintProperty");
+    setMarks: () => {
+      calls.push("setMarks");
     },
-    setFilter: () => {
-      calls.push("setFilter");
+    setSelectedCode: () => {
+      calls.push("setSelectedCode");
     },
+    onCountryClick: () => undefined,
     flyTo: (options: { center: [number, number] }) => {
       flights.push(options.center);
       calls.push("flyTo");
     },
     getZoom: () => zoom,
-    on: (type: string, listener: (event: MapEvent) => void) => {
-      listeners.set(type, [...(listeners.get(type) ?? []), listener]);
-    },
-    off: (type: string, listener: (event: MapEvent) => void) => {
-      listeners.set(
-        type,
-        (listeners.get(type) ?? []).filter((registered) => registered !== listener),
-      );
+    onUserInteraction: (listener: () => void) => {
+      interactionListeners.push(listener);
     },
     remove: () => {
       removals++;
     },
-    loadStyle: () => {
-      fire("style.load");
+    interact: () => {
+      for (const listener of interactionListeners) listener();
     },
-    fire,
     moveCamera: (nextCenter: { lng: number; lat: number }, nextZoom: number) => {
       center = { ...nextCenter };
       zoom = nextZoom;
@@ -101,18 +89,9 @@ function createFakeFrames() {
 function mountFakeGlobe({ isSpinning = true }: { isSpinning?: boolean } = {}) {
   const map = createFakeMap();
   const frames = createFakeFrames();
-  let mapEventBindings = 0;
+  const unmount = startGlobe(map, { frames: frames.scheduler, isSpinning });
 
-  const unmount = startGlobe(map, {
-    initialMarks: useCountriesStore.getState().marks,
-    frames: frames.scheduler,
-    isSpinning,
-    bindMapEvents: () => {
-      mapEventBindings++;
-    },
-  });
-
-  return { map, frames, unmount, mapEventBindings: () => mapEventBindings };
+  return { map, frames, unmount };
 }
 
 function changeMarksAndSelection() {
@@ -127,10 +106,9 @@ describe("globe lifecycle", () => {
     useSelectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
   });
 
-  test("spins after the style loads and leaves no frame running after unmount", () => {
+  test("spins once started and leaves no frame running after unmount", () => {
     const globe = mountFakeGlobe();
 
-    globe.map.loadStyle();
     globe.frames.runFrames(3);
 
     expect(globe.frames.scheduledCount()).toBe(1);
@@ -145,52 +123,22 @@ describe("globe lifecycle", () => {
     expect(globe.map.removals()).toBe(1);
   });
 
-  test("a style that loads after unmount starts nothing", () => {
-    const globe = mountFakeGlobe();
-
-    globe.unmount();
-    globe.map.loadStyle();
-    changeMarksAndSelection();
-    globe.frames.runFrames(5);
-
-    expect(globe.frames.scheduledCount()).toBe(0);
-    expect(globe.mapEventBindings()).toBe(0);
-    expect(globe.map.calls).toEqual([]);
-  });
-
-  test("a search made before any globe mounts flies there once the next globe loads", () => {
+  test("a search made before any globe mounts flies there once the next globe starts", () => {
     useSelectedCountryStore.getState().selectAndFly("JPN");
 
     const globe = mountFakeGlobe();
-    globe.map.loadStyle();
     globe.unmount();
 
     expect(globe.map.flights).toEqual([countryCenter("JPN")]);
     expect(useSelectedCountryStore.getState().pendingFlyCode).toBeNull();
   });
 
-  test("a search made while a globe loads survives its unmount and flies on the next globe", () => {
-    const leftGlobe = mountFakeGlobe();
-
-    useSelectedCountryStore.getState().selectAndFly("JPN");
-    leftGlobe.unmount();
-
-    const nextGlobe = mountFakeGlobe();
-    nextGlobe.map.loadStyle();
-    nextGlobe.unmount();
-
-    expect(leftGlobe.map.flights).toEqual([]);
-    expect(nextGlobe.map.flights).toEqual([countryCenter("JPN")]);
-    expect(useSelectedCountryStore.getState().pendingFlyCode).toBeNull();
-  });
-
   test("store changes after unmount reach no map method", () => {
     const globe = mountFakeGlobe();
 
-    globe.map.loadStyle();
     useCountriesStore.setState({ marks: { DEU: "want" } });
 
-    expect(globe.map.calls).toContain("setPaintProperty");
+    expect(globe.map.calls).toContain("setMarks");
 
     globe.unmount();
     globe.map.calls.length = 0;
@@ -202,7 +150,6 @@ describe("globe lifecycle", () => {
   test("reports the camera it ends with, still spinning when the user never touched it", () => {
     const globe = mountFakeGlobe();
 
-    globe.map.loadStyle();
     globe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
 
     expect(globe.unmount()).toEqual({ center: [42, -12], zoom: 3.5, isSpinning: true });
@@ -211,17 +158,15 @@ describe("globe lifecycle", () => {
   test("reports a spin the user stopped as not spinning", () => {
     const globe = mountFakeGlobe();
 
-    globe.map.loadStyle();
     globe.frames.runFrames(2);
-    globe.map.fire("mousedown");
+    globe.map.interact();
 
     expect(globe.unmount().isSpinning).toBe(false);
   });
 
-  test("a globe started without spin schedules no frame after its style loads", () => {
+  test("a globe started without spin schedules no frame", () => {
     const globe = mountFakeGlobe({ isSpinning: false });
 
-    globe.map.loadStyle();
     globe.frames.runFrames(3);
 
     expect(globe.frames.scheduledCount()).toBe(0);
@@ -244,10 +189,8 @@ describe("camera handoff", () => {
         return createFakeMap();
       },
       {
-        initialMarks: {},
         frames: frames.scheduler,
         prefersReducedMotion,
-        bindMapEvents: () => {},
       },
     );
 
@@ -258,13 +201,11 @@ describe("camera handoff", () => {
     const handoff = createCameraHandoff();
     const firstGlobe = mountFrom(handoff);
 
-    firstGlobe.map.loadStyle();
     firstGlobe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
-    firstGlobe.map.fire("mousedown");
+    firstGlobe.map.interact();
     firstGlobe.unmount();
 
     const nextGlobe = mountFrom(handoff);
-    nextGlobe.map.loadStyle();
     nextGlobe.frames.runFrames(3);
 
     expect(nextGlobe.cameras).toEqual([{ center: [42, -12], zoom: 3.5, isSpinning: false }]);
@@ -279,7 +220,6 @@ describe("camera handoff", () => {
     mountFrom(handoff).unmount();
 
     const nextGlobe = mountFrom(handoff);
-    nextGlobe.map.loadStyle();
     nextGlobe.frames.runFrames(3);
 
     expect(nextGlobe.frames.scheduledCount()).toBe(1);
@@ -308,9 +248,8 @@ describe("camera handoff", () => {
 
     function leaveGlobeMovedAndSelected(handoff: ReturnType<typeof createCameraHandoff>) {
       const globe = mountFrom(handoff);
-      globe.map.loadStyle();
       globe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
-      globe.map.fire("mousedown");
+      globe.map.interact();
       globe.unmount();
       useSelectedCountryStore.getState().selectAndFly("JPN");
     }
@@ -367,9 +306,8 @@ describe("camera handoff", () => {
 
     function moveMountedGlobe(handoff: ReturnType<typeof createCameraHandoff>) {
       const globe = mountFrom(handoff);
-      globe.map.loadStyle();
       globe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
-      globe.map.fire("mousedown");
+      globe.map.interact();
 
       return globe;
     }
@@ -410,7 +348,6 @@ describe("camera handoff", () => {
   test("reduced motion starts no spin", () => {
     const globe = mountFrom(createCameraHandoff(), { prefersReducedMotion: true });
 
-    globe.map.loadStyle();
     globe.frames.runFrames(3);
 
     expect(globe.frames.scheduledCount()).toBe(0);

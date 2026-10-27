@@ -3,7 +3,7 @@ import { cn } from "@/shared/cn";
 
 export function MapLegend({ className }: { className?: string }) {
   return (
-    <ul aria-label="Legend" className={cn("flex flex-wrap gap-2", className)}>
+    <ul aria-label="Legend" className={cn("flex-wrap gap-2", className)}>
       {COUNTRY_STATES.map((countryState) => (
         <li
           key={countryState}

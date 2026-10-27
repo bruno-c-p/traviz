@@ -1,11 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { createFromReadableStream } from "next/dist/compiled/react-server-dom-turbopack/client.edge";
 import type { CountryState, Marks } from "@/features/marks/colors";
 import {
   applyChange,
   INITIAL_MARKS_SYNC_STATE,
   reduceMarksSync,
-  snapshotFromMarks,
   visibleMarks,
   type CachedMarks,
   type MarkChangeFailure,
@@ -538,10 +536,11 @@ describe("events that change nothing", () => {
     expect(reduceMarksSync(before, ended())).toBe(before);
   });
 
-  test("ending a session before any started still records that it ended", () => {
-    const state = reduceMarksSync(INITIAL_MARKS_SYNC_STATE, ended());
+  test("ending a session before any started still drops the taps after it", () => {
+    const state = play([ended(), setMark("DEU", "visited")]);
 
-    expect(state.sessionEnded).toBe(true);
+    expect(visibleMarks(state)).toEqual({});
+    expect(state.pending).toEqual([]);
   });
 
   test("ending an ended session that shows a preview clears the preview", () => {
@@ -591,44 +590,6 @@ describe("a late confirmation", () => {
 
     expect(visibleMarks(confirmed)).toEqual({ DEU: "visited" });
     expect(confirmed.problems).toEqual([{ scope: "DEU", reason: "rejected" }]);
-  });
-});
-
-describe("the snapshot from the server render", () => {
-  test("loaded marks become an ok snapshot for that owner", async () => {
-    expect(await snapshotFromMarks(OWNER, Promise.resolve({ DEU: "visited" }))).toEqual({
-      ok: true,
-      ownerId: OWNER,
-      marks: { DEU: "visited" },
-    });
-  });
-
-  test("marks decoded by React's Flight client, whose then returns nothing, still become a snapshot", async () => {
-    const payload = new TextEncoder().encode('0:{"marks":"$@1"}\n1:{"DEU":"visited"}\n');
-
-    const stream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(payload);
-        controller.close();
-      },
-    });
-
-    const decoded = await createFromReadableStream<{ marks: Promise<Marks> }>(stream, {
-      serverConsumerManifest: { moduleMap: {}, serverModuleMap: null, moduleLoading: null },
-    });
-
-    expect(await snapshotFromMarks(OWNER, decoded.marks)).toEqual({
-      ok: true,
-      ownerId: OWNER,
-      marks: { DEU: "visited" },
-    });
-  });
-
-  test("marks that failed to load become a failed snapshot for that owner", async () => {
-    expect(await snapshotFromMarks(OWNER, Promise.reject(new Error("hanging promise")))).toEqual({
-      ok: false,
-      ownerId: OWNER,
-    });
   });
 });
 

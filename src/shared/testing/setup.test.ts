@@ -37,17 +37,9 @@ case "$2" in
 esac
 `;
 
-const fakeVercel = `#!/bin/sh
-printf '%s\\n' "vercel $*" >> "$FAKE_LOG"
-printf 'vercel-env [%s]\\n' "$(env | grep -E '^VERCEL_' | cut -d= -f1 | sort | tr '\\n' ' ')" >> "$FAKE_LOG"
-if [ -n "$FAKE_VERCEL_FAILS" ]; then exit 1; fi
-printf 'NEXT_PUBLIC_MAPBOX_TOKEN="%s"\\nTURSO_DATABASE_URL="libsql://remote.turso.io"\\nTURSO_AUTH_TOKEN="remote-token"\\nCLERK_SECRET_KEY="sk_live_remote"\\n' "$FAKE_MAPBOX_TOKEN" > "$3"
-`;
-
 const completeEnvLocal = [
   "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_existing",
   "CLERK_SECRET_KEY=sk_test_existing",
-  "NEXT_PUBLIC_MAPBOX_TOKEN=pk.existing",
   "TURSO_DATABASE_URL=file:.data/dev.db",
   "",
 ].join("\n");
@@ -56,8 +48,6 @@ type FakeBehaviour = {
   publishableKey?: string;
   secretKey?: string;
   users?: string;
-  vercelFails?: boolean;
-  mapboxToken?: string;
   clerkFails?: boolean;
   clerkMissing?: boolean;
   clerkPullEmpty?: boolean;
@@ -73,7 +63,6 @@ function createFixture({ envLocal, clerkMissing, migrationFails }: FakeBehaviour
   mkdirSync(join(fixtureRoot, "bin"));
 
   if (!clerkMissing) writeFileSync(join(fixtureRoot, "bin", "clerk"), fakeClerk, { mode: 0o755 });
-  writeFileSync(join(fixtureRoot, "bin", "vercel"), fakeVercel, { mode: 0o755 });
   writeFileSync(
     join(fixtureRoot, "package.json"),
     JSON.stringify({ scripts: { "db:migrate": migrationFails ? "exit 1" : "touch migrated" } }),
@@ -107,8 +96,6 @@ function runScript(
       FAKE_PUBLISHABLE_KEY: behaviour.publishableKey ?? "pk_test_pulled",
       FAKE_SECRET_KEY: behaviour.secretKey ?? "sk_test_pulled",
       FAKE_USERS: behaviour.users ?? "[]",
-      FAKE_VERCEL_FAILS: behaviour.vercelFails ? "1" : "",
-      FAKE_MAPBOX_TOKEN: behaviour.mapboxToken ?? "pk.fake-mapbox",
       FAKE_CLERK_FAILS: behaviour.clerkFails ? "1" : "",
       FAKE_CLERK_PULL_EMPTY: behaviour.clerkPullEmpty ? "1" : "",
       ...behaviour.environment,
@@ -123,9 +110,8 @@ function runScript(
     exitCode: result.status,
     stdout: result.stdout,
     output: result.stdout + result.stderr,
-    calls: logLines.filter((line) => !/^(clerk|vercel)-env /.test(line)),
+    calls: logLines.filter((line) => !line.startsWith("clerk-env ")),
     clerkEnvironment: logLines.filter((line) => line.startsWith("clerk-env ")),
-    vercelEnvironment: logLines.filter((line) => line.startsWith("vercel-env ")),
     envLocal: existsSync(envLocalPath) ? readFileSync(envLocalPath, "utf8") : null,
     migrated: existsSync(join(fixtureRoot, "migrated")),
   };
@@ -139,7 +125,7 @@ afterAll(() => {
   for (const fixtureRoot of fixtureRoots) rmSync(fixtureRoot, { recursive: true, force: true });
 });
 
-test("a fresh root gets development keys, the Mapbox token and a local database", () => {
+test("a fresh root gets development keys and a local database", () => {
   const run = runSetup({});
 
   expect(run.exitCode).toBe(0);
@@ -147,7 +133,6 @@ test("a fresh root gets development keys, the Mapbox token and a local database"
     [
       "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_pulled",
       "CLERK_SECRET_KEY=sk_test_pulled",
-      "NEXT_PUBLIC_MAPBOX_TOKEN=pk.fake-mapbox",
       "TURSO_DATABASE_URL=file:.data/dev.db",
       "",
     ].join("\n"),
@@ -156,7 +141,6 @@ test("a fresh root gets development keys, the Mapbox token and a local database"
   expect(run.envLocal).not.toContain("libsql:");
   expect(existsSync(join(run.fixtureRoot, ".data"))).toBe(true);
   expect(existsSync(join(run.fixtureRoot, ".data", "clerk-dev.env"))).toBe(false);
-  expect(existsSync(join(run.fixtureRoot, ".data", "vercel-development.env"))).toBe(false);
   expect(run.migrated).toBe(true);
   expect(run.output).toContain("bun run sign-in-token");
 
@@ -165,7 +149,6 @@ test("a fresh root gets development keys, the Mapbox token and a local database"
   expect(clerkCalls.length).toBe(3);
   expect(clerkCalls.every((call) => call.endsWith("--instance dev"))).toBe(true);
   expect(clerkCalls.some((call) => call.startsWith("clerk api /users --yes -d"))).toBe(true);
-  expect(run.calls.some((call) => call.includes("--environment development"))).toBe(true);
 });
 
 test("refuses a pulled live publishable key and writes nothing", () => {
@@ -225,16 +208,6 @@ test("refuses a remote database in the process environment", () => {
   expect(run.migrated).toBe(false);
 });
 
-test("continues without a Mapbox token when vercel fails", () => {
-  const run = runSetup({ vercelFails: true });
-
-  expect(run.exitCode).toBe(0);
-  expect(run.envLocal).not.toContain("NEXT_PUBLIC_MAPBOX_TOKEN");
-  expect(run.output).toContain("vercel env pull failed: Command failed: vercel env pull");
-  expect(run.output).toContain("No Mapbox token. The globe shows a flat placeholder");
-  expect(run.migrated).toBe(true);
-});
-
 test("a complete .env.local pulls nothing and stays unchanged", () => {
   const run = runSetup({ envLocal: completeEnvLocal, users: '[{"id":"user_existing"}]' });
 
@@ -284,19 +257,6 @@ test("clerk never receives a CLERK_ variable or the Clerk publishable key", () =
   expect(new Set(run.clerkEnvironment)).toEqual(new Set(["clerk-env []"]));
 });
 
-test("vercel never receives a Vercel token, org or project from the process environment", () => {
-  const run = runSetup({
-    environment: {
-      VERCEL_TOKEN: "shell-token",
-      VERCEL_ORG_ID: "team_shell",
-      VERCEL_PROJECT_ID: "prj_shell",
-    },
-  });
-
-  expect(run.exitCode).toBe(0);
-  expect(run.vercelEnvironment).toEqual(["vercel-env []"]);
-});
-
 test("creates .env.local readable only by its owner", () => {
   const run = runSetup({});
 
@@ -320,7 +280,6 @@ test("appends the pulled secret key on a new line after a publishable key with n
     [
       "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_x",
       "CLERK_SECRET_KEY=sk_test_pulled",
-      "NEXT_PUBLIC_MAPBOX_TOKEN=pk.fake-mapbox",
       "TURSO_DATABASE_URL=file:.data/dev.db",
       "",
     ].join("\n"),
@@ -360,7 +319,6 @@ test("reads single-quoted, exported and commented values in .env.local", () => {
   const envLocal = [
     "export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_existing # development",
     "CLERK_SECRET_KEY='sk_test_existing'",
-    "NEXT_PUBLIC_MAPBOX_TOKEN=pk.existing",
     "TURSO_DATABASE_URL='file:.data/dev.db'",
     "",
   ].join("\n");
@@ -429,44 +387,6 @@ test("accepts relative, absolute and file:/// databases inside this worktree's .
     expect(run.exitCode).toBe(0);
     expect(run.migrated).toBe(true);
   }
-});
-
-test("refuses a Mapbox secret token in .env.local without printing it", () => {
-  const envLocal = completeEnvLocal.replace("pk.existing", "sk.secret-mapbox");
-  const run = runSetup({ envLocal });
-
-  expect(run.exitCode).toBe(1);
-  expect(run.output).toContain(
-    "NEXT_PUBLIC_MAPBOX_TOKEN in .env.local is not a Mapbox public token",
-  );
-  expect(run.output).not.toContain("sk.secret-mapbox");
-  expect(run.envLocal).toBe(envLocal);
-  expect(run.calls).toEqual([]);
-  expect(run.migrated).toBe(false);
-});
-
-test("refuses a Mapbox secret token in the process environment without printing it", () => {
-  const run = runSetup({ environment: { NEXT_PUBLIC_MAPBOX_TOKEN: "sk.secret-mapbox" } });
-
-  expect(run.exitCode).toBe(1);
-  expect(run.output).toContain(
-    "NEXT_PUBLIC_MAPBOX_TOKEN in the process environment (shell or .env) is not a Mapbox public token",
-  );
-  expect(run.output).not.toContain("sk.secret-mapbox");
-  expect(run.envLocal).toBeNull();
-  expect(run.calls).toEqual([]);
-});
-
-test("refuses a pulled Mapbox secret token and writes nothing", () => {
-  const run = runSetup({ mapboxToken: "sk.secret-mapbox" });
-
-  expect(run.exitCode).toBe(1);
-  expect(run.output).toContain(
-    "NEXT_PUBLIC_MAPBOX_TOKEN in the vercel env pull output is not a Mapbox public token",
-  );
-  expect(run.output).not.toContain("sk.secret-mapbox");
-  expect(run.envLocal).toBeNull();
-  expect(run.migrated).toBe(false);
 });
 
 const clerkLoginMessage =

@@ -26,7 +26,6 @@ const gateFiles = [
 
 const exemptedFiles = [
   "paths.ts",
-  "src/features/country-list/virtual-country-list.tsx",
   "src/example.test.ts",
   "src/example.test.tsx",
   "src/shared/testing/example.ts",
@@ -182,11 +181,11 @@ test("check:gates fails on a rule turned off globally or in an unlisted override
     ),
   );
   expectFailure(
-    "sets no-debugger to off for src/features/country-list/virtual-country-list.tsx without an entry",
+    "sets no-debugger to off for ./paths.ts without an entry",
     edit(
       ".oxlintrc.json",
-      '"react/incompatible-library": "off" }',
-      '"react/incompatible-library": "off", "no-debugger": "off" }',
+      '"typescript/consistent-type-assertions": "off" }',
+      '"typescript/consistent-type-assertions": "off", "no-debugger": "off" }',
     ),
   );
 });
@@ -219,16 +218,16 @@ test("check:gates fails on oxlint config that loosens rules from elsewhere", () 
 });
 
 test("check:gates fails on an exemption whose file or override is gone", () => {
+  expectFailure("lint-exemptions.json names ./paths.ts, which matches no tracked file", [
+    "paths.ts",
+    null,
+  ]);
   expectFailure(
-    "lint-exemptions.json names src/features/country-list/virtual-country-list.tsx, which matches no tracked file",
-    ["src/features/country-list/virtual-country-list.tsx", null],
-  );
-  expectFailure(
-    "lists react/incompatible-library for src/features/country-list/virtual-country-list.tsx, but .oxlintrc.json has no matching override",
+    "lists typescript/consistent-type-assertions for ./paths.ts, but .oxlintrc.json has no matching override",
     edit(
       ".oxlintrc.json",
-      '"react/incompatible-library": "off"',
-      '"react/incompatible-library": "error"',
+      '"typescript/consistent-type-assertions": "off"',
+      '"typescript/consistent-type-assertions": "error"',
     ),
   );
 });
@@ -376,12 +375,8 @@ test("check:gates fails on a category below error, a CI without setup-bun and a 
 
 test("check:gates fails when an exemption's override covers other files", () => {
   expectFailure(
-    "lists react/incompatible-library for src/features/country-list/virtual-country-list.tsx, but .oxlintrc.json has no matching override",
-    edit(
-      ".oxlintrc.json",
-      '"files": ["src/features/country-list/virtual-country-list.tsx"]',
-      '"files": ["src/features/country-list/*.tsx"]',
-    ),
+    "lists typescript/consistent-type-assertions for ./paths.ts, but .oxlintrc.json has no matching override",
+    edit(".oxlintrc.json", '"files": ["./paths.ts"]', '"files": ["./*.ts"]'),
   );
 });
 

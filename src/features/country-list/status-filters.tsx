@@ -39,7 +39,12 @@ export function StatusFilters({ activeFilters, counts, onToggle }: StatusFilters
               style={{ backgroundColor: STATE_COLORS[filter.value] }}
             />
             {filter.label}
-            <span className={cn("font-mono text-xs", isActive ? "text-primary" : "text-mute")}>
+            <span
+              className={cn(
+                "mark-count font-mono text-xs",
+                isActive ? "text-primary" : "text-mute",
+              )}
+            >
               {counts[filter.value]}
             </span>
           </button>

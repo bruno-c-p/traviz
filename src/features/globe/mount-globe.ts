@@ -1,47 +1,25 @@
-import type mapboxgl from "mapbox-gl";
-import { bindCountryEvents } from "@/features/globe/map-country-events";
+import type { createGlobe } from "@/features/globe/create-globe";
 import { createGlobeSpin } from "@/features/globe/map-spin";
 import type { FrameScheduler, SpinnableMap } from "@/features/globe/map-spin";
 import { bindStoreSync } from "@/features/globe/map-store-sync";
 import type { SyncedMap } from "@/features/globe/map-store-sync";
-import { buildMapStyle } from "@/features/globe/map-style";
-import type { Marks } from "@/features/marks";
+import type { CountryTopology } from "@/features/globe/globe-scene";
 import { useCountriesStore } from "@/features/marks";
 import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
-type GlobeMap = SpinnableMap &
-  SyncedMap & {
-    on: (type: "style.load", listener: () => void) => void;
-    off: (type: "style.load", listener: () => void) => void;
-    remove: () => void;
-  };
+type GlobeMap = SpinnableMap & SyncedMap & { remove: () => void };
 
 export type GlobeCamera = { center: [number, number]; zoom: number; isSpinning: boolean };
 
-type GlobeOptions<T> = {
-  initialMarks: Marks;
-  frames: FrameScheduler;
-  isSpinning: boolean;
-  bindMapEvents: (map: T) => void;
-};
+type GlobeOptions = { frames: FrameScheduler; isSpinning: boolean };
 
-export function startGlobe<T extends GlobeMap>(
-  map: T,
-  { initialMarks, frames, isSpinning, bindMapEvents }: GlobeOptions<T>,
-) {
+export function startGlobe(map: GlobeMap, { frames, isSpinning }: GlobeOptions) {
   const spin = createGlobeSpin(map, { startsStopped: !isSpinning, frames });
 
-  let unsubscribeStores: (() => void) | undefined;
-
   spin.stopOnUserInteraction();
+  spin.start();
 
-  function handleStyleLoad() {
-    bindMapEvents(map);
-    spin.start();
-    unsubscribeStores = bindStoreSync(map, initialMarks, spin.stop);
-  }
-
-  map.on("style.load", handleStyleLoad);
+  const unsubscribeStores = bindStoreSync(map, spin.stop);
 
   return function unmount(): GlobeCamera {
     const { lng, lat } = map.getCenter();
@@ -52,16 +30,15 @@ export function startGlobe<T extends GlobeMap>(
       isSpinning: !spin.isStopped(),
     };
 
-    map.off("style.load", handleStyleLoad);
     spin.stop();
-    unsubscribeStores?.();
+    unsubscribeStores();
     map.remove();
 
     return camera;
   };
 }
 
-type HandoffOptions<T> = Omit<GlobeOptions<T>, "isSpinning"> & { prefersReducedMotion: boolean };
+type HandoffOptions = Omit<GlobeOptions, "isSpinning"> & { prefersReducedMotion: boolean };
 
 const DEFAULT_CAMERA: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
 
@@ -71,7 +48,7 @@ export function createCameraHandoff() {
 
   function mountFromLastCamera<T extends GlobeMap>(
     createMap: (camera: GlobeCamera) => T,
-    { prefersReducedMotion, ...options }: HandoffOptions<T>,
+    { prefersReducedMotion, ...options }: HandoffOptions,
   ) {
     const resetCountAtMount = resetCount;
     const map = createMap(lastCamera);
@@ -112,28 +89,14 @@ const cameraHandoff = createCameraHandoff();
 
 resetGlobeOnAccountChange(cameraHandoff);
 
-export function mountGlobe(mapbox: typeof mapboxgl, container: HTMLDivElement) {
-  const initialMarks = useCountriesStore.getState().marks;
-  const initialSelectedCode = useSelectedCountryStore.getState().selectedCode;
+type GlobeModules = { createGlobe: typeof createGlobe; topology: CountryTopology };
+
+export function mountGlobe({ createGlobe, topology }: GlobeModules, container: HTMLDivElement) {
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   return cameraHandoff.mountFromLastCamera(
-    (camera) =>
-      new mapbox.Map({
-        container,
-        accessToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
-        style: buildMapStyle(initialMarks, initialSelectedCode),
-        localFontFamily: getComputedStyle(container).fontFamily,
-        projection: "globe",
-        center: camera.center,
-        zoom: camera.zoom,
-        minZoom: 1,
-        maxZoom: 8,
-      }),
-    {
-      initialMarks,
-      frames: window,
-      prefersReducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-      bindMapEvents: bindCountryEvents,
-    },
+    ({ center, zoom }) =>
+      createGlobe(container, topology, { camera: { center, zoom }, prefersReducedMotion }),
+    { frames: window, prefersReducedMotion },
   );
 }

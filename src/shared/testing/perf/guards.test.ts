@@ -2,7 +2,11 @@ import { afterAll, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { findGuardFailures, resolveBaseline } from "@/shared/testing/perf/guards";
+import {
+  findGuardFailures,
+  resolveBaseline,
+  type LockfilePolicy,
+} from "@/shared/testing/perf/guards";
 
 const pinnedBunVersion = "1.4.3";
 const fixturesDirectory = join(import.meta.dir, "..", "..", "..", "..", ".data");
@@ -51,12 +55,17 @@ function createFixture(): string {
   return fixtureRoot;
 }
 
-function guardFailures(fixtureRoot: string, baseRef: string, bunVersion: string): string[] {
+function guardFailures(
+  fixtureRoot: string,
+  baseRef: string,
+  bunVersion: string,
+  lockfilePolicy?: LockfilePolicy,
+): string[] {
   const resolution = resolveBaseline(fixtureRoot, baseRef);
 
   if (resolution.kind === "refused") return [resolution.reason];
 
-  return findGuardFailures(fixtureRoot, resolution.baseline, bunVersion);
+  return findGuardFailures(fixtureRoot, resolution.baseline, bunVersion, lockfilePolicy);
 }
 
 function revParse(fixtureRoot: string, ref: string): string {
@@ -112,8 +121,17 @@ test("refuses a committed lockfile that differs from the base", () => {
   commitAll(fixtureRoot, "bump a dependency");
 
   expect(guardFailures(fixtureRoot, "main", pinnedBunVersion)).toEqual([
-    "bun.lock differs from main, so the two builds would measure different dependencies.",
+    "bun.lock differs from main, so the two builds would measure different dependencies. Pass --allow-lockfile-diff when the dependency change is what you measure.",
   ]);
+});
+
+test("allows a lockfile that differs from the base when the caller measures the dependency change", () => {
+  const fixtureRoot = createFixture();
+
+  writeFileSync(join(fixtureRoot, "bun.lock"), '{ "lockfileVersion": 1, "bumped": true }\n');
+  commitAll(fixtureRoot, "drop a dependency");
+
+  expect(guardFailures(fixtureRoot, "main", pinnedBunVersion, "may-differ")).toEqual([]);
 });
 
 test("refuses a bun version other than the devEngines pin", () => {

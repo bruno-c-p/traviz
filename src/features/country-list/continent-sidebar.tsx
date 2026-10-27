@@ -19,7 +19,7 @@ export function ContinentSidebar({
   return (
     <nav
       aria-label="Continents"
-      className={cn("flex flex-col gap-1 rounded-3xl bg-canvas p-2.5 shadow-card", className)}
+      className={cn("flex-col gap-1 rounded-3xl bg-canvas p-2.5 shadow-card", className)}
     >
       {options.map((option) => {
         const isActive = option.continent === selectedContinent;
@@ -43,13 +43,13 @@ export function ContinentSidebar({
               >
                 {option.label}
               </span>
-              <span className="font-mono text-xs tabular-nums text-mute">
+              <span className="mark-count font-mono text-xs tabular-nums text-mute">
                 {option.visited} / {option.total}
               </span>
             </span>
             <span className="block h-1.5 overflow-hidden rounded-full bg-land">
               <span
-                className="block h-full rounded-full transition-transform duration-300 ease-out"
+                className="mark-count block h-full rounded-full transition-transform duration-300 ease-out"
                 style={{
                   transform: `translateX(${percent - 100}%)`,
                   backgroundColor: STATE_COLORS.visited,
