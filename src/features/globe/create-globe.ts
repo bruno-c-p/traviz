@@ -1,5 +1,6 @@
 import { geoInterpolate } from "d3-geo";
 import { drawGlobe } from "@/features/globe/draw-globe";
+import type { LabelLayouts } from "@/features/globe/draw-globe";
 import {
   clampCamera,
   easeInOutCubic,
@@ -9,6 +10,8 @@ import {
 import type { Camera, LngLat } from "@/features/globe/globe-camera";
 import { createGestureTracker } from "@/features/globe/globe-gestures";
 import type { Point } from "@/features/globe/globe-gestures";
+import { keyAction } from "@/features/globe/globe-keys";
+import { buildMarkers, markerAt, placeMarkers } from "@/features/globe/globe-markers";
 import { buildScene, countryAt, countryOutline, globeView } from "@/features/globe/globe-scene";
 import type { CountryTopology } from "@/features/globe/globe-scene";
 import type { Marks } from "@/features/marks";
@@ -17,6 +20,7 @@ import type { MultiLineString } from "geojson";
 const MAX_PIXEL_RATIO = 2;
 const FLY_MS = 1200;
 const ZOOM_MS = 300;
+const KEY_PAN_MS = 300;
 const INERTIA_LINEARITY = 0.3;
 const INERTIA_DECELERATION = 2500;
 const INERTIA_MAX_SPEED = 1400;
@@ -42,6 +46,8 @@ export function createGlobe(
   { camera: initialCamera, prefersReducedMotion }: GlobeOptions,
 ) {
   const scene = buildScene(topology);
+  const markers = buildMarkers(scene);
+  const labelLayouts: LabelLayouts = new Map();
   const canvas = document.createElement("canvas");
   const context = context2d(canvas);
 
@@ -52,13 +58,18 @@ export function createGlobe(
 
   let camera = clampCamera(initialCamera);
   let marks: Marks = {};
+  let selectedCode: string | null = null;
   let selectedOutline: MultiLineString | null = null;
   let size = { width: 0, height: 0 };
   let frameId: number | null = null;
   let animation: Animation | null = null;
   let isLoaded = false;
 
-  canvas.className = "block size-full cursor-grab touch-none select-none";
+  canvas.className =
+    "block size-full cursor-grab touch-none select-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ink";
+  canvas.tabIndex = 0;
+  canvas.setAttribute("role", "region");
+  canvas.setAttribute("aria-label", "Globe");
   container.append(canvas);
 
   function view() {
@@ -73,9 +84,12 @@ export function createGlobe(
       width: size.width,
       height: size.height,
       scene,
+      markers,
       marks,
+      selectedCode,
       selectedOutline,
       fontFamily,
+      labelLayouts,
     });
     isLoaded = true;
   }
@@ -154,6 +168,18 @@ export function createGlobe(
     });
   }
 
+  function animatePan(durationMs: number, dx: number, dy: number) {
+    let travelled = 0;
+
+    animate(durationMs, (progress) => {
+      const eased = easeOutCubic(progress);
+      const share = eased - travelled;
+
+      travelled = eased;
+      setCamera(panCamera(camera, dx * share, dy * share));
+    });
+  }
+
   function glide(velocity: Point) {
     const speed = Math.min(
       Math.hypot(velocity.x, velocity.y) * INERTIA_LINEARITY,
@@ -164,15 +190,15 @@ export function createGlobe(
 
     const seconds = speed / (INERTIA_DECELERATION * INERTIA_LINEARITY);
     const scale = (speed / Math.hypot(velocity.x, velocity.y)) * (seconds / 2);
-    let travelled = 0;
 
-    animate(seconds * 1000, (progress) => {
-      const eased = easeOutCubic(progress);
-      const share = eased - travelled;
+    animatePan(seconds * 1000, velocity.x * scale, velocity.y * scale);
+  }
 
-      travelled = eased;
-      setCamera(panCamera(camera, velocity.x * scale * share, velocity.y * scale * share));
-    });
+  function countryAtPoint(point: Point): string | null {
+    const marker = markerAt(placeMarkers(markers, view()), point);
+    const lngLat = marker ? null : lngLatAt(point);
+
+    return marker ?? (lngLat ? countryAt(scene, lngLat) : null);
   }
 
   function emitInteraction() {
@@ -194,8 +220,7 @@ export function createGlobe(
       glide(velocity);
     },
     tap: (point) => {
-      const lngLat = lngLatAt(point);
-      const code = lngLat ? countryAt(scene, lngLat) : null;
+      const code = countryAtPoint(point);
 
       if (code) for (const listener of countryClickListeners) listener(code);
     },
@@ -203,9 +228,7 @@ export function createGlobe(
   });
 
   function hover(point: Point) {
-    const lngLat = lngLatAt(point);
-
-    canvas.style.cursor = lngLat && countryAt(scene, lngLat) ? "pointer" : "";
+    canvas.style.cursor = countryAtPoint(point) ? "pointer" : "";
   }
 
   function bindPointerEvents() {
@@ -249,6 +272,24 @@ export function createGlobe(
       { signal, passive: false },
     );
     canvas.addEventListener(
+      "keydown",
+      (event) => {
+        const action = keyAction(event);
+
+        if (!action) return;
+
+        event.preventDefault();
+
+        if (action.kind === "zoom") {
+          zoomBy(action.zoomDelta);
+        } else {
+          emitInteraction();
+          animatePan(KEY_PAN_MS, action.dx, action.dy);
+        }
+      },
+      { signal },
+    );
+    canvas.addEventListener(
       "wheel",
       (event) => {
         event.preventDefault();
@@ -281,11 +322,31 @@ export function createGlobe(
     if (entry && resize(entry.contentRect.width, entry.contentRect.height)) draw();
   });
 
+  function watchPixelRatio() {
+    window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener(
+      "change",
+      () => {
+        if (resize(size.width, size.height)) draw();
+
+        watchPixelRatio();
+      },
+      { once: true, signal: listeners.signal },
+    );
+  }
+
   bindPointerEvents();
   resizeObserver.observe(container);
   resize(container.clientWidth, container.clientHeight);
+  watchPixelRatio();
   scheduleDraw();
-  void document.fonts.ready.then(scheduleDraw);
+  document.fonts.addEventListener(
+    "loadingdone",
+    () => {
+      labelLayouts.clear();
+      scheduleDraw();
+    },
+    { signal: listeners.signal },
+  );
 
   function zoomBy(zoomDelta: number) {
     emitInteraction();
@@ -324,6 +385,7 @@ export function createGlobe(
       scheduleDraw();
     },
     setSelectedCode: (code: string | null) => {
+      selectedCode = code;
       selectedOutline = countryOutline(scene, code);
       scheduleDraw();
     },

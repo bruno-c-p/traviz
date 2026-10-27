@@ -11,6 +11,8 @@ import {
   wrapWords,
 } from "@/features/globe/globe-labels";
 import type { Box } from "@/features/globe/globe-labels";
+import { placeMarkers } from "@/features/globe/globe-markers";
+import type { GlobeMarker, PlacedMarker } from "@/features/globe/globe-markers";
 import { partVisibility } from "@/features/globe/globe-scene";
 import type { GlobeScene, GlobeView } from "@/features/globe/globe-scene";
 import { STATE_COLORS } from "@/features/marks";
@@ -28,6 +30,12 @@ const CLEAR_WHITE = "rgba(255, 255, 255, 0)";
 
 const BORDER_WIDTHS: [number, number] = [0.6, 1.6];
 const SELECTED_WIDTHS: [number, number] = [1.5, 3];
+const MARKER_RING_COLOR = "#ffffff";
+const MARKER_RADIUS = 4;
+const MARKER_RING_WIDTH = 1.5;
+const SELECTED_MARKER_RADIUS = 5;
+const SELECTED_MARKER_RING_WIDTH = 2.5;
+const MARKER_LABEL_GAP = SELECTED_MARKER_RADIUS + SELECTED_MARKER_RING_WIDTH;
 const WIDTH_MAX_ZOOM = 6;
 const HALO_SPREAD = 0.12;
 const HAZE_START = 0.82;
@@ -36,6 +44,7 @@ const LABEL_LINE_HEIGHT = 1.1;
 const LABEL_MAX_WIDTH_EMS = 6;
 const LABEL_PADDING = 2;
 const LABEL_HORIZON_SHARE = 0.85;
+const LABEL_SIZE_STEPS_PER_PIXEL = 4;
 const CONTINENT_LETTER_SPACING = 0.05;
 
 const CONTINENTS: { name: string; center: LngLat }[] = [
@@ -58,12 +67,21 @@ export type GlobeFrame = {
   width: number;
   height: number;
   scene: GlobeScene;
+  markers: GlobeMarker[];
   marks: Marks;
+  selectedCode: string | null;
   selectedOutline: MultiLineString | null;
   fontFamily: string;
+  labelLayouts: LabelLayouts;
 };
 
 type LabelStyle = { size: number; opacity: number; letterSpacing: number; halo: number };
+
+type LabelLayout = { size: number; lines: string[]; halfWidth: number; halfHeight: number };
+
+export type LabelLayouts = Map<string, LabelLayout>;
+
+type LabelCandidate = { text: string; center: LngLat; style: LabelStyle; isBelowMarker: boolean };
 
 type Label = LabelStyle & { lines: string[]; x: number; y: number; box: Box };
 
@@ -180,6 +198,66 @@ function drawCountries(frame: GlobeFrame) {
   context.stroke();
 }
 
+function markerColor(marks: Marks, code: string): string {
+  return STATE_COLORS[marks[code] ?? "unmarked"];
+}
+
+function markerPath(placed: PlacedMarker[], radius: number): Path2D {
+  const path = new Path2D();
+
+  for (const { x, y } of placed) {
+    path.moveTo(x + radius, y);
+    path.arc(x, y, radius, 0, 2 * Math.PI);
+  }
+
+  return path;
+}
+
+function drawMarkerGroup(
+  context: CanvasRenderingContext2D,
+  placed: PlacedMarker[],
+  [radius, ringWidth]: [number, number],
+  [fill, ring]: [string, string],
+) {
+  const path = markerPath(placed, radius);
+
+  context.strokeStyle = ring;
+  context.lineWidth = ringWidth * 2;
+  context.stroke(path);
+  context.fillStyle = fill;
+  context.fill(path);
+}
+
+function drawMarkers({ context, marks, selectedCode }: GlobeFrame, placed: PlacedMarker[]) {
+  const groups = new Map<string, PlacedMarker[]>();
+  let selected: PlacedMarker | undefined;
+
+  for (const marker of placed) {
+    if (marker.code === selectedCode) {
+      selected = marker;
+    } else {
+      const color = markerColor(marks, marker.code);
+      const group = groups.get(color) ?? [];
+
+      group.push(marker);
+      groups.set(color, group);
+    }
+  }
+
+  for (const [color, group] of groups) {
+    drawMarkerGroup(context, group, [MARKER_RADIUS, MARKER_RING_WIDTH], [color, MARKER_RING_COLOR]);
+  }
+
+  if (!selected) return;
+
+  drawMarkerGroup(
+    context,
+    [selected],
+    [SELECTED_MARKER_RADIUS, SELECTED_MARKER_RING_WIDTH],
+    [markerColor(marks, selected.code), SELECTED_COLOR],
+  );
+}
+
 function drawHaze({ context, view }: GlobeFrame) {
   const center = view.projection.translate();
   const { radius } = view;
@@ -192,12 +270,16 @@ function drawHaze({ context, view }: GlobeFrame) {
   );
 }
 
-function labelCandidates(frame: GlobeFrame) {
+function roundLabelSize(size: number): number {
+  return Math.round(size * LABEL_SIZE_STEPS_PER_PIXEL) / LABEL_SIZE_STEPS_PER_PIXEL;
+}
+
+function labelCandidates(frame: GlobeFrame, markerCodes: Set<string>): LabelCandidate[] {
   const { zoom } = frame.camera;
   const continentOpacity = continentLabelOpacity(zoom);
 
   const continentStyle: LabelStyle = {
-    size: continentLabelSize(zoom),
+    size: roundLabelSize(continentLabelSize(zoom)),
     opacity: continentOpacity,
     letterSpacing: CONTINENT_LETTER_SPACING,
     halo: 1.5,
@@ -209,12 +291,19 @@ function labelCandidates(frame: GlobeFrame) {
           text: name.toUpperCase(),
           center,
           style: continentStyle,
+          isBelowMarker: false,
         }))
       : []),
-    ...COUNTRY_LABELS.map(({ name, center, area }) => ({
+    ...COUNTRY_LABELS.map(({ code, name, center, area }) => ({
       text: name,
       center: [center[0], center[1]] satisfies LngLat,
-      style: { size: countryLabelSize(area, zoom), opacity: 1, letterSpacing: 0, halo: 1.25 },
+      style: {
+        size: roundLabelSize(countryLabelSize(area, zoom)),
+        opacity: 1,
+        letterSpacing: 0,
+        halo: 1.25,
+      },
+      isBelowMarker: markerCodes.has(code),
     })),
   ];
 }
@@ -224,25 +313,43 @@ function setLabelFont(context: CanvasRenderingContext2D, fontFamily: string, sty
   context.letterSpacing = `${style.size * style.letterSpacing}px`;
 }
 
-function layoutLabel(
-  frame: GlobeFrame,
-  candidate: { text: string; center: LngLat; style: LabelStyle },
-): Label | null {
-  const { context, view, camera, width, height, fontFamily } = frame;
+function measureLabel(
+  { context, fontFamily, labelLayouts }: GlobeFrame,
+  text: string,
+  style: LabelStyle,
+): LabelLayout {
+  const cached = labelLayouts.get(text);
+
+  if (cached?.size === style.size) return cached;
+
+  setLabelFont(context, fontFamily, style);
+
+  const measure = (line: string) => context.measureText(line).width;
+  const lines = wrapWords(text, measure, style.size * LABEL_MAX_WIDTH_EMS);
+
+  const layout = {
+    size: style.size,
+    lines,
+    halfWidth: Math.max(...lines.map(measure)) / 2 + LABEL_PADDING,
+    halfHeight: (lines.length * style.size * LABEL_LINE_HEIGHT) / 2 + LABEL_PADDING,
+  };
+
+  labelLayouts.set(text, layout);
+
+  return layout;
+}
+
+function layoutLabel(frame: GlobeFrame, candidate: LabelCandidate): Label | null {
+  const { view, camera, width, height } = frame;
   const { style } = candidate;
   const point = view.projection(candidate.center);
   const angle = geoDistance(candidate.center, camera.center);
 
   if (!point || angle > view.horizon * LABEL_HORIZON_SHARE) return null;
 
-  const [x, y] = point;
-
-  setLabelFont(context, fontFamily, style);
-
-  const measure = (line: string) => context.measureText(line).width;
-  const lines = wrapWords(candidate.text, measure, style.size * LABEL_MAX_WIDTH_EMS);
-  const halfWidth = Math.max(...lines.map(measure)) / 2 + LABEL_PADDING;
-  const halfHeight = (lines.length * style.size * LABEL_LINE_HEIGHT) / 2 + LABEL_PADDING;
+  const { lines, halfWidth, halfHeight } = measureLabel(frame, candidate.text, style);
+  const [x, pointY] = point;
+  const y = candidate.isBelowMarker ? pointY + MARKER_LABEL_GAP + halfHeight : pointY;
 
   const box = {
     left: x - halfWidth,
@@ -256,11 +363,12 @@ function layoutLabel(
   return { ...style, lines, x, y, box };
 }
 
-function drawLabels(frame: GlobeFrame) {
+function drawLabels(frame: GlobeFrame, placed: PlacedMarker[]) {
   const { context, fontFamily } = frame;
+  const markerCodes = new Set(placed.map(({ code }) => code));
 
   const labels = placeLabels(
-    labelCandidates(frame).flatMap((candidate) => layoutLabel(frame, candidate) ?? []),
+    labelCandidates(frame, markerCodes).flatMap((candidate) => layoutLabel(frame, candidate) ?? []),
   );
 
   context.textAlign = "center";
@@ -287,8 +395,11 @@ function drawLabels(frame: GlobeFrame) {
 }
 
 export function drawGlobe(frame: GlobeFrame) {
+  const placed = placeMarkers(frame.markers, frame.view);
+
   drawSphere(frame);
   drawCountries(frame);
+  drawMarkers(frame, placed);
   drawHaze(frame);
-  drawLabels(frame);
+  drawLabels(frame, placed);
 }

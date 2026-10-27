@@ -250,6 +250,7 @@
         "src/features/marks/tally.ts",
         "src/features/globe/globe-camera.ts",
         "src/features/globe/globe-gestures.ts",
+        "src/features/globe/globe-keys.ts",
         "src/features/globe/globe-labels.ts"
       ]
     }

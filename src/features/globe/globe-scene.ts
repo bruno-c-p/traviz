@@ -12,7 +12,7 @@ export type CountryTopology = Topology<{ countries: GeometryCollection }>;
 
 type Bounds = [southWest: LngLat, northEast: LngLat];
 
-type Vector = [x: number, y: number, z: number];
+export type Vector = [x: number, y: number, z: number];
 
 type Cap = { vector: Vector; radius: number };
 
@@ -39,7 +39,7 @@ function polygons(geometry: Geometry): Position[][][] {
   return [];
 }
 
-function unitVector([longitude, latitude]: Position): Vector {
+export function unitVector([longitude, latitude]: Position): Vector {
   const cosPhi = Math.cos(latitude / DEGREES);
 
   return [
@@ -97,6 +97,7 @@ export type GlobeView = {
   projection: GeoProjection;
   traceFront: (sink: PathSink, rings: Float64Array[]) => void;
   direction: Vector;
+  scale: number;
   radius: number;
   horizon: number;
 };
@@ -176,6 +177,7 @@ export function globeView(
       .precision(0),
     traceFront: frontTracer(distance, scale, [width / 2, height / 2], [longitude, latitude]),
     direction: unitVector([longitude, latitude]),
+    scale,
     radius: scale * Math.sqrt((distance - 1) / (distance + 1)),
     horizon,
   };
