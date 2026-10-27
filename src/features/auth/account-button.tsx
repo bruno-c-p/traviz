@@ -1,14 +1,13 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
 import { UserRound } from "lucide-react";
 import Link from "next/link";
 import { accountPath } from "@/paths";
 import { cn } from "@/shared/cn";
+import { useAccountEmail } from "@/features/auth/use-account-email";
 
 export function AccountButton({ className }: { className?: string }) {
-  const { user } = useUser();
-  const initial = user?.primaryEmailAddress?.emailAddress.charAt(0).toUpperCase();
+  const initial = useAccountEmail()?.charAt(0).toUpperCase();
 
   return (
     <Link

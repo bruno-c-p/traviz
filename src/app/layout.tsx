@@ -1,4 +1,3 @@
-import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Instrument_Sans } from "next/font/google";
 import { preconnect } from "react-dom";
@@ -36,9 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en" className={cn(instrumentSans.variable, geistMono.variable)}>
-      <body className="bg-canvas-soft font-sans text-ink">
-        <ClerkProvider prefetchUI={false}>{children}</ClerkProvider>
-      </body>
+      <body className="bg-canvas-soft font-sans text-ink">{children}</body>
     </html>
   );
 }
