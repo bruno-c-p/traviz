@@ -1,6 +1,7 @@
 import type { Route } from "next";
 
 export const homePath = (): Route => "/";
+export const welcomePath = (): Route => "/welcome";
 export const signInPath = (): Route => "/sign-in";
 export const signInVerifyPath = (): Route => "/sign-in/verify";
 export const listPath = (): Route => "/list";
@@ -16,6 +17,7 @@ export const ROUTES: readonly { path: Route; access: RouteAccess }[] = [
   { path: homePath(), access: "signedIn" },
   { path: listPath(), access: "signedIn" },
   { path: statsPath(), access: "signedIn" },
+  { path: welcomePath(), access: "signedOut" },
   { path: signInPath(), access: "signedOut" },
   { path: signInVerifyPath(), access: "anyone" },
 ];

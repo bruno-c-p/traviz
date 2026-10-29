@@ -28,7 +28,7 @@ const INERTIA_DECELERATION = 2500;
 const INERTIA_MAX_SPEED = 1400;
 const LINE_DELTA_PIXELS = 40;
 
-type GlobeOptions = { camera: Camera; prefersReducedMotion: boolean };
+type GlobeOptions = { camera: Camera; prefersReducedMotion: boolean; isInteractive?: boolean };
 
 type Animation = { durationMs: number; startTime: number | null; step: (progress: number) => void };
 
@@ -45,7 +45,7 @@ function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
 export function createGlobe(
   container: HTMLElement,
   topology: CountryTopology,
-  { camera: initialCamera, prefersReducedMotion }: GlobeOptions,
+  { camera: initialCamera, prefersReducedMotion, isInteractive = true }: GlobeOptions,
 ) {
   const scene = buildScene(topology);
   const markers = buildMarkers(scene);
@@ -67,12 +67,18 @@ export function createGlobe(
   let animation: Animation | null = null;
   let isLoaded = false;
 
-  canvas.className =
-    "block size-full cursor-grab touch-none select-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ink";
-  canvas.tabIndex = 0;
-  canvas.setAttribute("role", "region");
-  canvas.setAttribute("aria-label", "Globe");
-  canvas.setAttribute("aria-keyshortcuts", "ArrowUp ArrowDown ArrowLeft ArrowRight + -");
+  if (isInteractive) {
+    canvas.className =
+      "block size-full cursor-grab touch-none select-none focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ink";
+    canvas.tabIndex = 0;
+    canvas.setAttribute("role", "region");
+    canvas.setAttribute("aria-label", "Globe");
+    canvas.setAttribute("aria-keyshortcuts", "ArrowUp ArrowDown ArrowLeft ArrowRight + -");
+  } else {
+    canvas.className = "block size-full";
+    canvas.setAttribute("aria-hidden", "true");
+  }
+
   container.append(canvas);
 
   function view() {
@@ -353,7 +359,7 @@ export function createGlobe(
     );
   }
 
-  bindPointerEvents();
+  if (isInteractive) bindPointerEvents();
   resizeObserver.observe(container);
   resize(container.clientWidth, container.clientHeight);
   watchPixelRatio();

@@ -291,16 +291,20 @@
         "lazyGzipBytes": 0
       },
       "/": {
-        "firstLoadGzipBytes": 163231,
-        "lazyGzipBytes": 66850
+        "firstLoadGzipBytes": 163359,
+        "lazyGzipBytes": 67059
       },
       "/stats": {
-        "firstLoadGzipBytes": 160845,
+        "firstLoadGzipBytes": 160921,
         "lazyGzipBytes": 0
       },
       "/list": {
-        "firstLoadGzipBytes": 160654,
+        "firstLoadGzipBytes": 160730,
         "lazyGzipBytes": 0
+      },
+      "/welcome": {
+        "firstLoadGzipBytes": 152273,
+        "lazyGzipBytes": 67059
       },
       "/_not-found": {
         "firstLoadGzipBytes": 135666,
