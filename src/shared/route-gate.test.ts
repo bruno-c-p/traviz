@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Route } from "next";
-import { homePath, listPath, signInPath, signInVerifyPath, statsPath } from "@/paths";
+import { homePath, listPath, signInPath, signInVerifyPath, statsPath, welcomePath } from "@/paths";
 import type { RouteAccess } from "@/paths";
 import { decideGate, gateRequest, redirectFor, routeAccess } from "@/shared/route-gate";
 
@@ -10,6 +10,7 @@ describe("routeAccess", () => {
     { pathname: listPath(), access: "signedIn" },
     { pathname: statsPath(), access: "signedIn" },
     { pathname: signInPath(), access: "signedOut" },
+    { pathname: welcomePath(), access: "signedOut" },
     { pathname: signInVerifyPath(), access: "anyone" },
     { pathname: "/unknown", access: "signedIn" },
     { pathname: "/sign-in/unknown", access: "signedIn" },
@@ -44,6 +45,10 @@ describe("redirectFor", () => {
     { pathname: signInVerifyPath(), isAuthenticated: false, redirect: undefined },
     { pathname: signInPath(), isAuthenticated: true, redirect: homePath() },
     { pathname: listPath(), isAuthenticated: false, redirect: signInPath() },
+    { pathname: homePath(), isAuthenticated: false, redirect: welcomePath() },
+    { pathname: homePath(), isAuthenticated: true, redirect: undefined },
+    { pathname: welcomePath(), isAuthenticated: false, redirect: undefined },
+    { pathname: welcomePath(), isAuthenticated: true, redirect: homePath() },
     { pathname: "/sign-in/unknown", isAuthenticated: false, redirect: signInPath() },
     { pathname: "/sign-in/unknown", isAuthenticated: true, redirect: undefined },
   ];

@@ -10,6 +10,7 @@ Mark the countries you've visited, want to visit, or aren't interested in, on an
 - **Three states per country.** Visited, Want to go, and Not interested. Select the active state again, or use the clear button, to remove a mark.
 - **Searchable list.** Every country grouped by continent, with search and filters by state. Territories are labeled.
 - **Stats.** Progress toward the 195 countries in the headline count, with totals per state and a breakdown by continent.
+- **Landing page.** Signed-out visitors land on `/welcome`, where all 195 countries are listed and can be marked on the spot, without saving, before signing in.
 - **Passwordless sign-in.** Enter your email and open the magic link. No passwords.
 - **Synced to your account.** Every change is saved to a Turso (libSQL) database.
 - **Works on phones.** Countries are marked from a bottom sheet, and a tab bar at the bottom holds the navigation.

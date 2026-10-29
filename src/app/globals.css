@@ -25,6 +25,7 @@
   --color-line: #d9ddd5;
   --color-want: #7a5af8;
   --color-want-deep: #5b3fd9;
+  --color-skip: #b9bdb5;
   --color-positive: #2ead4b;
   --color-positive-deep: #054d28;
   --color-warning: #ffd11a;
@@ -48,6 +49,17 @@
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --animate-paint-in: paint-in 420ms var(--ease-out) both;
+
+  @keyframes paint-in {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
 }
 
 @utility mark-count {
@@ -91,5 +103,25 @@
     &:active:not(:disabled) {
       scale: 0.97;
     }
+  }
+}
+
+@utility paint-cover {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 500ms var(--ease-out);
+
+  @media (hover: hover) {
+    :hover > & {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  :focus-visible > &,
+  :active > & {
+    clip-path: inset(0 0 0 0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 }

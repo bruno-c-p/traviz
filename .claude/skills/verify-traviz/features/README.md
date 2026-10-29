@@ -31,6 +31,7 @@ Each feature file starts with an H1 title and one paragraph on what the user see
 
 ## Features
 
+- [Landing page](landing.md) covers `/welcome`, the signed-out landing page with the name wall, the preview globe and the local sample marks, plus the root 404.
 - [Globe](globe.md) covers the spinning globe on `/`, picking a country by click or search, the card and the mobile sheet, fly-to and zoom.
 - [Country list](country-list.md) covers `/list`: continent and status filters, search, the full list and marking from a row.
 - [Stats](stats.md) covers `/stats`: the visited headline, the three totals and the continent cards.

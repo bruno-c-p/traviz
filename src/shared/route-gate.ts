@@ -1,5 +1,5 @@
 import type { Route } from "next";
-import { ROUTES, homePath, signInPath } from "@/paths";
+import { ROUTES, homePath, signInPath, welcomePath } from "@/paths";
 import type { RouteAccess } from "@/paths";
 
 export const routeAccess = (pathname: string): RouteAccess =>
@@ -13,8 +13,11 @@ export const decideGate = (access: RouteAccess, isAuthenticated: boolean): Route
   return undefined;
 };
 
-export const redirectFor = (pathname: string, isAuthenticated: boolean): Route | undefined =>
-  decideGate(routeAccess(pathname), isAuthenticated);
+export const redirectFor = (pathname: string, isAuthenticated: boolean): Route | undefined => {
+  if (pathname === homePath() && !isAuthenticated) return welcomePath();
+
+  return decideGate(routeAccess(pathname), isAuthenticated);
+};
 
 type GateRequest = {
   readonly method: string;
