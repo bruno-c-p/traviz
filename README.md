@@ -9,7 +9,7 @@ Mark the countries you've visited, want to visit, or aren't interested in, on an
 - **Interactive globe.** Spin and zoom the globe, then click or tap a country to mark it. The globe keeps spinning until you interact with it.
 - **Three states per country.** Visited, Want to go, and Not interested. Select the active state again, or use the clear button, to remove a mark.
 - **Searchable list.** Every country grouped by continent, with search and filters by state. Territories are labeled.
-- **Stats.** Progress toward the 195 countries in the headline count, with totals per state and a breakdown by continent.
+- **Stats.** Progress toward all 250 places, countries and territories, minus the ones marked not interested, with totals per state and a breakdown by continent.
 - **Landing page.** Signed-out visitors land on `/welcome`, where all 195 countries are listed and can be marked on the spot, without saving, before signing in.
 - **Passwordless sign-in.** Enter your email and open the magic link. No passwords.
 - **Synced to your account.** Every change is saved to a Turso (libSQL) database.

@@ -1,15 +1,16 @@
-import { SOVEREIGN_COUNTRIES } from "@/features/countries";
+import { countries } from "@/features/countries";
 import { type Marks, tallyMarks, tallyTotal } from "@/features/marks";
 
 export function visitedProgress(marks: Marks) {
-  const headline = tallyMarks(SOVEREIGN_COUNTRIES, marks);
-  const excluded = headline.not_interested;
-  const total = tallyTotal(headline) - excluded;
+  const places = tallyMarks(countries, marks);
+  const excluded = places.not_interested;
+  const total = tallyTotal(places) - excluded;
 
   return {
-    visited: headline.visited,
+    visited: places.visited,
+    want: places.want,
     total,
     excluded,
-    percent: total > 0 ? (headline.visited / total) * 100 : 0,
+    percent: total > 0 ? (places.visited / total) * 100 : 0,
   };
 }

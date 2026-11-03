@@ -22,12 +22,6 @@ export function StatsSummary() {
             value={allEntries.not_interested}
             color={STATE_COLORS.not_interested}
           />
-          <TotalTile
-            label="Visited, incl. territories"
-            value={allEntries.visited}
-            color={STATE_COLORS.visited}
-            className="col-span-2 md:col-span-1"
-          />
         </div>
       </div>
 

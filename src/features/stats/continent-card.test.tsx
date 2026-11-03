@@ -8,25 +8,26 @@ import { CONTINENT_POOLS } from "@/features/stats/continent-pools";
 
 describe("continent cards", () => {
   test.each([
-    ["Africa", "0 / 54", false],
-    ["Asia", "0 / 47", false],
-    ["Europe", "0 / 45", false],
-    ["North America", "0 / 23", false],
-    ["South America", "0 / 12", false],
-    ["Oceania", "0 / 14", false],
-    ["Antarctica", "0 / 5", true],
-  ] as const)(
-    "the %s card counts %s, territories only: %p",
-    (continent, fraction, isTerritoriesOnly) => {
-      const pool = CONTINENT_POOLS.find((candidate) => candidate.continent === continent);
+    ["Africa", "0 / 59"],
+    ["Asia", "0 / 50"],
+    ["Europe", "0 / 53"],
+    ["North America", "0 / 42"],
+    ["South America", "0 / 14"],
+    ["Oceania", "0 / 27"],
+    ["Antarctica", "0 / 5"],
+  ] as const)("the %s card counts every place, %s", (continent, fraction) => {
+    const pool = CONTINENT_POOLS.find((candidate) => candidate.continent === continent);
+    const markup = pool ? renderToStaticMarkup(<ContinentCard pool={pool} marks={{}} />) : "";
 
-      expect(pool?.isTerritoriesOnly).toBe(isTerritoriesOnly);
+    expect(markup).toContain(`>${fraction}<`);
+  });
 
-      const markup = pool ? renderToStaticMarkup(<ContinentCard pool={pool} marks={{}} />) : "";
+  test("the continent cards cover all 250 places once", () => {
+    const codes = CONTINENT_POOLS.flatMap((pool) => pool.countries.map((country) => country.code));
 
-      expect(markup).toContain(`>${fraction}<`);
-    },
-  );
+    expect(new Set(codes).size).toBe(countries.length);
+    expect(codes.length).toBe(250);
+  });
 
   test.each([
     ["every entry is on the wish list", () => "want" as const],
