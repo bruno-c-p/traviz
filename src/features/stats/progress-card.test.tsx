@@ -2,15 +2,15 @@ import { describe, expect, test } from "bun:test";
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 import { MarksBoundary, MarksSeedProvider } from "@/features/marks";
 import type { Marks } from "@/features/marks";
-import { SOVEREIGN_COUNTRIES, countries } from "@/features/countries";
+import { countries } from "@/features/countries";
 import { ProgressCard } from "@/features/stats/progress-card";
 
 describe("ProgressCard", () => {
   test.each([
-    ["hero", "of 195 · 0.0%"],
-    ["panel", "of 195 · 0.0%"],
-    ["peek", "/ 195 visited"],
-  ] as const)("the %s card counts visits against the 195 sovereign entries", (variant, text) => {
+    ["hero", "of 250 · 0.0%"],
+    ["panel", "of 250 · 0.0%"],
+    ["peek", "/ 250 visited"],
+  ] as const)("the %s card counts visits against all 250 places", (variant, text) => {
     expect(renderToStaticMarkup(<ProgressCard variant={variant} />)).toContain(text);
   });
 
@@ -41,25 +41,26 @@ describe("ProgressCard", () => {
     }
 
     expect(shell).toContain('aria-label="See all stats"');
-    expect(shell).not.toContain("countries visited. See all stats");
-    expect(streamed).toContain('aria-label="2 of 195 countries visited. See all stats"');
+    expect(shell).not.toContain("places visited. See all stats");
+    expect(streamed).toContain('aria-label="2 of 250 places visited. See all stats"');
   });
 
   test.each([
     ["panel", false],
     ["hero", true],
   ] as const)(
-    "the %s card counts only sovereign entries when a territory is not interested",
+    "the %s card leaves not interested territories out of the total like countries",
     async (variant, showsCaption) => {
-      const territory = countries.find((country) => country.kind === "territory");
+      const territories = countries.filter((country) => country.kind === "territory");
+      const sovereign = countries.filter((country) => country.kind === "sovereign");
 
       const marks: Marks = {
         ...Object.fromEntries(
-          SOVEREIGN_COUNTRIES.slice(0, 17).map((country) => [country.code, "not_interested"]),
+          sovereign.slice(0, 17).map((country) => [country.code, "not_interested"]),
         ),
-        [SOVEREIGN_COUNTRIES[17]?.code ?? ""]: "visited",
-        [SOVEREIGN_COUNTRIES[18]?.code ?? ""]: "want",
-        [territory?.code ?? ""]: "not_interested",
+        [territories[0]?.code ?? ""]: "not_interested",
+        [sovereign[17]?.code ?? ""]: "visited",
+        [sovereign[18]?.code ?? ""]: "want",
       };
 
       const stream = await renderToReadableStream(
@@ -73,13 +74,12 @@ describe("ProgressCard", () => {
       await stream.allReady;
       const text = (await new Response(stream).text()).replaceAll(/<[^>]+>/g, " ");
 
-      expect(text).toContain("of 178 · 0.6%");
-      expect(text.includes("17 not interested left out")).toBe(showsCaption);
+      expect(text).toContain("of 232 · 0.4%");
+      expect(text.includes("18 not interested left out")).toBe(showsCaption);
 
       if (variant === "panel") {
         expect(text).toMatch(/ 1 \s+want to go/);
-        expect(text).toMatch(/ 17 \s+not interested/);
-        expect(text).not.toContain("18");
+        expect(text).toMatch(/ 18 \s+not interested/);
       }
     },
   );

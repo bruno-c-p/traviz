@@ -31,9 +31,7 @@ export function ContinentCard({ pool, marks }: ContinentCardProps) {
         ))}
       </div>
       <p className="mark-count text-[13px] text-body">
-        {pool.isTerritoriesOnly
-          ? "Territories only, not part of the 195 headline."
-          : `${tally.want} on the wish list · ${tally.unmarked} unmarked`}
+        {`${tally.want} on the wish list · ${tally.unmarked} unmarked`}
       </p>
     </article>
   );

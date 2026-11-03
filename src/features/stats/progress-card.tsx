@@ -48,7 +48,7 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
     <>
       {variant !== "peek" && (
         <span className="font-mono text-xs uppercase tracking-wider text-primary-neutral">
-          Countries visited
+          Places visited
         </span>
       )}
       <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -130,7 +130,7 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
       <Link
         href={statsPath()}
         aria-label={
-          hasMarksSeed ? `${visited} of ${total} countries visited. See all stats` : "See all stats"
+          hasMarksSeed ? `${visited} of ${total} places visited. See all stats` : "See all stats"
         }
         className={cn(
           containerClassName,
@@ -143,7 +143,7 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
   }
 
   return (
-    <section aria-label="Countries visited" className={containerClassName}>
+    <section aria-label="Places visited" className={containerClassName}>
       {content}
     </section>
   );
