@@ -11,17 +11,43 @@ describe("visitedProgress", () => {
 
     const progress = visitedProgress(marks);
 
-    expect(progress).toEqual({ visited: 39, total: 195, percent: 20 });
+    expect(progress).toEqual({ visited: 39, total: 195, excluded: 0, percent: 20 });
     expect(progress.percent.toFixed(1)).toBe("20.0");
   });
 
-  test("visited territories leave the sovereign headline unchanged", () => {
+  test("not interested sovereign entries leave the total", () => {
+    const marks: Marks = {
+      ...Object.fromEntries(
+        SOVEREIGN_COUNTRIES.slice(0, 19).map((country) => [country.code, "not_interested"]),
+      ),
+      ...Object.fromEntries(
+        SOVEREIGN_COUNTRIES.slice(19, 54).map((country) => [country.code, "visited"]),
+      ),
+    };
+
+    expect(visitedProgress(marks)).toEqual({
+      visited: 35,
+      total: 176,
+      excluded: 19,
+      percent: (35 / 176) * 100,
+    });
+  });
+
+  test("every entry not interested reads as 0% of 0", () => {
+    const marks: Marks = Object.fromEntries(
+      SOVEREIGN_COUNTRIES.map((country) => [country.code, "not_interested"]),
+    );
+
+    expect(visitedProgress(marks)).toEqual({ visited: 0, total: 0, excluded: 195, percent: 0 });
+  });
+
+  test("territories leave the sovereign headline unchanged", () => {
     const marks: Marks = Object.fromEntries(
       countries
         .filter((country) => country.kind === "territory")
-        .map((country) => [country.code, "visited"]),
+        .map((country, index) => [country.code, index % 2 === 0 ? "visited" : "not_interested"]),
     );
 
-    expect(visitedProgress(marks)).toEqual({ visited: 0, total: 195, percent: 0 });
+    expect(visitedProgress(marks)).toEqual({ visited: 0, total: 195, excluded: 0, percent: 0 });
   });
 });

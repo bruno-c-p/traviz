@@ -43,4 +43,26 @@ describe("ProgressCard", () => {
     expect(shell).not.toContain("countries visited. See all stats");
     expect(streamed).toContain('aria-label="2 of 195 countries visited. See all stats"');
   });
+
+  test("the panel card leaves not interested entries out of its total and names how many", async () => {
+    const stream = await renderToReadableStream(
+      <MarksSeedProvider
+        seed={Promise.resolve({
+          ok: true,
+          ownerId: "user_a",
+          marks: { JPN: "visited", FRA: "not_interested", DEU: "not_interested" },
+        })}
+      >
+        <MarksBoundary>
+          <ProgressCard variant="panel" />
+        </MarksBoundary>
+      </MarksSeedProvider>,
+    );
+
+    await stream.allReady;
+    const html = await new Response(stream).text();
+
+    expect(html).toContain("of 193 · 0.5%");
+    expect(html).toContain("2 not interested left out");
+  });
 });
