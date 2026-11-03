@@ -11,7 +11,7 @@ describe("visitedProgress", () => {
 
     const progress = visitedProgress(marks);
 
-    expect(progress).toEqual({ visited: 39, total: 195, excluded: 0, percent: 20 });
+    expect(progress).toEqual({ visited: 39, want: 0, total: 195, excluded: 0, percent: 20 });
     expect(progress.percent.toFixed(1)).toBe("20.0");
   });
 
@@ -27,6 +27,7 @@ describe("visitedProgress", () => {
 
     expect(visitedProgress(marks)).toEqual({
       visited: 35,
+      want: 0,
       total: 176,
       excluded: 19,
       percent: (35 / 176) * 100,
@@ -38,7 +39,13 @@ describe("visitedProgress", () => {
       SOVEREIGN_COUNTRIES.map((country) => [country.code, "not_interested"]),
     );
 
-    expect(visitedProgress(marks)).toEqual({ visited: 0, total: 0, excluded: 195, percent: 0 });
+    expect(visitedProgress(marks)).toEqual({
+      visited: 0,
+      want: 0,
+      total: 0,
+      excluded: 195,
+      percent: 0,
+    });
   });
 
   test("territories leave the sovereign headline unchanged", () => {
@@ -48,6 +55,12 @@ describe("visitedProgress", () => {
         .map((country, index) => [country.code, index % 2 === 0 ? "visited" : "not_interested"]),
     );
 
-    expect(visitedProgress(marks)).toEqual({ visited: 0, total: 195, excluded: 0, percent: 0 });
+    expect(visitedProgress(marks)).toEqual({
+      visited: 0,
+      want: 0,
+      total: 195,
+      excluded: 0,
+      percent: 0,
+    });
   });
 });

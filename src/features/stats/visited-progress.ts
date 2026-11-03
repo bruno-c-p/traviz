@@ -8,6 +8,7 @@ export function visitedProgress(marks: Marks) {
 
   return {
     visited: headline.visited,
+    want: headline.want,
     total,
     excluded,
     percent: total > 0 ? (headline.visited / total) * 100 : 0,

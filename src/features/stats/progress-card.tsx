@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { STATE_COLORS, tallyMarks, useHasMarksSeed, useMarks } from "@/features/marks";
-import { countries } from "@/features/countries";
+import { STATE_COLORS, useHasMarksSeed, useMarks } from "@/features/marks";
 import { visitedProgress } from "@/features/stats/visited-progress";
 import { cn } from "@/shared/cn";
 import { statsPath } from "@/paths";
@@ -41,9 +40,8 @@ type ProgressCardProps = {
 export function ProgressCard({ variant, className }: ProgressCardProps) {
   const marks = useMarks();
   const hasMarksSeed = useHasMarksSeed();
-  const { visited, total, excluded, percent } = visitedProgress(marks);
+  const { visited, want, total, excluded, percent } = visitedProgress(marks);
   const reachableWidth = (total / (total + excluded)) * 100;
-  const allEntries = tallyMarks(countries, marks);
   const variantClasses = VARIANT_CLASSES[variant];
 
   const content = (
@@ -93,7 +91,7 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
           />
         )}
       </span>
-      {variant !== "peek" && excluded > 0 && (
+      {variant === "hero" && excluded > 0 && (
         <span className="mark-count -mt-1 text-[13px] text-primary-neutral">
           {`${excluded} not interested left out`}
         </span>
@@ -102,13 +100,11 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
         <>
           <span className="grid grid-cols-2 gap-3 pt-1">
             <span className="flex flex-col gap-0.5">
-              <span className="mark-count text-2xl font-bold tabular-nums">{allEntries.want}</span>
+              <span className="mark-count text-2xl font-bold tabular-nums">{want}</span>
               <span className="text-[13px] text-primary-neutral">want to go</span>
             </span>
             <span className="flex flex-col gap-0.5">
-              <span className="mark-count text-2xl font-bold tabular-nums">
-                {allEntries.not_interested}
-              </span>
+              <span className="mark-count text-2xl font-bold tabular-nums">{excluded}</span>
               <span className="text-[13px] text-primary-neutral">not interested</span>
             </span>
           </span>
