@@ -41,7 +41,8 @@ type ProgressCardProps = {
 export function ProgressCard({ variant, className }: ProgressCardProps) {
   const marks = useMarks();
   const hasMarksSeed = useHasMarksSeed();
-  const { visited, total, percent } = visitedProgress(marks);
+  const { visited, total, excluded, percent } = visitedProgress(marks);
+  const reachableWidth = (total / (total + excluded)) * 100;
   const allEntries = tallyMarks(countries, marks);
   const variantClasses = VARIANT_CLASSES[variant];
 
@@ -72,17 +73,31 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
           </span>
         )}
       </span>
-      <span
-        className={cn("block overflow-hidden rounded-full bg-ink-deep-soft", variantClasses.bar)}
-      >
+      <span className={cn("flex gap-1", variantClasses.bar)}>
         <span
-          className="mark-count block h-full rounded-full transition-transform duration-300 ease-out"
-          style={{
-            transform: `translateX(${percent - 100}%)`,
-            backgroundColor: STATE_COLORS.visited,
-          }}
-        />
+          className="block overflow-hidden rounded-full bg-ink-deep-soft transition-[width] duration-300 ease-out"
+          style={{ width: `${reachableWidth}%` }}
+        >
+          <span
+            className="mark-count block h-full rounded-full transition-transform duration-300 ease-out"
+            style={{
+              transform: `translateX(${percent - 100}%)`,
+              backgroundColor: STATE_COLORS.visited,
+            }}
+          />
+        </span>
+        {excluded > 0 && (
+          <span
+            className="mark-count block flex-1 rounded-full bg-[repeating-linear-gradient(135deg,var(--color-ink-deep-soft)_0_4px,transparent_4px_8px)]"
+            aria-hidden
+          />
+        )}
       </span>
+      {variant !== "peek" && excluded > 0 && (
+        <span className="mark-count -mt-1 text-[13px] text-primary-neutral">
+          {`${excluded} not interested left out`}
+        </span>
+      )}
       {variant === "panel" && (
         <>
           <span className="grid grid-cols-2 gap-3 pt-1">
