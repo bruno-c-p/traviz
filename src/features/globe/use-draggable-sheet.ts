@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import type { PointerEvent } from "react";
 import { useSelectedCountryStore } from "@/features/globe/selected-country";
+import { EXIT_MS, afterExit } from "@/features/globe/sheet-exit";
 
 const DRAG_START_DISTANCE = 4;
 const DISMISS_DISTANCE_RATIO = 0.25;
@@ -8,7 +9,7 @@ const DISMISS_VELOCITY = 0.11;
 const UPWARD_DRAG_FRICTION = 2;
 
 const EXIT_ANIMATION: KeyframeAnimationOptions = {
-  duration: 200,
+  duration: EXIT_MS,
   easing: "cubic-bezier(0.23, 1, 0.32, 1)",
   fill: "forwards",
 };
@@ -42,7 +43,7 @@ export function useDraggableSheet() {
       : { translate: [getComputedStyle(sheet).translate, "0 100%"] };
 
     backdrop.animate({ opacity: [getComputedStyle(backdrop).opacity, "0"] }, EXIT_ANIMATION);
-    sheet.animate(sheetKeyframes, EXIT_ANIMATION).onfinish = clearSelection;
+    afterExit(sheet.animate(sheetKeyframes, EXIT_ANIMATION).finished, window, clearSelection);
   }
 
   function handlePointerDown(event: PointerEvent<HTMLElement>) {
