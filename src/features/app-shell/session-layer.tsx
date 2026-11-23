@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { KeepClerkSession } from "@/features/auth";
 import { getUserId } from "@/features/auth/server";
+import { ReloadStaleApp } from "@/features/app-shell/reload-stale-app";
 import { SessionMarks } from "@/features/app-shell/session-marks";
 import { TabBar } from "@/features/app-shell/tab-bar";
 import { TopBar } from "@/features/app-shell/top-bar";
@@ -18,6 +19,7 @@ export async function SessionLayer() {
         <SessionMarks />
       </Suspense>
       <KeepClerkSession />
+      <ReloadStaleApp />
     </>
   );
 }
