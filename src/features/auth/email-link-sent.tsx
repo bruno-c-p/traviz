@@ -9,8 +9,8 @@ export function EmailLinkSent({ emailAddress, onUseDifferentEmail }: EmailLinkSe
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-start gap-3 rounded-2xl bg-primary-pale p-4">
-        <Mail aria-hidden className="mt-0.5 size-5 shrink-0 text-ink-deep" />
-        <p className="min-w-0 text-[15px] leading-relaxed text-ink-deep">
+        <Mail aria-hidden className="mt-0.5 size-5 shrink-0 text-on-primary-pale" />
+        <p className="min-w-0 text-[15px] leading-relaxed text-on-primary-pale">
           We sent a sign-in link to{" "}
           <span className="font-semibold wrap-anywhere">{emailAddress}</span>. Open it on any device
           and this page will continue on its own.

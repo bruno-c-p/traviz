@@ -24,7 +24,9 @@ export function MainNav() {
             className={cn(
               "flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold pressable",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
-              isActive ? "bg-ink text-primary" : "text-body hover:bg-canvas-soft hover:text-ink",
+              isActive
+                ? "bg-active text-on-active"
+                : "text-body hover:bg-canvas-soft hover:text-ink",
             )}
           >
             <Icon size={16} strokeWidth={2} aria-hidden />

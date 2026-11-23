@@ -7,17 +7,17 @@ export const COUNTRY_STATES: readonly CountryState[] = ["visited", "want", "not_
 export type StateColorKey = CountryState | "unmarked";
 
 export const STATE_COLORS: Record<StateColorKey, string> = {
-  visited: "#9fe870",
-  want: "#7a5af8",
-  not_interested: "#b9bdb5",
-  unmarked: "#e8ebe6",
+  visited: "var(--color-primary)",
+  want: "var(--color-want)",
+  not_interested: "var(--color-skip)",
+  unmarked: "var(--color-land)",
 };
 
 export const STATE_ON_COLORS: Record<StateColorKey, string> = {
-  visited: "#163300",
+  visited: "var(--color-on-primary)",
   want: "#ffffff",
-  not_interested: "#0e0f0c",
-  unmarked: "#0e0f0c",
+  not_interested: "var(--color-ink)",
+  unmarked: "var(--color-ink)",
 };
 
 export const STATE_LABELS: Record<CountryState, string> = {

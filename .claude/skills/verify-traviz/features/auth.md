@@ -1,20 +1,20 @@
 # Sign-in and sign-out
 
-traviz signs users in with a Clerk email link only, with no passwords and no social providers. `/sign-in` takes an email address and sends a link. The link opens `/sign-in/verify`, which finishes the sign-in, and the first tab then continues on its own. Sign-out is on `/stats#account`. `src/proxy.ts` gates every route by its row in `ROUTES` in `paths.ts`.
+traviz signs users in with a Clerk email link only, with no passwords and no social providers. `/sign-in` takes an email address and sends a link. The link opens `/sign-in/verify`, which finishes the sign-in, and the first tab then continues on its own. Sign-out is in the account menu (the `Account and theme` button, top right on every page at 768 px and up, and on `/` and `/stats` below that). `src/proxy.ts` gates every route by its row in `ROUTES` in `paths.ts`.
 
 ## Sub-features
 
 - `auth-form` sends a link from the `Email` field and the `Continue with email` button, then shows `We sent a sign-in link to <email>` and a `Use a different email` button.
 - `auth-error` shows an alert under the field when Clerk rejects the address.
 - `auth-verify` shows `Checking your link…`, then `You're signed in`, or `This link has expired`, `We couldn't verify this link` or `Open the link on the same device`, each with a `Get a new link` link.
-- `auth-signout` signs out from the `Sign out` button in the `Account` section and lands on `/sign-in`.
+- `auth-signout` signs out from the `Sign out` button in the account menu and lands on `/sign-in`.
 - `auth-gate` redirects by route access: `signedIn` routes send a signed-out user to `/sign-in`, `signedOut` routes send a signed-in user to `/`, and `anyone` routes let both through.
 
 ## How to get to it (user POV)
 
 - Open any app route while signed out, or open `/sign-in`.
 - Open the link from the email, which goes to `/sign-in/verify`.
-- Choose the `Account` link (top right on `/`, it opens `/stats#account`), then choose `Sign out`.
+- Choose the `Account and theme` button (top right), which opens the `Account` dialog, then choose `Sign out`. The same dialog holds the `Theme` radio group (`System`, `Light`, `Dark`) and the danger zone. `Escape`, the `Close` button or a click outside closes it.
 
 ## Driving it with playwright-core
 
@@ -26,7 +26,7 @@ Preconditions:
 - **Gate, signed in.** After `signIn(page, baseUrl)`, run `page.goto(baseUrl + "/sign-in")`. The page ends on `/`.
 - **Form.** In a fresh context, open `/sign-in` and wait for `window.Clerk?.loaded`. Fill `page.getByRole("textbox", { name: "Email" })` with `verify-<Date.now()>+clerk_test@example.com` and click `Continue with email`. The button reads `Sending link…` for about 4 s, so `settle` is too short. Wait for the text instead, with `page.getByText("We sent a sign-in link to").waitFor({ timeout: 20_000 })`. The address appears with it. `Use a different email` brings the form back with the address still filled in.
 - **Verify page.** Open `/sign-in/verify` with no link parameters. After Clerk loads, the heading reads `We couldn't verify this link` and a `Get a new link` link points to `/sign-in`.
-- **Sign out.** Signed in, open `/stats#account`. The section shows `agent+clerk_test@example.com`. Click `Sign out`. The button reads `Signing out…`, then the page lands on `/sign-in`. `localStorage.getItem("traviz-marks-v2")` is `null` there, because sign-out clears the marks cache once Clerk's sign-out resolves. When the sign-out fails, the button returns to `Sign out` and an alert reads `Couldn't sign out. Check your connection and try again.`
+- **Sign out.** Signed in, click the visible `Account and theme` button (`/` renders two, one per breakpoint, so filter with `visible=true`). The `Account` dialog shows `agent+clerk_test@example.com`. Click `Sign out`. The button reads `Signing out…`, then the page lands on `/sign-in`. `localStorage.getItem("traviz-marks-v2")` is `null` there, because sign-out clears the marks cache once Clerk's sign-out resolves. When the sign-out fails, the button returns to `Sign out` and an alert reads `Couldn't sign out. Check your connection and try again.`
 - **Ticket sign-in.** `signIn` in `@/shared/testing/verify/browser` signs in without email. Use it for every journey that only needs a session.
 
 ## Gotchas

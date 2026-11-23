@@ -20,7 +20,7 @@ export function CountrySheet({ country }: { country: Country }) {
       <div
         ref={backdropRef}
         aria-hidden
-        className="fixed inset-0 z-[55] bg-ink/30 transition-opacity duration-300 ease-out starting:opacity-0"
+        className="fixed inset-0 z-[55] bg-black/30 transition-opacity duration-300 ease-out starting:opacity-0"
         onClick={close}
       />
       <dialog

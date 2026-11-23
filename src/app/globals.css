@@ -1,7 +1,24 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light dark;
+}
+
+:root[data-theme="light"] {
   color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    --tw-ring-offset-color: light-dark(#ffffff, #0f110d);
+  }
 }
 
 @theme {
@@ -13,19 +30,22 @@
   --color-on-primary: #163300;
   --color-primary-active: #b4f08c;
   --color-primary-neutral: #c5edab;
-  --color-primary-pale: #e2f6d5;
-  --color-ink: #0e0f0c;
+  --color-primary-pale: light-dark(#e2f6d5, #1f3312);
+  --color-on-primary-pale: light-dark(#163300, #c5edab);
+  --color-active: light-dark(#0e0f0c, #9fe870);
+  --color-on-active: light-dark(#9fe870, #163300);
+  --color-ink: light-dark(#0e0f0c, #f2f5ee);
   --color-ink-deep: #163300;
   --color-ink-deep-soft: #2b4a12;
-  --color-body: #454745;
-  --color-mute: #5e615c;
-  --color-canvas: #ffffff;
-  --color-canvas-soft: #f4f6f1;
-  --color-land: #e8ebe6;
-  --color-line: #d9ddd5;
+  --color-body: light-dark(#454745, #c3c8be);
+  --color-mute: light-dark(#5e615c, #9aa095);
+  --color-canvas: light-dark(#ffffff, #1a1d17);
+  --color-canvas-soft: light-dark(#f4f6f1, #0f110d);
+  --color-land: light-dark(#e8ebe6, #353b31);
+  --color-line: light-dark(#d9ddd5, #343a30);
   --color-want: #7a5af8;
   --color-want-deep: #5b3fd9;
-  --color-skip: #b9bdb5;
+  --color-skip: light-dark(#b9bdb5, #646b5f);
   --color-positive: #2ead4b;
   --color-positive-deep: #054d28;
   --color-warning: #ffd11a;
@@ -33,8 +53,9 @@
   --color-warning-content: #4a3b1c;
   --color-negative: #d03238;
   --color-negative-deep: #a72027;
-  --color-negative-darkest: #a7000d;
-  --color-negative-pale: #fdecec;
+  --color-negative-darkest: light-dark(#a7000d, #ffc9c9);
+  --color-negative-text: light-dark(#a72027, #ff9c9c);
+  --color-negative-pale: light-dark(#fdecec, #3a1517);
   --color-accent-orange: #ffc091;
   --color-accent-cyan: #38c8ff;
 
@@ -44,8 +65,10 @@
   --radius-xl: 24px;
   --radius-pill: 9999px;
 
-  --shadow-card: 0 1px 2px rgb(14 15 12 / 0.06), 0 8px 24px rgb(14 15 12 / 0.08);
-  --shadow-float: 0 8px 24px rgb(14 15 12 / 0.1);
+  --shadow-card:
+    0 1px 2px light-dark(rgb(14 15 12 / 0.06), rgb(0 0 0 / 0.4)),
+    0 8px 24px light-dark(rgb(14 15 12 / 0.08), rgb(0 0 0 / 0.35));
+  --shadow-float: 0 8px 24px light-dark(rgb(14 15 12 / 0.1), rgb(0 0 0 / 0.45));
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);

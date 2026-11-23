@@ -25,7 +25,9 @@ export function TabBar() {
             className={cn(
               "flex min-h-14 flex-col items-center justify-center gap-1 rounded-[18px] text-xs font-semibold pressable",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink",
-              isActive ? "bg-ink text-primary" : "text-body hover:bg-canvas-soft hover:text-ink",
+              isActive
+                ? "bg-active text-on-active"
+                : "text-body hover:bg-canvas-soft hover:text-ink",
             )}
           >
             <Icon size={20} strokeWidth={2} aria-hidden />

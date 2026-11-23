@@ -47,6 +47,8 @@ Palette (the app's own mark colours, so the page and the product read the same m
 | skip    | `#b9bdb5` on `#0e0f0c` | not-interested fill                              |
 | curtain | `#163300`              | the primary action's hover fill                  |
 
+The table lists the light theme. In the dark theme the ground, ink, muted, line and skip tokens take the dark side of their `light-dark()` pair in `src/app/globals.css`, and lime, violet and the curtain stay as they are.
+
 Lime on off-white is the existing brand, not a pick from the AI-default list. Lime, violet and grey are used only for marks and the one primary action, so colour always means a state.
 
 Type: Instrument Sans for everything, preloaded on `/welcome` only by `src/app/welcome/layout.tsx`, so the wall never reflows when the font arrives, 700 with -0.045em tracking at display sizes, 500 for the names. Geist Mono, tabular, for counts only. No new font files.

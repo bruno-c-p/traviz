@@ -120,7 +120,7 @@ export function ProgressCard({ variant, className }: ProgressCardProps) {
   );
 
   const containerClassName = cn(
-    "flex flex-col bg-ink-deep text-canvas",
+    "flex flex-col bg-ink-deep text-white",
     variantClasses.container,
     className,
   );

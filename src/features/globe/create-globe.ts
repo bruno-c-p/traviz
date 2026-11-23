@@ -18,6 +18,8 @@ import type { Marks } from "@/features/marks";
 import { countryCenter } from "@/features/countries";
 import type { TappedOutline } from "@/features/globe/globe-markers";
 import type { MultiLineString } from "geojson";
+import { GLOBE_PALETTES } from "@/features/globe/globe-palette";
+import { shownTheme, subscribeTheme } from "@/features/theme";
 
 const MAX_PIXEL_RATIO = 2;
 const FLY_MS = 1200;
@@ -66,6 +68,7 @@ export function createGlobe(
   let frameId: number | null = null;
   let animation: Animation | null = null;
   let isLoaded = false;
+  let palette = GLOBE_PALETTES[shownTheme()];
 
   if (isInteractive) {
     canvas.className =
@@ -99,6 +102,7 @@ export function createGlobe(
       selectedOutline,
       fontFamily,
       labelLayouts,
+      palette,
     });
     isLoaded = true;
   }
@@ -373,6 +377,11 @@ export function createGlobe(
     { signal: listeners.signal },
   );
 
+  const unsubscribeTheme = subscribeTheme(() => {
+    palette = GLOBE_PALETTES[shownTheme()];
+    scheduleDraw();
+  });
+
   function zoomBy(zoomDelta: number) {
     emitInteraction();
     animateZoom({ x: size.width / 2, y: size.height / 2 }, zoomDelta);
@@ -422,6 +431,7 @@ export function createGlobe(
     },
     remove: () => {
       listeners.abort();
+      unsubscribeTheme();
       resizeObserver.disconnect();
       animation = null;
 

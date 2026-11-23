@@ -3,10 +3,11 @@
 import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/shared/cn";
+import { MarkStatus } from "@/features/marks/mark-status";
 import { useCountriesStore } from "@/features/marks/marks-store";
 
 const DANGER_BUTTON_CLASS =
-  "pressable min-h-11 rounded-full bg-negative px-5 text-sm font-semibold text-canvas hover:bg-negative-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2";
+  "pressable min-h-11 rounded-full bg-negative px-5 text-sm font-semibold text-white hover:bg-negative-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2";
 
 export function DangerZone({ className }: { className?: string }) {
   const resetAll = useCountriesStore((state) => state.resetAll);
@@ -20,21 +21,15 @@ export function DangerZone({ className }: { className?: string }) {
   }
 
   return (
-    <section
-      aria-labelledby="danger-zone-heading"
-      className={cn(
-        "flex flex-col gap-4 rounded-3xl bg-canvas p-5 shadow-card ring-1 ring-negative/20",
-        className,
-      )}
-    >
+    <section aria-labelledby="danger-zone-heading" className={cn("flex flex-col gap-3", className)}>
       <h2
         id="danger-zone-heading"
-        className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-negative-deep"
+        className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-negative-text"
       >
         <AlertTriangle size={14} aria-hidden />
         Danger zone
       </h2>
-      <p className="text-[15px] leading-relaxed text-body">
+      <p className="text-sm leading-relaxed text-body">
         Permanently erase every mark. This cannot be undone.
       </p>
       {isConfirming ? (
@@ -67,6 +62,7 @@ export function DangerZone({ className }: { className?: string }) {
           Reset all data
         </button>
       )}
+      <MarkStatus scope="all-marks" className="text-sm" />
       {isResetDone && (
         <p role="status" className="text-sm text-body">
           All data has been reset.

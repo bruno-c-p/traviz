@@ -41,7 +41,7 @@ export function EmailLinkForm() {
         )}
       />
       {errorMessage && (
-        <p id={errorId} role="alert" className="px-1 text-sm text-negative-deep">
+        <p id={errorId} role="alert" className="px-1 text-sm text-negative-text">
           {errorMessage}
         </p>
       )}
