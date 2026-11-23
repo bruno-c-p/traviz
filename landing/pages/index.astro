@@ -1,0 +1,59 @@
+---
+import sansFontUrl from "@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2?url";
+import LandingContinents from "@/landing/components/landing-continents.astro";
+import LandingFinale from "@/landing/components/landing-finale.astro";
+import LandingHeader from "@/landing/components/landing-header.astro";
+import LandingHero from "@/landing/components/landing-hero.astro";
+import LandingViews from "@/landing/components/landing-views.astro";
+import "@fontsource-variable/geist-mono/wght.css";
+import "@fontsource-variable/instrument-sans/wght.css";
+import "@/landing/styles/landing.css";
+import { THEME_SCRIPT } from "@/features/theme/core";
+
+const themeScript = THEME_SCRIPT;
+
+const title = "Traviz: keep count of the countries you’ve seen";
+
+const description =
+  "Mark every country you’ve visited, want to visit or would skip, on a globe, in a list and in your totals. Sign in with an email link, no password.";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preload" href={sansFontUrl} as="font" type="font/woff2" crossorigin />
+    <meta name="theme-color" content="#f4f6f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f110d" media="(prefers-color-scheme: dark)" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="application-name" content="traviz" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="traviz" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="Traviz" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <link rel="icon" href="/icon.svg" sizes="any" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" type="image/png" />
+    <script is:inline set:html={themeScript} />
+  </head>
+  <body class="bg-canvas-soft font-sans text-ink">
+    <div class="relative [--gutter:clamp(1rem,0.4rem+2.2vw,2.5rem)]">
+      <LandingHeader />
+      <main class="px-(--gutter)">
+        <LandingHero />
+        <LandingContinents />
+        <LandingViews />
+        <LandingFinale />
+      </main>
+    </div>
+    <script src="../client.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+---
+import {
+  NAME_PAINT_CLASS,
+  SAMPLE_MARKS,
+  STATE_FILLS,
+  WALL_COUNTRIES,
+  nextState,
+  stateSuffix,
+} from "@/features/landing";
+
+type Props = { describedBy: string };
+
+const { describedBy } = Astro.props;
+
+const names = WALL_COUNTRIES.map((country) => ({ ...country, state: SAMPLE_MARKS[country.code] }));
+---
+
+<div
+  id="countries"
+  role="group"
+  aria-label={`All ${WALL_COUNTRIES.length} countries`}
+  aria-describedby={describedBy}
+  data-wall
+  class="-mx-[0.28em] text-[clamp(1.0625rem,0.55rem+1.15vw,1.75rem)] leading-[1.7] [word-spacing:0.18em] tracking-[-0.012em]"
+>
+  {
+    names.map(({ code, name, continent, flag, state }, index) => (
+      <>
+        <button
+          type="button"
+          tabindex={index === 0 ? 0 : -1}
+          data-pick={code}
+          data-continent={continent}
+          data-flag={flag}
+          data-next={nextState(state) ?? "unmarked"}
+          class="wall-name"
+        >{name}{state && (
+          <span data-paint aria-hidden="true" class:list={[NAME_PAINT_CLASS, STATE_FILLS[state]]}>{name}</span>
+        )}<span data-state-label class="sr-only">{stateSuffix(state)}</span></button>{" "}
+      </>
+    ))
+  }
+</div>

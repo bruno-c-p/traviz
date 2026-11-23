@@ -6,6 +6,7 @@
     "moduleResolution": "bundler",
     "paths": {
       "@/paths": ["./paths.ts"],
+      "@/landing/*": ["./landing/*"],
       "@/*": ["./src/*"]
     },
     "types": ["node", "geojson", "bun"],
@@ -32,6 +33,15 @@
     ],
     "strict": true
   },
-  "include": ["src", "scripts", "next-env.d.ts", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],
+  "include": [
+    "src",
+    "scripts",
+    "landing",
+    "next.config.ts",
+    "astro.config.ts",
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

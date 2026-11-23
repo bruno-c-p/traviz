@@ -1,7 +1,7 @@
 import { geoDistance, geoPath } from "d3-geo";
 import type { GeoContext } from "d3-geo";
 import type { MultiLineString } from "geojson";
-import { countries } from "@/features/countries";
+import { countries } from "@/features/countries/core";
 import type { Camera, LngLat } from "@/features/globe/globe-camera";
 import {
   continentLabelOpacity,

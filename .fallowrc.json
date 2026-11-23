@@ -1,6 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": ["landing/pages/**/*.astro", "landing/client.ts"],
   "ignorePatterns": ["tools/**"],
   "ignoreDependencies": ["@oxlint/plugins"],
-  "health": { "maxCrap": 73 }
+  "health": {
+    "maxCrap": 73
+  }
 }

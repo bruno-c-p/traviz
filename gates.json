@@ -61,6 +61,7 @@
         "moduleResolution": "bundler",
         "paths": {
           "@/paths": ["./paths.ts"],
+          "@/landing/*": ["./landing/*"],
           "@/*": ["./src/*"]
         },
         "types": ["node", "geojson", "bun"],
@@ -90,6 +91,9 @@
       "include": [
         "src",
         "scripts",
+        "landing",
+        "next.config.ts",
+        "astro.config.ts",
         "next-env.d.ts",
         ".next/types/**/*.ts",
         ".next/dev/types/**/*.ts"
@@ -213,6 +217,7 @@
     },
     ".fallowrc.json": {
       "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+      "entry": ["landing/pages/**/*.astro", "landing/client.ts"],
       "ignorePatterns": ["tools/**"],
       "ignoreDependencies": ["@oxlint/plugins"],
       "health": {
@@ -261,7 +266,7 @@
     "test": "bun test",
     "test:rules": "node --import ./tools/oxlint/node-test-setup.ts --test 'tools/oxlint/**/*.test.ts'",
     "format": "oxfmt .",
-    "build": "next build",
+    "build": "astro build && next build",
     "fallow": "fallow",
     "react-doctor": "react-doctor",
     "check:gates": "bun scripts/check-gates.ts",
@@ -291,24 +296,24 @@
         "lazyGzipBytes": 0
       },
       "/": {
-        "firstLoadGzipBytes": 163977,
+        "firstLoadGzipBytes": 163976,
         "lazyGzipBytes": 71303
       },
       "/list": {
-        "firstLoadGzipBytes": 161189,
+        "firstLoadGzipBytes": 161239,
         "lazyGzipBytes": 3348
       },
       "/stats": {
-        "firstLoadGzipBytes": 159821,
+        "firstLoadGzipBytes": 159871,
         "lazyGzipBytes": 3348
-      },
-      "/welcome": {
-        "firstLoadGzipBytes": 152297,
-        "lazyGzipBytes": 67955
       },
       "/_not-found": {
         "firstLoadGzipBytes": 135666,
         "lazyGzipBytes": 0
+      },
+      "/welcome": {
+        "firstLoadGzipBytes": 3992,
+        "lazyGzipBytes": 75140
       }
     }
   }

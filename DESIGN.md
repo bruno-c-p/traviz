@@ -1,6 +1,6 @@
 # Landing page design
 
-The public page at `/welcome`. A signed-out visit to `/` lands here. The rest of the app keeps the system in `src/app/globals.css`.
+The public page at `/welcome`, built by Astro from `landing/`. A signed-out visit to `/` lands here. The page and the rest of the app share the tokens in `src/app/theme.css`.
 
 ## Brief
 
@@ -47,11 +47,11 @@ Palette (the app's own mark colours, so the page and the product read the same m
 | skip    | `#b9bdb5` on `#0e0f0c` | not-interested fill                              |
 | curtain | `#163300`              | the primary action's hover fill                  |
 
-The table lists the light theme. In the dark theme the ground, ink, muted, line and skip tokens take the dark side of their `light-dark()` pair in `src/app/globals.css`, and lime, violet and the curtain stay as they are.
+The table lists the light theme. In the dark theme the ground, ink, muted, line and skip tokens take the dark side of their `light-dark()` pair in `src/app/theme.css`, and lime, violet and the curtain stay as they are.
 
 Lime on off-white is the existing brand, not a pick from the AI-default list. Lime, violet and grey are used only for marks and the one primary action, so colour always means a state.
 
-Type: Instrument Sans for everything, preloaded on `/welcome` only by `src/app/welcome/layout.tsx`, so the wall never reflows when the font arrives, 700 with -0.045em tracking at display sizes, 500 for the names. Geist Mono, tabular, for counts only. No new font files.
+Type: Instrument Sans for everything, preloaded on `/welcome` only by `landing/pages/index.astro`, with a metric-matched Arial fallback in `landing/styles/landing.css`, so the wall never reflows when the font arrives, 700 with -0.045em tracking at display sizes, 500 for the names. Geist Mono, tabular, for counts only. No new font files.
 
 Grid: 12 columns, gutter `clamp(16px, 2vw, 32px)`, outer margin equals the gutter. At 1024 px and up the hero hangs on two lines: column 1 (the sticky panel, 4 columns) and column 5 (the wall, 8 columns). Below that, one column with the panel's count in a sticky bar at the bottom of the hero.
 
@@ -61,7 +61,7 @@ Shape: a radius of about a quarter of the short side, capped at 8 px (8 px on na
 
 Motion: one ease, `cubic-bezier(0.23, 1, 0.32, 1)` (the app's `--ease-out`). Paint-in 420 ms for a name, 300 ms for a cell, 500 ms for the action fill. Hover lines draw in 240 ms. The globe flies in 1.2 s (the engine's own `flyTo`). Under reduced motion every fill is instant and the globe does not spin or fly.
 
-Clock: there is no GSAP. The globe engine's frame loop is the only animation loop, and everything else is CSS transitions. Each route here has a JS budget in `bundle-budget.json`, and the globe already owns its frames.
+Clock: there is no GSAP. The globe engine's frame loop is the only animation loop, and everything else is CSS transitions. Each route here has a JS budget in `bundle-budget.json`, and the globe already owns its frames. The page ships no framework: about 4 KB of gzipped JS at first load, and the globe as lazy chunks.
 
 Idle: the globe spins at 1.5 degrees per second, the same as on `/`, paused under reduced motion. It pauses for 4 s after each fly-to.
 

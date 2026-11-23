@@ -1,0 +1,21 @@
+---
+import { LIST_STATE_CLASS, STATE_CHIP_CLASS, STATE_FILLS } from "@/features/landing";
+import { STATE_LABELS } from "@/features/marks/core";
+import type { CountryState } from "@/features/marks/core";
+
+type Props = { flag?: string; name?: string; continent?: string; state?: CountryState };
+
+const { flag, name, continent, state } = Astro.props;
+---
+
+<li class="flex items-center gap-3 px-3.5 py-2.5 text-[15px]">
+  <span aria-hidden="true" data-row-flag>{flag}</span>
+  <span data-row-name class="min-w-0 flex-1 truncate text-ink">{name}</span>
+  <span data-row-continent class="text-xs text-mute">{continent}</span>
+  <span
+    data-row-state
+    class:list={state
+      ? [STATE_CHIP_CLASS, STATE_FILLS[state], LIST_STATE_CLASS]
+      : [LIST_STATE_CLASS, "text-mute"]}>{state ? STATE_LABELS[state] : "Not marked"}</span
+  >
+</li>

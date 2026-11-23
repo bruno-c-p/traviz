@@ -452,3 +452,98 @@ test("check:bundle --write records the first-load and lazy bytes of each route",
   });
   expect(runCheckBundle(fixtureRoot).exitCode).toBe(0);
 });
+
+function landingAsset(fixtureRoot: string, fileName: string): string {
+  return join(fixtureRoot, "public", "welcome", "_astro", fileName);
+}
+
+function createLandingFixture(extraHead = ""): string {
+  const fixtureRoot = createBuildFixture();
+  const noise = () => randomBytes(3000).toString("base64");
+
+  mkdirSync(join(fixtureRoot, "public", "welcome", "_astro"), { recursive: true });
+  writeFileSync(
+    landingAsset(fixtureRoot, "entry.js"),
+    `import{a}from"./shared.js";${noise()};import(\`./globe.js\`)`,
+  );
+  writeFileSync(landingAsset(fixtureRoot, "shared.js"), noise());
+  writeFileSync(landingAsset(fixtureRoot, "globe.js"), `import{b}from"./data.js";${noise()}`);
+  writeFileSync(landingAsset(fixtureRoot, "data.js"), noise());
+  writeFileSync(
+    join(fixtureRoot, "public", "welcome", "index.html"),
+    `<html><head>${extraHead}</head><body><script type="module" src="/welcome/_astro/entry.js"></script></body></html>`,
+  );
+
+  return fixtureRoot;
+}
+
+function landingGzipBytes(fixtureRoot: string, ...fileNames: string[]): number {
+  return fileNames.reduce(
+    (total, fileName) =>
+      total + gzipSync(readFileSync(landingAsset(fixtureRoot, fileName)), { level: 9 }).length,
+    0,
+  );
+}
+
+test("check:bundle budgets the landing page that Astro builds into public/welcome", () => {
+  const fixtureRoot = createLandingFixture();
+
+  expect(runCheckBundle(fixtureRoot, "--write").exitCode).toBe(0);
+
+  const budget: unknown = JSON.parse(readFileSync(join(fixtureRoot, "bundle-budget.json"), "utf8"));
+
+  expect(budget).toMatchObject({
+    routes: {
+      "/welcome": {
+        firstLoadGzipBytes: landingGzipBytes(fixtureRoot, "entry.js", "shared.js"),
+        lazyGzipBytes: landingGzipBytes(fixtureRoot, "globe.js", "data.js"),
+      },
+    },
+  });
+  expect(runCheckBundle(fixtureRoot).output).toContain("3 routes within budget");
+});
+
+test("check:bundle fails when the landing page's first-load JS grows past the tolerance", () => {
+  const fixtureRoot = createLandingFixture();
+  runCheckBundle(fixtureRoot, "--write");
+  appendFileSync(landingAsset(fixtureRoot, "shared.js"), randomBytes(2000));
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toMatch(/^\/welcome first-load JS is \d+ B gzipped, over its limit/m);
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails when the landing page preloads one of its lazy chunks", () => {
+  const fixtureRoot = createLandingFixture(
+    '<link rel="modulepreload" href="/welcome/_astro/globe.js">',
+  );
+
+  runCheckBundle(fixtureRoot, "--write");
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain("/welcome preloads public/welcome/_astro/globe.js");
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails when the landing page is budgeted but was not built", () => {
+  const fixtureRoot = createLandingFixture();
+  runCheckBundle(fixtureRoot, "--write");
+  rmSync(join(fixtureRoot, "public"), { recursive: true });
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain("/welcome is in the budget but not in route-bundle-stats.json");
+  expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails when the landing page's script was dropped from the build", () => {
+  const fixtureRoot = createLandingFixture();
+  writeFileSync(join(fixtureRoot, "public", "welcome", "index.html"), "<html></html>");
+
+  const { exitCode, output } = runCheckBundle(fixtureRoot, "--write");
+
+  expect(output).toContain("public/welcome/index.html loads no script");
+  expect(exitCode).toBe(1);
+});

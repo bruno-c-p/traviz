@@ -6,7 +6,7 @@ import type { ModuleSourceNode } from "./project-path.ts";
 
 const featureImportPattern = /^@\/features\/([^/]+)(?:\/(.*))?$/;
 const featureFilePattern = /^src\/features\/([^/]+)\/./;
-const entrySubpathPattern = /^(?:server|actions\/[^/.]+)$/;
+const entrySubpathPattern = /^(?:core|server|actions\/[^/.]+)$/;
 
 const allowedSourceLocations = [
   /^src\/app\//,
@@ -30,7 +30,7 @@ export const featureEntryRule = defineRule({
       strayFile:
         "{{path}} sits outside src/app, src/features/<name>, src/shared and src/proxy.ts. Move it into the feature that owns it, or into src/shared.",
       deepImport:
-        'Import {{feature}} through "@/features/{{feature}}", "@/features/{{feature}}/server" or "@/features/{{feature}}/actions/<verb>", not "{{source}}".',
+        'Import {{feature}} through "@/features/{{feature}}", "@/features/{{feature}}/core", "@/features/{{feature}}/server" or "@/features/{{feature}}/actions/<verb>", not "{{source}}".',
       sharedImportsFeature:
         'src/shared imports no feature. Move the code that needs "{{source}}" into a feature.',
     },

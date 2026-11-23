@@ -15,11 +15,11 @@ import { buildMarkers, pickCountry, placeMarkers } from "@/features/globe/globe-
 import { buildScene, countryAt, countryOutline, globeView } from "@/features/globe/globe-scene";
 import type { CountryTopology, GlobeView } from "@/features/globe/globe-scene";
 import type { Marks } from "@/features/marks";
-import { countryCenter } from "@/features/countries";
+import { countryCenter } from "@/features/countries/core";
 import type { TappedOutline } from "@/features/globe/globe-markers";
 import type { MultiLineString } from "geojson";
 import { GLOBE_PALETTES } from "@/features/globe/globe-palette";
-import { shownTheme, subscribeTheme } from "@/features/theme";
+import { shownTheme, subscribeTheme } from "@/features/theme/core";
 
 const MAX_PIXEL_RATIO = 2;
 const FLY_MS = 1200;

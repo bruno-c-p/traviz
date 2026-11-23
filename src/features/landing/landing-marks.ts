@@ -1,5 +1,4 @@
-import { SOVEREIGN_COUNTRIES } from "@/features/countries";
-import type { CountryState, Marks } from "@/features/marks";
+import type { CountryState, Marks } from "@/features/marks/core";
 
 export const SAMPLE_MARKS: Marks = {
   PRT: "visited",
@@ -22,10 +21,6 @@ export const SAMPLE_MARKS: Marks = {
 };
 
 export const SAMPLE_CENTER: [number, number] = [-4, 32];
-
-export const WALL_COUNTRIES = SOVEREIGN_COUNTRIES.toSorted((first, second) =>
-  first.name.localeCompare(second.name, "en"),
-);
 
 const PICK_ORDER: readonly (CountryState | undefined)[] = [
   undefined,

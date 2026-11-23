@@ -13,24 +13,24 @@
       "lazyGzipBytes": 0
     },
     "/": {
-      "firstLoadGzipBytes": 163977,
+      "firstLoadGzipBytes": 163976,
       "lazyGzipBytes": 71303
     },
     "/list": {
-      "firstLoadGzipBytes": 161189,
+      "firstLoadGzipBytes": 161239,
       "lazyGzipBytes": 3348
     },
     "/stats": {
-      "firstLoadGzipBytes": 159821,
+      "firstLoadGzipBytes": 159871,
       "lazyGzipBytes": 3348
-    },
-    "/welcome": {
-      "firstLoadGzipBytes": 152297,
-      "lazyGzipBytes": 67955
     },
     "/_not-found": {
       "firstLoadGzipBytes": 135666,
       "lazyGzipBytes": 0
+    },
+    "/welcome": {
+      "firstLoadGzipBytes": 3992,
+      "lazyGzipBytes": 75140
     }
   }
 }

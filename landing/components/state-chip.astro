@@ -1,0 +1,11 @@
+---
+import { STATE_CHIP_CLASS, STATE_FILLS } from "@/features/landing";
+import { STATE_LABELS } from "@/features/marks/core";
+import type { CountryState } from "@/features/marks/core";
+
+type Props = { state: CountryState; class?: string };
+
+const { state, class: className } = Astro.props;
+---
+
+<span class:list={[STATE_CHIP_CLASS, STATE_FILLS[state], className]}>{STATE_LABELS[state]}</span>

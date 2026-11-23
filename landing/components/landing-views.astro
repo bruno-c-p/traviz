@@ -1,0 +1,124 @@
+---
+import ListRow from "@/landing/components/list-row.astro";
+import {
+  ISLAND_CODES,
+  SAMPLE_MARKS,
+  WALL_COUNTRIES,
+  listRows,
+  stateSuffix,
+} from "@/features/landing";
+import { COUNTRY_STATES, STATE_COLORS, tallyMarks, tallyShare } from "@/features/marks/core";
+
+const tally = tallyMarks(WALL_COUNTRIES, SAMPLE_MARKS);
+
+const islands = WALL_COUNTRIES.filter((country) => ISLAND_CODES.includes(country.code)).map(
+  (country) => ({ ...country, state: SAMPLE_MARKS[country.code] }),
+);
+
+const rows = listRows(WALL_COUNTRIES, SAMPLE_MARKS);
+
+const ROW_CLASS =
+  "grid gap-x-(--gutter) gap-y-4 border-t border-ink py-8 md:grid-cols-12 md:items-start";
+
+const NAME_CLASS =
+  "text-[clamp(1.75rem,1.2rem+1.6vw,2.75rem)] leading-none font-bold tracking-[-0.04em] md:col-span-4 lg:col-span-3";
+
+const TEXT_CLASS = "max-w-[34ch] text-[17px] leading-[1.5] text-body md:col-span-8 lg:col-span-4";
+const SPECIMEN_CLASS = "md:col-span-8 md:col-start-5 lg:col-span-5 lg:col-start-8";
+---
+
+<section aria-labelledby="views-title" class="pt-8 pb-8 lg:pt-12">
+  <h2
+    id="views-title"
+    class="mb-12 max-w-[18ch] text-[clamp(2.25rem,1.2rem+3vw,4.5rem)] leading-[0.95] font-bold tracking-[-0.045em] text-balance"
+  >
+    One set of marks, three ways to read them
+  </h2>
+  <dl>
+    <div class={ROW_CLASS}>
+      <dt class={NAME_CLASS}>Globe</dt>
+      <dd class={TEXT_CLASS}>
+        Spin it, zoom in and tap a country to mark it. Islands too small to tap get a dot of their
+        own.
+      </dd>
+      <dd class={SPECIMEN_CLASS}>
+        <ul class="flex flex-wrap gap-x-2 gap-y-2">
+          {
+            islands.map(({ code, name, state }) => (
+              <li>
+                <button
+                  type="button"
+                  data-pick={code}
+                  data-island
+                  class="group flex h-10 items-center gap-2.5 rounded-full px-3 text-[15px] text-ink transition-colors duration-200 ease-out hover:bg-land focus-visible:bg-land focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                >
+                  <span
+                    aria-hidden="true"
+                    data-dot
+                    class="size-4 rounded-full shadow-[0_0_0_3px_var(--color-canvas-soft),0_1px_4px_3px_rgb(14_15_12/0.18)] transition-[background-color,scale] duration-300 ease-out group-hover:scale-125 group-focus-visible:scale-125 motion-reduce:transition-none"
+                    style={{ backgroundColor: STATE_COLORS[state ?? "unmarked"] }}
+                  />
+                  {name}<span data-state-label class="sr-only">{stateSuffix(state)}</span>
+                </button>
+              </li>
+            ))
+          }
+        </ul>
+      </dd>
+    </div>
+    <div class={ROW_CLASS}>
+      <dt class={NAME_CLASS}>List</dt>
+      <dd class={TEXT_CLASS}>
+        Every country by continent, with search and a filter for each state. Territories carry a
+        label.
+      </dd>
+      <dd class={SPECIMEN_CLASS}>
+        <ul data-list class="divide-y divide-line rounded-md border border-line bg-canvas">
+          {
+            rows.map((country) => (
+              <ListRow
+                flag={country.flag}
+                name={country.name}
+                continent={country.continent}
+                state={SAMPLE_MARKS[country.code]}
+              />
+            ))
+          }
+        </ul>
+        <template data-list-row><ListRow /></template>
+      </dd>
+    </div>
+    <div class={ROW_CLASS}>
+      <dt class={NAME_CLASS}>Stats</dt>
+      <dd class={TEXT_CLASS}>
+        Your count toward 195, the totals for each state, and how far you’ve got on every continent.
+      </dd>
+      <dd class={SPECIMEN_CLASS}>
+        <div class="flex flex-col gap-3">
+          <p class="font-mono text-[15px] text-body tabular-nums">
+            <span
+              data-count="visited"
+              class="text-[32px] leading-none font-medium tracking-[-0.04em] text-ink"
+              >{tally.visited}</span
+            >{" "}
+            / {WALL_COUNTRIES.length} visited
+          </p>
+          <div aria-hidden="true" class="flex h-3 overflow-hidden rounded-full bg-line">
+            {
+              COUNTRY_STATES.map((state) => (
+                <span
+                  data-share={state}
+                  class="h-full"
+                  style={{
+                    width: `${tallyShare(tally, state)}%`,
+                    backgroundColor: STATE_COLORS[state],
+                  }}
+                />
+              ))
+            }
+          </div>
+        </div>
+      </dd>
+    </div>
+  </dl>
+</section>
