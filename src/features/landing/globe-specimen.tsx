@@ -24,7 +24,7 @@ export function GlobeSpecimen() {
             >
               <span
                 aria-hidden="true"
-                className="size-4 rounded-full shadow-[0_0_0_3px_#fff,0_1px_4px_3px_rgb(14_15_12/0.18)] transition-[background-color,scale] duration-300 ease-out group-hover:scale-125 group-focus-visible:scale-125 motion-reduce:transition-none"
+                className="size-4 rounded-full shadow-[0_0_0_3px_var(--color-canvas-soft),0_1px_4px_3px_rgb(14_15_12/0.18)] transition-[background-color,scale] duration-300 ease-out group-hover:scale-125 group-focus-visible:scale-125 motion-reduce:transition-none"
                 style={{ backgroundColor: STATE_COLORS[state ?? "unmarked"] }}
               />
               {COUNTRIES_BY_CODE.get(code)?.name}

@@ -15,22 +15,11 @@ import { placeMarkers } from "@/features/globe/globe-markers";
 import type { GlobeMarker, PlacedMarker } from "@/features/globe/globe-markers";
 import { partVisibility } from "@/features/globe/globe-scene";
 import type { GlobeScene, GlobeView } from "@/features/globe/globe-scene";
-import { STATE_COLORS } from "@/features/marks";
+import type { GlobePalette } from "@/features/globe/globe-palette";
 import type { Marks } from "@/features/marks";
-
-const SPACE_COLOR = "#f4f6f1";
-const WATER_COLOR = "#d3d9cd";
-const BORDER_COLOR = "rgba(255, 255, 255, 0.9)";
-const SELECTED_COLOR = "#0e0f0c";
-const LABEL_COLOR = "#5e615c";
-const LABEL_HALO_COLOR = "#ffffff";
-const HALO_COLOR = "rgba(255, 255, 255, 0.85)";
-const HAZE_COLOR = "rgba(255, 255, 255, 0.35)";
-const CLEAR_WHITE = "rgba(255, 255, 255, 0)";
 
 const BORDER_WIDTHS: [number, number] = [0.6, 1.6];
 const SELECTED_WIDTHS: [number, number] = [1.5, 3];
-const MARKER_RING_COLOR = "#ffffff";
 const MARKER_RADIUS = 4;
 const MARKER_RING_WIDTH = 1.5;
 const SELECTED_MARKER_RADIUS = 5;
@@ -73,6 +62,7 @@ export type GlobeFrame = {
   selectedOutline: MultiLineString | null;
   fontFamily: string;
   labelLayouts: LabelLayouts;
+  palette: GlobePalette;
 };
 
 type LabelStyle = { size: number; opacity: number; letterSpacing: number; halo: number };
@@ -115,32 +105,32 @@ function radialFade(
   return gradient;
 }
 
-function drawSphere({ context, view, width, height }: GlobeFrame) {
+function drawSphere({ context, view, width, height, palette }: GlobeFrame) {
   const center = view.projection.translate();
   const { radius } = view;
   const haloRadius = radius * (1 + HALO_SPREAD);
 
-  context.fillStyle = SPACE_COLOR;
+  context.fillStyle = palette.space;
   context.fillRect(0, 0, width, height);
   fillCircle(
     context,
     center,
     haloRadius,
-    radialFade(context, center, [radius, haloRadius], [HALO_COLOR, CLEAR_WHITE]),
+    radialFade(context, center, [radius, haloRadius], [palette.halo, palette.clear]),
   );
-  fillCircle(context, center, radius, WATER_COLOR);
+  fillCircle(context, center, radius, palette.water);
 }
 
 type CountryPart = GlobeScene["countries"][number]["parts"][number];
 
 type ColorGroup = { front: CountryPart[]; horizon: CountryPart[] };
 
-function groupByColor({ scene, marks, view }: GlobeFrame): Map<string, ColorGroup> {
+function groupByColor({ scene, marks, view, palette }: GlobeFrame): Map<string, ColorGroup> {
   const groups = new Map<string, ColorGroup>();
 
   for (const country of scene.countries) {
     const state = country.code === null ? undefined : marks[country.code];
-    const color = STATE_COLORS[state ?? "unmarked"];
+    const color = palette.states[state ?? "unmarked"];
     const group = groups.get(color) ?? { front: [], horizon: [] };
 
     for (const part of country.parts) {
@@ -166,7 +156,7 @@ function pathContext(path: Path2D): GeoContext {
 }
 
 function drawCountries(frame: GlobeFrame) {
-  const { context, view, camera, selectedOutline } = frame;
+  const { context, view, camera, selectedOutline, palette } = frame;
   const paths: Path2D[] = [];
 
   for (const [color, { front, horizon }] of groupByColor(frame)) {
@@ -184,7 +174,7 @@ function drawCountries(frame: GlobeFrame) {
 
   context.lineJoin = "round";
   context.lineCap = "round";
-  context.strokeStyle = BORDER_COLOR;
+  context.strokeStyle = palette.border;
   context.lineWidth = widthAtZoom(camera.zoom, BORDER_WIDTHS);
 
   for (const colorPath of paths) context.stroke(colorPath);
@@ -193,13 +183,9 @@ function drawCountries(frame: GlobeFrame) {
 
   context.beginPath();
   geoPath(view.projection, context)(selectedOutline);
-  context.strokeStyle = SELECTED_COLOR;
+  context.strokeStyle = palette.selected;
   context.lineWidth = widthAtZoom(camera.zoom, SELECTED_WIDTHS);
   context.stroke();
-}
-
-function markerColor(marks: Marks, code: string): string {
-  return STATE_COLORS[marks[code] ?? "unmarked"];
 }
 
 function markerPath(placed: PlacedMarker[], radius: number): Path2D {
@@ -228,7 +214,12 @@ function drawMarkerGroup(
   context.fill(path);
 }
 
-function drawMarkers({ context, marks, selectedCode }: GlobeFrame, placed: PlacedMarker[]) {
+function drawMarkers(
+  { context, marks, selectedCode, palette }: GlobeFrame,
+  placed: PlacedMarker[],
+) {
+  const markerColor = (code: string) => palette.states[marks[code] ?? "unmarked"];
+
   const groups = new Map<string, PlacedMarker[]>();
   let selected: PlacedMarker | undefined;
 
@@ -236,7 +227,7 @@ function drawMarkers({ context, marks, selectedCode }: GlobeFrame, placed: Place
     if (marker.code === selectedCode) {
       selected = marker;
     } else {
-      const color = markerColor(marks, marker.code);
+      const color = markerColor(marker.code);
       const group = groups.get(color) ?? [];
 
       group.push(marker);
@@ -245,7 +236,12 @@ function drawMarkers({ context, marks, selectedCode }: GlobeFrame, placed: Place
   }
 
   for (const [color, group] of groups) {
-    drawMarkerGroup(context, group, [MARKER_RADIUS, MARKER_RING_WIDTH], [color, MARKER_RING_COLOR]);
+    drawMarkerGroup(
+      context,
+      group,
+      [MARKER_RADIUS, MARKER_RING_WIDTH],
+      [color, palette.markerRing],
+    );
   }
 
   if (!selected) return;
@@ -254,11 +250,11 @@ function drawMarkers({ context, marks, selectedCode }: GlobeFrame, placed: Place
     context,
     [selected],
     [SELECTED_MARKER_RADIUS, SELECTED_MARKER_RING_WIDTH],
-    [markerColor(marks, selected.code), SELECTED_COLOR],
+    [markerColor(selected.code), palette.selected],
   );
 }
 
-function drawHaze({ context, view }: GlobeFrame) {
+function drawHaze({ context, view, palette }: GlobeFrame) {
   const center = view.projection.translate();
   const { radius } = view;
 
@@ -266,7 +262,7 @@ function drawHaze({ context, view }: GlobeFrame) {
     context,
     center,
     radius,
-    radialFade(context, center, [radius * HAZE_START, radius], [CLEAR_WHITE, HAZE_COLOR]),
+    radialFade(context, center, [radius * HAZE_START, radius], [palette.clear, palette.haze]),
   );
 }
 
@@ -364,7 +360,7 @@ function layoutLabel(frame: GlobeFrame, candidate: LabelCandidate): Label | null
 }
 
 function drawLabels(frame: GlobeFrame, placed: PlacedMarker[]) {
-  const { context, fontFamily } = frame;
+  const { context, fontFamily, palette } = frame;
   const markerCodes = new Set(placed.map(({ code }) => code));
 
   const labels = placeLabels(
@@ -373,8 +369,8 @@ function drawLabels(frame: GlobeFrame, placed: PlacedMarker[]) {
 
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillStyle = LABEL_COLOR;
-  context.strokeStyle = LABEL_HALO_COLOR;
+  context.fillStyle = palette.label;
+  context.strokeStyle = palette.labelHalo;
 
   for (const label of labels) {
     const lineHeight = label.size * LABEL_LINE_HEIGHT;

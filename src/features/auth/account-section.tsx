@@ -2,13 +2,12 @@
 
 import { LogOut } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/shared/cn";
 import { signInPath } from "@/paths";
-import { endMarksSession, MarkStatus } from "@/features/marks";
+import { endMarksSession } from "@/features/marks";
 import { clerkSession } from "@/features/auth/clerk-session";
 import { useAccountEmail } from "@/features/auth/use-account-email";
 
-export function AccountSection({ className }: { className?: string }) {
+export function AccountSection() {
   const email = useAccountEmail();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutFailed, setSignOutFailed] = useState(false);
@@ -27,21 +26,8 @@ export function AccountSection({ className }: { className?: string }) {
   }
 
   return (
-    <section
-      id="account"
-      aria-labelledby="account-heading"
-      className={cn(
-        "flex scroll-mt-6 flex-col gap-4 rounded-3xl bg-canvas p-5 shadow-card",
-        className,
-      )}
-    >
-      <h2 id="account-heading" className="font-mono text-xs uppercase tracking-wider text-mute">
-        Account
-      </h2>
-      <p className="text-[15px] leading-relaxed text-body">
-        Your marks sync to your account. Sign in on any device to pick up where you left off.
-      </p>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-canvas-soft py-1.5 pl-4 pr-1.5">
+    <section aria-label="Signed in as" className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3 rounded-full bg-canvas-soft py-1.5 pl-4 pr-1.5">
         <span className="min-w-0 truncate text-sm font-medium text-ink">{email ?? ""}</span>
         <button
           type="button"
@@ -53,13 +39,14 @@ export function AccountSection({ className }: { className?: string }) {
           {isSigningOut ? "Signing out…" : "Sign out"}
         </button>
       </div>
+      <p className="text-sm leading-relaxed text-body">
+        Your marks sync to this account. Sign in on any device to pick up where you left off.
+      </p>
       {signOutFailed && (
-        <p role="alert" className="text-sm text-negative-deep">
+        <p role="alert" className="text-sm text-negative-text">
           Couldn't sign out. Check your connection and try again.
         </p>
       )}
-      <MarkStatus scope="all-marks" className="text-sm" />
-      <MarkStatus scope="snapshot" className="text-sm" />
     </section>
   );
 }

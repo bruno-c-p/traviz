@@ -1,6 +1,6 @@
 # Stats
 
-The `/stats` page, titled `Your travels`, shows how many of the 195 sovereign countries the user has visited, three totals and one card per continent. The page also holds the account section (`/stats#account`) and the danger zone, which are covered in [auth.md](auth.md) and [marks.md](marks.md).
+The `/stats` page, titled `Your travels`, shows how many of the 195 sovereign countries the user has visited, three totals and one card per continent. Sign-out, the theme and the danger zone live in the account menu, not on this page. They are covered in [auth.md](auth.md) and [marks.md](marks.md).
 
 ## Sub-features
 
