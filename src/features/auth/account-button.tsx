@@ -1,8 +1,7 @@
 "use client";
 
 import { UserRound } from "lucide-react";
-import { lazy, Suspense, useId, useRef, useState } from "react";
-import type { MouseEvent } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/shared/cn";
 import { useAccountEmail } from "@/features/auth/use-account-email";
 
@@ -23,9 +22,19 @@ export function AccountButton({ className }: { className?: string }) {
     dialogRef.current?.showModal();
   }
 
-  function handleBackdropClick(event: MouseEvent<HTMLDialogElement>) {
-    if (event.target === event.currentTarget) event.currentTarget.close();
-  }
+  useEffect(() => {
+    const dialog = dialogRef.current;
+
+    if (!dialog) return;
+
+    const closeOnBackdropClick = (event: MouseEvent) => {
+      if (event.target === dialog) dialog.close();
+    };
+
+    dialog.addEventListener("click", closeOnBackdropClick);
+
+    return () => dialog.removeEventListener("click", closeOnBackdropClick);
+  }, []);
 
   return (
     <>
@@ -49,7 +58,6 @@ export function AccountButton({ className }: { className?: string }) {
         ref={dialogRef}
         aria-labelledby={headingId}
         onClose={() => setIsOpen(false)}
-        onClick={handleBackdropClick}
         className="fixed inset-x-0 top-auto bottom-0 m-0 max-h-[calc(100dvh-3rem)] w-full max-w-none overflow-y-auto rounded-t-[28px] border-0 bg-canvas p-0 text-ink shadow-card transition-[opacity,translate] duration-200 ease-out backdrop:bg-black/40 starting:opacity-0 motion-safe:starting:translate-y-3 md:inset-x-auto md:top-[76px] md:right-6 md:bottom-auto md:max-h-[calc(100dvh-100px)] md:w-[380px] md:rounded-3xl md:motion-safe:starting:-translate-y-2"
       >
         {isOpen && (
