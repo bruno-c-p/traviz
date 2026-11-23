@@ -152,7 +152,7 @@ test("check:gates fails when strict is off or weakened", () => {
   );
   expectFailure(
     "tsconfig.json.include differs from gates.json",
-    edit("tsconfig.json", '"include": ["src", ', '"include": ['),
+    edit("tsconfig.json", '"include": [\n    "src",', '"include": ['),
   );
 });
 

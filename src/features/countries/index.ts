@@ -1,7 +1,6 @@
 export {
   CONTINENT_ORDER,
   COUNTRIES_BY_CODE,
-  SOVEREIGN_COUNTRIES,
   countries,
   countriesInContinent,
   countryCenter,

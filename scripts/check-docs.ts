@@ -75,6 +75,8 @@ function referenceResolves(reference: string): boolean {
 
   if (!reference.includes("/")) return bareNameResolves(reference);
 
+  if (reference.startsWith("@/landing/")) return pathExists(reference.slice(2));
+
   const relativePath = reference.startsWith("@/") ? `src/${reference.slice(2)}` : reference;
 
   return moduleExtensions.some((extension) => pathExists(relativePath + extension));

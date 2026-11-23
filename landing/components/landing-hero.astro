@@ -1,0 +1,65 @@
+---
+import ActionLink from "@/landing/components/action-link.astro";
+import NameWall from "@/landing/components/name-wall.astro";
+import StateChip from "@/landing/components/state-chip.astro";
+import TallySummary from "@/landing/components/tally-summary.astro";
+import { SAMPLE_MARKS, WALL_COUNTRIES, tallyAnnouncement } from "@/features/landing";
+import { tallyMarks } from "@/features/marks/core";
+import { signInPath } from "@/paths";
+
+const announcement = tallyAnnouncement(
+  tallyMarks(WALL_COUNTRIES, SAMPLE_MARKS),
+  WALL_COUNTRIES.length,
+);
+---
+
+<section aria-labelledby="landing-title" class="relative lg:grid lg:grid-cols-12 lg:gap-x-(--gutter)">
+  <div
+    class="flex flex-col gap-6 pt-24 md:grid md:grid-cols-2 md:gap-x-(--gutter) lg:sticky lg:top-0 lg:col-span-4 lg:flex lg:h-svh lg:min-h-[46rem] lg:gap-5 lg:self-start lg:pt-22 lg:pb-6"
+  >
+    <div class="flex flex-col items-start gap-5 md:self-center lg:self-auto">
+      <h1
+        id="landing-title"
+        class="-ml-[0.04em] text-[clamp(2.75rem,1.2rem+3.3vw,4.25rem)] leading-[0.95] font-bold tracking-[-0.045em] text-balance text-ink"
+      >
+        Keep count of the world.
+      </h1>
+      <p class="max-w-[22rem] text-[17px] leading-[1.5] text-body lg:min-h-[4lh]">
+        Mark the countries you’ve been to, the ones you want to see and the ones you’d skip. Traviz
+        keeps them on a globe, in a list and in your totals.
+      </p>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <ActionLink href={signInPath()} label="Start your map" tone="primary" />
+        <p class="text-[13px] text-mute">Email link sign-in. No password.</p>
+      </div>
+    </div>
+    <div
+      class="mx-auto aspect-square w-full max-w-[22rem] md:max-w-none lg:aspect-auto lg:min-h-0 lg:flex-1"
+    >
+      <div class="relative size-full">
+        <div
+          class="absolute top-1/2 left-1/2 aspect-square h-[88%] max-w-full -translate-1/2 rounded-full bg-land"
+        >
+        </div>
+        <div data-globe aria-hidden="true" class="absolute inset-0"></div>
+      </div>
+    </div>
+    <div class="hidden lg:block">
+      <TallySummary size="large" />
+    </div>
+  </div>
+  <div class="pt-10 pb-6 lg:col-span-8 lg:pt-24 lg:pb-28">
+    <p id="wall-hint" class="mb-6 max-w-[56ch] text-[15px] leading-[1.75] text-body">
+      All 195 countries, A to Z. Pick a name once for <StateChip state="visited" />, twice for{" "}
+      <StateChip state="want" />, three times for <StateChip state="not_interested" />, and once
+      more to clear it. Marks made here stay on this page.
+    </p>
+    <NameWall describedBy="wall-hint" />
+    <p class="sr-only" aria-live="polite" data-announcer>{announcement}</p>
+  </div>
+  <div
+    class="sticky bottom-0 z-10 -mx-(--gutter) border-t border-line bg-canvas-soft/95 px-(--gutter) py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm lg:hidden"
+  >
+    <TallySummary size="compact" />
+  </div>
+</section>

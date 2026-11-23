@@ -1,10 +1,10 @@
-import { create } from "zustand";
+import { createStore } from "zustand/vanilla";
 import { SAMPLE_MARKS, pickMark } from "@/features/landing/landing-marks";
-import type { Marks } from "@/features/marks";
+import type { Marks } from "@/features/marks/core";
 
 type FocusRequest = { code: string; id: number };
 
-type LandingState = {
+export type LandingState = {
   marks: Marks;
   focus: FocusRequest | null;
   isSample: boolean;
@@ -12,15 +12,19 @@ type LandingState = {
   clear: () => void;
 };
 
-export const useLandingStore = create<LandingState>()((set) => ({
-  marks: SAMPLE_MARKS,
-  focus: null,
-  isSample: true,
-  pick: (code) =>
-    set((state) => ({
-      marks: pickMark(state.marks, code),
-      focus: { code, id: (state.focus?.id ?? 0) + 1 },
-      isSample: false,
-    })),
-  clear: () => set({ marks: {}, isSample: false }),
-}));
+export function createLandingStore() {
+  return createStore<LandingState>()((set) => ({
+    marks: SAMPLE_MARKS,
+    focus: null,
+    isSample: true,
+    pick: (code) =>
+      set((state) => ({
+        marks: pickMark(state.marks, code),
+        focus: { code, id: (state.focus?.id ?? 0) + 1 },
+        isSample: false,
+      })),
+    clear: () => set({ marks: {}, isSample: false }),
+  }));
+}
+
+export type LandingStore = ReturnType<typeof createLandingStore>;

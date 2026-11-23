@@ -26,6 +26,11 @@ tester.run("boundaries/feature-entry", featureEntryRule, {
       'const services = await import("@/features/marks/services/marks");',
     ),
     at("src/features/stats/stats.ts", 'import type { Marks } from "@/features/marks";'),
+    at(
+      "src/features/landing/render-landing.ts",
+      'import { tallyMarks } from "@/features/marks/core";',
+    ),
+    at("landing/pages/index.astro", 'import { THEME_SCRIPT } from "@/features/theme/core";'),
     at("src/proxy.ts", 'import { signInPath } from "@/paths";'),
     at("src/shared/cn.ts", 'import { clsx } from "clsx";'),
     at("src/shared/testing/check-docs.test.ts", 'import { expect } from "bun:test";'),

@@ -8,7 +8,7 @@ function importGlobe() {
   }));
 }
 
-type GlobeModules = Awaited<ReturnType<typeof importGlobe>>;
+export type GlobeModules = Awaited<ReturnType<typeof importGlobe>>;
 
 let globeModulesPromise: Promise<GlobeModules | null> | null = null;
 

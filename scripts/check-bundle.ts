@@ -1,8 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { gzipSync } from "node:zlib";
 import { z } from "zod";
+import { welcomePath } from "@/paths";
 
 const { values: options } = parseArgs({
   options: {
@@ -19,6 +20,10 @@ const statsPath = join(buildRoot, ".next", "diagnostics", "route-bundle-stats.js
 const statsChangedHint = `If next build no longer writes ${statsPath} in this shape, update scripts/check-bundle.ts.`;
 const defaultTolerance = { percent: 1, minBytes: 1024 };
 const htmlOrigin = "http://localhost";
+
+const landingPages = [
+  { route: welcomePath(), htmlPath: join("public", welcomePath(), "index.html") },
+].filter(({ htmlPath }) => existsSync(join(buildRoot, htmlPath)));
 
 const routeStatsSchema = z
   .array(z.object({ route: z.string(), firstLoadChunkPaths: z.array(z.string()).min(1) }))
@@ -59,11 +64,65 @@ function readJson<T>(path: string, schema: z.ZodType<T>, problem: string): T {
   return parsed.data;
 }
 
-const routeStats = readJson(
+const nextRouteStats = readJson(
   statsPath,
   routeStatsSchema,
   `It should be a list of routes with first-load chunks. ${statsChangedHint}`,
 );
+
+function staticImportPaths(chunkPath: string): string[] {
+  const source = readFileSync(join(buildRoot, chunkPath), "utf8");
+
+  return [...source.matchAll(/(?:from|import)\s*["'`]\.\/([\w.-]+\.js)["'`]/g)].flatMap(
+    ([, fileName]) => (fileName === undefined ? [] : [join(dirname(chunkPath), fileName)]),
+  );
+}
+
+function withStaticImports(entryChunkPaths: string[]): string[] {
+  const reached = new Set(entryChunkPaths);
+  const pending = [...entryChunkPaths];
+
+  for (let chunkPath = pending.pop(); chunkPath !== undefined; chunkPath = pending.pop()) {
+    for (const imported of staticImportPaths(chunkPath)) {
+      if (reached.has(imported)) continue;
+
+      reached.add(imported);
+      pending.push(imported);
+    }
+  }
+
+  return [...reached];
+}
+
+function landingFirstLoadChunkPaths(htmlPath: string): string[] {
+  const html = readFileSync(join(buildRoot, htmlPath), "utf8");
+
+  const entryChunkPaths = loadedScriptUrls(html).flatMap((url) => {
+    const chunkPath = localChunkPath(url);
+
+    if (chunkPath === null) return [];
+
+    if (!existsSync(join(buildRoot, chunkPath)))
+      fail(`${htmlPath} loads ${chunkPath}, which is not on disk. Run bun run build first.`);
+
+    return [chunkPath];
+  });
+
+  if (entryChunkPaths.length === 0)
+    fail(
+      `${htmlPath} loads no script. A script that only imports for side effects is dropped unless package.json lists it in sideEffects.`,
+    );
+
+  return withStaticImports(entryChunkPaths);
+}
+
+const routeStats = [
+  ...nextRouteStats,
+  ...landingPages.map(({ route, htmlPath }) => ({
+    route,
+    firstLoadChunkPaths: landingFirstLoadChunkPaths(htmlPath),
+  })),
+];
 
 const gzipBytesByPath = new Map<string, number>();
 
@@ -92,6 +151,17 @@ const firstLoadGzipBytesByRoute = new Map(
 
 const referencedChunkPathsByPath = new Map<string, string[]>();
 
+function siblingChunkPaths(chunkPath: string, source: string): string[] {
+  const fileNames = new Set([...source.matchAll(/[\w.-]+\.js/g)].map(([fileName]) => fileName));
+
+  return [...fileNames].flatMap((fileName) => {
+    const siblingPath = join(dirname(chunkPath), fileName);
+    const isSibling = siblingPath !== chunkPath && existsSync(join(buildRoot, siblingPath));
+
+    return isSibling ? [siblingPath] : [];
+  });
+}
+
 function referencedChunkPaths(chunkPath: string): string[] {
   const cached = referencedChunkPathsByPath.get(chunkPath);
 
@@ -99,14 +169,18 @@ function referencedChunkPaths(chunkPath: string): string[] {
 
   const source = readFileSync(join(buildRoot, chunkPath), "utf8");
 
-  const references = [...source.matchAll(/static\/chunks\/[\w.-]+\.js/g)].map(([reference]) => {
-    const referencePath = `.next/${reference}`;
+  const references = chunkPath.startsWith(".next/")
+    ? [...source.matchAll(/static\/chunks\/[\w.-]+\.js/g)].map(([reference]) => {
+        const referencePath = `.next/${reference}`;
 
-    if (!existsSync(join(buildRoot, referencePath)))
-      fail(`${chunkPath} references ${referencePath}, which is not on disk. ${statsChangedHint}`);
+        if (!existsSync(join(buildRoot, referencePath)))
+          fail(
+            `${chunkPath} references ${referencePath}, which is not on disk. ${statsChangedHint}`,
+          );
 
-    return referencePath;
-  });
+        return referencePath;
+      })
+    : siblingChunkPaths(chunkPath, source);
 
   referencedChunkPathsByPath.set(chunkPath, references);
 
@@ -178,7 +252,9 @@ const failures: string[] = [];
 
 for (const route of Object.keys(budget.routes)) {
   if (!firstLoadGzipBytesByRoute.has(route)) {
-    failures.push(`${route} is in the budget but not in route-bundle-stats.json`);
+    failures.push(
+      `${route} is in the budget but not in route-bundle-stats.json or the landing build`,
+    );
   }
 }
 
@@ -230,6 +306,10 @@ for (const [route, gzipBytes] of firstLoadGzipBytesByRoute) {
 }
 
 function prerenderedHtmlPath(route: string): string {
+  const landingPage = landingPages.find((page) => page.route === route);
+
+  if (landingPage) return join(buildRoot, landingPage.htmlPath);
+
   const fileName = route === "/" ? "index.html" : `${route.slice(1)}.html`;
 
   return join(buildRoot, ".next", "server", "app", fileName);
@@ -265,7 +345,11 @@ function loadedScriptUrls(html: string): URL[] {
 }
 
 function localChunkPath(url: URL): string | null {
-  return url.origin === htmlOrigin ? url.pathname.replace(/^\/_next\//, ".next/") : null;
+  if (url.origin !== htmlOrigin) return null;
+
+  return url.pathname.startsWith("/_next/")
+    ? url.pathname.replace(/^\/_next\//, ".next/")
+    : join("public", url.pathname);
 }
 
 function extraPreloadProblem(firstLoadChunkPaths: string[], url: URL): string | null {

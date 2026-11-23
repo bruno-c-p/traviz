@@ -1,0 +1,54 @@
+---
+import StateChip from "@/landing/components/state-chip.astro";
+import {
+  CELL_CLASS,
+  CELL_FILLS,
+  SAMPLE_MARKS,
+  WALL_CONTINENTS,
+  cellStates,
+} from "@/features/landing";
+import { tallyMarks } from "@/features/marks/core";
+
+const rows = WALL_CONTINENTS.map(({ continent, countries }) => {
+  const tally = tallyMarks(countries, SAMPLE_MARKS);
+
+  return { continent, total: countries.length, visited: tally.visited, cells: cellStates(tally) };
+});
+---
+
+<section aria-labelledby="continents-title" class="pt-14 pb-20 lg:py-36">
+  <div class="mb-12 grid gap-5 md:grid-cols-12 md:gap-x-(--gutter)">
+    <h2
+      id="continents-title"
+      class="text-[clamp(2.25rem,1.2rem+3vw,4.5rem)] leading-[0.95] font-bold tracking-[-0.045em] text-balance md:col-span-7 lg:col-span-6"
+    >
+      Where the count stands
+    </h2>
+    <p class="max-w-[46ch] self-end text-[17px] leading-[1.7] text-body md:col-span-5 lg:col-start-8">
+      One square for each country, painted <StateChip state="visited" />,{" "}
+      <StateChip state="want" /> or <StateChip state="not_interested" /> as you pick names above.
+      Territories such as Greenland are on the globe and in the list, but outside the 195.
+    </p>
+  </div>
+  <ul>
+    {
+      rows.map(({ continent, total, visited, cells }) => (
+        <li class="grid gap-x-(--gutter) gap-y-3 border-t border-line py-6 md:grid-cols-12 md:items-baseline">
+          <h3 class="text-[clamp(1.5rem,1.1rem+1.4vw,2.5rem)] leading-none font-bold tracking-[-0.035em] md:col-span-4 lg:col-span-3">
+            {continent}
+          </h3>
+          <p class="font-mono text-sm text-body tabular-nums md:col-span-3 lg:col-span-2">
+            <span data-count="visited" data-pool={continent} class="text-ink">{visited}</span> of {total} visited
+          </p>
+          <div
+            aria-hidden="true"
+            data-cells={continent}
+            class="flex flex-wrap gap-1 md:col-span-5 lg:col-span-7"
+          >
+            {cells.map((state) => <span class:list={[CELL_CLASS, CELL_FILLS[state]]} />)}
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+</section>

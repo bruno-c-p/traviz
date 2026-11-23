@@ -10,7 +10,7 @@ Mark the countries you've visited, want to visit, or aren't interested in, on an
 - **Three states per country.** Visited, Want to go, and Not interested. Select the active state again, or use the clear button, to remove a mark.
 - **Searchable list.** Every country grouped by continent, with search and filters by state. Territories are labeled.
 - **Stats.** Progress toward all 250 places, countries and territories, minus the ones marked not interested, with totals per state and a breakdown by continent.
-- **Landing page.** Signed-out visitors land on `/welcome`, where all 195 countries are listed and can be marked on the spot, without saving, before signing in.
+- **Landing page.** Signed-out visitors land on `/welcome`, where all 195 countries are listed and can be marked on the spot, without saving, before signing in. It is a static Astro page with no React, served by the Next.js app.
 - **Passwordless sign-in.** Enter your email and open the magic link. No passwords.
 - **Synced to your account.** Every change is saved to a Turso (libSQL) database.
 - **Works on phones.** Countries are marked from a bottom sheet, and a tab bar at the bottom holds the navigation.
@@ -64,7 +64,7 @@ The steps below set up the app by hand, for production or for a remote database.
 
 ### Prerequisites
 
-- Node.js 20.9 or later (required by Next.js 16)
+- Node.js 22.23.4 or later (required by Astro 7)
 - Bun 1.4.3, the version CI pins. Bun does not check the `devEngines` version, so another version installs without a warning
 - A Turso database
 - A Clerk application set up for email link sign-in only
@@ -117,8 +117,10 @@ Open http://localhost:3000, enter your email, and open the link in the sign-in e
 
 | Command                 | What it does                                                                                                                          |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `bun run dev`           | Start the Next.js dev server                                                                                                          |
-| `bun run build`         | Build for production                                                                                                                  |
+| `bun run dev`           | Start the Next.js dev server. Run `bun run build:landing` first to serve `/welcome`                                                   |
+| `bun run dev:landing`   | Start the Astro dev server for the landing page alone                                                                                 |
+| `bun run build:landing` | Build the landing page into `public/welcome/`                                                                                         |
+| `bun run build`         | Build for production: the landing page with Astro, then the app with Next.js                                                          |
 | `bun run start`         | Serve the production build                                                                                                            |
 | `bun run setup`         | Fill in `.env.local` with development values, migrate `.data/dev.db` and create the development user                                  |
 | `bun run sign-in-token` | Print a sign-in token for the development user                                                                                        |
@@ -149,6 +151,7 @@ The globe draws the country outlines in `src/features/globe/country-topology.gen
 ```text
 .
 ├── docs/    Screenshots for this README
+├── landing/ Astro templates and styles for the landing page at /welcome
 ├── scripts/ Local setup, sign-in tokens, database migration, country generation, and the docs and bundle checks
 └── src/
     ├── app/             Routes: / (globe), /list, /stats, and /sign-in
@@ -156,6 +159,7 @@ The globe draws the country outlines in `src/features/globe/country-topology.gen
     ├── features/auth/   Email link sign-in, the account button and section, and the server-only session helpers
     ├── features/countries/ Generated country dataset, search, and the country heading
     ├── features/country-list/ Country list page, with its search, status and continent filters
+    ├── features/landing/ Framework-free logic for the landing page, and the 404 page
     ├── features/globe/  Canvas globe and its generated outlines, the overlay, country card and sheet, search, and the selected-country store
     ├── features/marks/  Marks store, mark controls, and the Server Actions and services that save and load marks
     ├── features/stats/  Stats page, progress card, and the totals by continent
@@ -166,6 +170,8 @@ The globe draws the country outlines in `src/features/globe/country-topology.gen
 ## Deployment
 
 - The project is deployed on Vercel. Any host that runs Next.js works too.
+- The build command must be `bun run build`, which builds the landing page into `public/welcome/` before `next build`. `next build` alone leaves `/welcome` without a page.
+- The build needs Node.js 22.23.4 or later.
 - Set the same environment variables on your host.
 - Add your production domain to the Clerk instance in the Clerk dashboard.
 

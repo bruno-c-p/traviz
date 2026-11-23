@@ -1,0 +1,11 @@
+---
+type Props = { label: string; coverClass: string; class?: string; labelHook?: boolean };
+
+const { label, coverClass, class: className, labelHook = false } = Astro.props;
+---
+
+<span class={className} data-clear-label={labelHook ? "" : undefined}>{label}</span><span
+  aria-hidden="true"
+  class:list={["paint-cover pointer-events-none absolute inset-0", coverClass, className]}
+  data-clear-label={labelHook ? "" : undefined}>{label}</span
+>
