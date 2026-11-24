@@ -2,6 +2,8 @@
 import { ROW_HEIGHT } from "@/features/country-list/list-classes";
 import { COUNTRY_STATES, STATE_LABELS, STATE_SHORT_LABELS } from "@/features/marks";
 import type { CountryState } from "@/features/marks";
+import Icon from "@/shared/icons/icon.astro";
+import type { IconName } from "@/shared/icons/icons";
 
 type Props = {
   code: string;
@@ -13,10 +15,10 @@ type Props = {
 
 const { code, name, isTerritory, state, isDeferred } = Astro.props;
 
-const ICON_CLASSES: Record<CountryState, string> = {
-  visited: "state-icon-visited",
-  want: "state-icon-want",
-  not_interested: "state-icon-not_interested",
+const STATE_ICONS: Record<CountryState, IconName> = {
+  visited: "check",
+  want: "star",
+  not_interested: "circle-backslash",
 };
 ---
 
@@ -59,7 +61,7 @@ const ICON_CLASSES: Record<CountryState, string> = {
             title={STATE_LABELS[countryState]}
             class="state-option"
           >
-            <span aria-hidden="true" class:list={["size-[15px] sm:hidden", ICON_CLASSES[countryState]]} />
+            <Icon name={STATE_ICONS[countryState]} size="size-[15px]" class="sm:hidden" />
             <span aria-hidden="true" class="hidden sm:inline">
               {STATE_SHORT_LABELS[countryState]}
             </span>

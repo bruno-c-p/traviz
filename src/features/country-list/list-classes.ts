@@ -1,3 +1,5 @@
+import { iconClass } from "@/shared/icons/icons";
+
 const CHIP_CLASS =
   "flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium pressable focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2";
 
@@ -37,7 +39,7 @@ export const PROBLEM_TEXT_CLASS = "min-w-0 truncate";
 export const DISMISS_BUTTON_CLASS =
   "pressable flex size-6 shrink-0 items-center justify-center rounded-full hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink";
 
-export const DISMISS_ICON_CLASS = "icon icon-x size-3";
+export const DISMISS_ICON_CLASS = iconClass("cross-2", "size-3");
 
 export const ROW_HEIGHT = 60;
 

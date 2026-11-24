@@ -4,6 +4,7 @@ import ListRows from "@/features/country-list/list-rows.astro";
 import ListSidebar from "@/features/country-list/list-sidebar.astro";
 import { ALL_COUNTRIES_LABEL } from "@/features/country-list/list-model";
 import type { MarksSnapshot } from "@/features/marks";
+import Icon from "@/shared/icons/icon.astro";
 
 type Props = { marks: Promise<MarksSnapshot | null>; isActive: boolean };
 
@@ -25,10 +26,11 @@ const { marks, isActive } = Astro.props;
             {ALL_COUNTRIES_LABEL}
           </h1>
           <div class="relative w-full sm:w-80">
-            <span
-              aria-hidden="true"
-              class="icon icon-search pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-mute"
-            ></span>
+            <Icon
+              name="magnifying-glass"
+              size="size-[18px]"
+              class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-mute"
+            />
             <input
               type="text"
               data-list-search
@@ -44,7 +46,7 @@ const { marks, isActive } = Astro.props;
               aria-label="Clear search"
               class="absolute right-1.5 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-mute hover:bg-canvas-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
             >
-              <span aria-hidden="true" class="icon icon-x size-4"></span>
+              <Icon name="cross-2" size="size-4" />
             </button>
           </div>
         </div>

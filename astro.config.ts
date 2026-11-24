@@ -40,7 +40,7 @@ export default defineConfig({
     plugins: [tailwindcss(), serverOnlyGuard()],
     define: { "import.meta.env.TRAVIZ_NODE_SERVER": JSON.stringify(usesNode) },
     build: {
-      assetsInlineLimit: (filePath) => /\.m?js$/.test(filePath),
+      assetsInlineLimit: (filePath) => /\.(?:m?js|svg)$/.test(filePath),
     },
   },
 });

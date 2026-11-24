@@ -7,6 +7,7 @@ import {
   statsPath,
 } from "@/paths";
 import type { Route } from "@/paths";
+import type { IconName } from "@/shared/icons/icons";
 
 export type ViewName = "globe" | "list" | "stats";
 
@@ -15,7 +16,7 @@ export type NavigationItem = {
   readonly href: Route;
   readonly fragment: Route;
   readonly label: string;
-  readonly iconClass: string;
+  readonly icon: IconName;
 };
 
 export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
@@ -24,21 +25,21 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     href: homePath(),
     fragment: globeFragmentPath(),
     label: "Globe",
-    iconClass: "icon-globe",
+    icon: "globe",
   },
   {
     view: "list",
     href: listPath(),
     fragment: listFragmentPath(),
     label: "List",
-    iconClass: "icon-list",
+    icon: "list-bullet",
   },
   {
     view: "stats",
     href: statsPath(),
     fragment: statsFragmentPath(),
     label: "Stats",
-    iconClass: "icon-chart",
+    icon: "bar-chart",
   },
 ];
 

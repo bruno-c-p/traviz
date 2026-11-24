@@ -1,4 +1,6 @@
 ---
+import Icon from "@/shared/icons/icon.astro";
+
 type Props = { class?: string };
 
 const { class: className } = Astro.props;
@@ -15,5 +17,5 @@ const { class: className } = Astro.props;
     className,
   ]}
 >
-  <span aria-hidden="true" class="icon icon-user size-5"></span>
+  <Icon name="person" size="size-5" />
 </button>
