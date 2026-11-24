@@ -4,8 +4,6 @@ import type { Authenticate } from "@/features/auth/authenticate";
 import { parseAuthorizedParties, readClerkSession } from "@/features/auth/clerk-session-reader";
 import { env } from "@/shared/server/env";
 
-export type { Authenticate, RequestAuth } from "@/features/auth/authenticate";
-
 let authenticate: Authenticate | undefined;
 
 export function authenticateRequest(request: Request) {

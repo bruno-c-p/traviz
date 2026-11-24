@@ -39,8 +39,6 @@ type GlobeOptions = {
 
 type Animation = { durationMs: number; startTime: number | null; step: (progress: number) => void };
 
-export type Globe = ReturnType<typeof createGlobe>;
-
 function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   const context = canvas.getContext("2d");
 

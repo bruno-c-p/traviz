@@ -1,34 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "entry": ["src/features/*/*-entry.ts"],
-  "ignorePatterns": ["tools/**", "legacy-react/**"],
+  "entry": ["src/features/*/*-entry.ts", "src/shared/testing/clerk-api-call.ts"],
+  "ignorePatterns": ["tools/**"],
   "ignoreDependencies": ["@oxlint/plugins"],
-  "ignoreExports": [
-    { "file": "paths.ts", "exports": ["decoratedPath"] },
-    { "file": "src/features/auth/index.ts", "exports": ["clerkSession"] },
-    { "file": "src/features/auth/server.ts", "exports": ["Authenticate", "RequestAuth"] },
-    { "file": "src/features/globe/mount-globe.ts", "exports": ["mountGlobe"] },
-    { "file": "src/features/globe/sheet-exit.ts", "exports": ["EXIT_MS"] },
-    { "file": "src/features/globe/create-globe.ts", "exports": ["Globe"] },
-    { "file": "src/features/marks/colors.ts", "exports": ["STATE_ON_COLORS", "STATE_HINTS"] },
-    {
-      "file": "src/features/marks/index.ts",
-      "exports": ["STATE_ON_COLORS", "endMarksSession", "SavingScopes", "SyncProblem"]
-    },
-    {
-      "file": "src/features/theme/index.ts",
-      "exports": [
-        "THEME_CHOICES",
-        "THEME_LABELS",
-        "chooseTheme",
-        "subscribeTheme",
-        "themeChoice",
-        "ThemeChoice"
-      ]
-    },
-    { "file": "src/features/theme/theme-store.ts", "exports": ["themeChoice", "chooseTheme"] },
-    { "file": "src/features/theme/theme.ts", "exports": ["THEME_CHOICES", "THEME_LABELS"] }
-  ],
   "health": {
     "maxCrap": 73
   }

@@ -12,9 +12,9 @@ import {
   sidebarItemClass,
   sidebarLabelClass,
 } from "@/features/country-list/list-classes";
+import { decodeCountryRows } from "@/features/countries";
 import {
   continentOptions,
-  decodeListRows,
   listLayout,
   parseListFilter,
   stateCounts,
@@ -151,7 +151,7 @@ function showStatus(view: RowView, state: MarksStoreState) {
 }
 
 export function mountListView(host: HTMLElement, store: MarksStore) {
-  const rows = decodeListRows(find(host, "[data-list-rows]").textContent ?? "");
+  const rows = decodeCountryRows(find(host, "[data-list-rows]").textContent ?? "");
   const card = find<HTMLElement>(host, "[data-list-card]");
   const resultsBox = find<HTMLElement>(host, "[data-list-results]");
   const emptyMessage = find<HTMLElement>(host, "[data-list-empty]");

@@ -2,17 +2,16 @@ export {
   COUNTRY_STATES,
   STATE_COLORS,
   STATE_LABELS,
-  STATE_ON_COLORS,
   STATE_SHORT_LABELS,
 } from "@/features/marks/colors";
 
 export type { CountryState, Marks, StateColorKey } from "@/features/marks/colors";
 
-export { endMarksSession, marksStore } from "@/features/marks/marks-store";
+export { marksStore } from "@/features/marks/marks-store";
 
-export type { MarksStore, MarksStoreState, SavingScopes } from "@/features/marks/marks-store";
+export type { MarksStore, MarksStoreState } from "@/features/marks/marks-store";
 
-export type { MarksSnapshot, SyncProblem } from "@/features/marks/marks-sync";
+export type { MarksSnapshot } from "@/features/marks/marks-sync";
 
 export { markStatusText } from "@/features/marks/mark-status";
 

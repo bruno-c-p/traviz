@@ -71,7 +71,7 @@
       }
     }
   ],
-  "ignorePatterns": ["tools/oxlint/anti-slop/**", "legacy-react/**"],
+  "ignorePatterns": ["tools/oxlint/anti-slop/**"],
   "jsPlugins": [
     {
       "name": "anti-slop",

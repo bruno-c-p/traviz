@@ -41,7 +41,7 @@ function mountAccountSection(dialog: HTMLElement, host: AccountMenuHost) {
   return section.forgetFailure;
 }
 
-export function mountAccountMenu(dialog: HTMLDialogElement, host: AccountMenuHost) {
+function mountAccountMenu(dialog: HTMLDialogElement, host: AccountMenuHost) {
   const snapshotStatus = dialog.querySelector<HTMLElement>("[data-snapshot-status]");
   const themePicker = dialog.querySelector<HTMLElement>("[data-theme-picker]");
   const dangerZone = dialog.querySelector<HTMLElement>("[data-danger-zone]");

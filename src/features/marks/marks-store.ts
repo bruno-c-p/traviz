@@ -113,7 +113,3 @@ export const marksStore = createBrowserMarksStore(
     setTimeout(callback, milliseconds);
   },
 );
-
-export function endMarksSession() {
-  marksStore.getState().endSession();
-}

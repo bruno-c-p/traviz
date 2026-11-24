@@ -14,9 +14,6 @@ export const accountMenuFragmentPath = (): Route => "/fragments/account-menu";
 export const applyMarkChangePath = (): Route => "/api/marks/apply";
 export const readMarksPath = (): Route => "/api/marks/read";
 
-export const decoratedPath = (decorateUrl: (url: string) => string, path: Route): Route =>
-  decorateUrl(path) as Route;
-
 export type RouteAccess = "signedIn" | "signedOut" | "anyone";
 
 export const ROUTES: readonly { path: Route; access: RouteAccess }[] = [

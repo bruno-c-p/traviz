@@ -1,7 +1,8 @@
 ---
+import { encodeCountryRows } from "@/features/countries";
 import CountryRow from "@/features/country-list/country-row.astro";
 import { ROW_HEIGHT, SERVER_ROW_COUNT } from "@/features/country-list/list-classes";
-import { continentsOf, encodeListRows } from "@/features/country-list/list-model";
+import { continentsOf } from "@/features/country-list/list-model";
 import { LIST_ROWS } from "@/features/country-list/list-rows-source";
 import type { MarksSnapshot } from "@/features/marks";
 
@@ -51,4 +52,4 @@ const sections = continentsOf(LIST_ROWS).map((continent) => {
 <template data-row-template>
   <CountryRow code="" name="" isTerritory={true} state={undefined} isDeferred={true} />
 </template>
-<script is:inline type="text/plain" data-list-rows set:html={encodeListRows(LIST_ROWS)} />
+<script is:inline type="text/plain" data-list-rows set:html={encodeCountryRows(LIST_ROWS)} />

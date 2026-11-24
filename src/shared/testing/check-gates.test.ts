@@ -201,7 +201,7 @@ test("check:gates fails on oxlint config that loosens rules from elsewhere", () 
     ".oxlintrc.json.ignorePatterns differs from gates.json",
     edit(
       ".oxlintrc.json",
-      '"ignorePatterns": ["tools/oxlint/anti-slop/**", "legacy-react/**"]',
+      '"ignorePatterns": ["tools/oxlint/anti-slop/**"]',
       '"ignorePatterns": ["src/**"]',
     ),
   );
@@ -239,13 +239,13 @@ test("check:gates fails when fallow or astro check is loosened", () => {
     ".fallowrc.json.ignorePatterns differs from gates.json",
     edit(
       ".fallowrc.json",
-      '"ignorePatterns": ["tools/**", "legacy-react/**"]',
-      '"ignorePatterns": ["tools/**", "legacy-react/**", "src/**"]',
+      '"ignorePatterns": ["tools/**"]',
+      '"ignorePatterns": ["tools/**", "src/**"]',
     ),
   );
   expectFailure(
     ".fallowrc.json.entry differs from gates.json",
-    edit(".fallowrc.json", '"entry": ["src/features/*/*-entry.ts"]', '"entry": ["src/**"]'),
+    edit(".fallowrc.json", '"entry": ["src/features/*/*-entry.ts",', '"entry": ["src/**",'),
   );
   expectFailure(
     "package.json script typecheck differs from gates.json",

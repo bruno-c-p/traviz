@@ -1,14 +1,18 @@
 import { describe, expect, test } from "bun:test";
-import { countries, searchCountries } from "@/features/countries";
+import {
+  countries,
+  countryRowOf,
+  decodeCountryRows,
+  encodeCountryRows,
+  searchCountries,
+} from "@/features/countries";
 import {
   MAX_SEARCH_RESULTS,
   countryMeta,
-  decodeGlobeCountries,
-  encodeGlobeCountries,
   searchGlobeCountries,
 } from "@/features/globe/globe-countries";
 
-const decoded = decodeGlobeCountries(encodeGlobeCountries(countries));
+const decoded = decodeCountryRows(encodeCountryRows(countries.map(countryRowOf)));
 
 describe("countries sent to the globe view", () => {
   test("every entry survives the trip through the HTML with its name, continent and kind", () => {
@@ -38,7 +42,7 @@ describe("countries sent to the globe view", () => {
   });
 
   test("an empty text decodes to no countries", () => {
-    expect(decodeGlobeCountries("")).toEqual([]);
+    expect(decodeCountryRows("")).toEqual([]);
   });
 });
 

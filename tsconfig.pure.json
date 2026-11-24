@@ -13,6 +13,23 @@
     "src/features/globe/globe-camera.ts",
     "src/features/globe/globe-gestures.ts",
     "src/features/globe/globe-keys.ts",
-    "src/features/globe/globe-labels.ts"
+    "src/features/globe/globe-labels.ts",
+    "src/features/globe/sheet-drag.ts",
+    "src/features/globe/country-search-state.ts",
+    "src/features/globe/sheet-exit.ts",
+    "src/features/globe/globe-countries.ts",
+    "src/features/auth/account-menu-loader.ts",
+    "src/features/auth/account-section.ts",
+    "src/features/auth/email-link-sign-in.ts",
+    "src/features/auth/email-link-verification.ts",
+    "src/features/auth/session-cookies.ts",
+    "src/features/auth/scope-utilities.ts",
+    "src/features/countries/country-rows.ts",
+    "src/features/countries/search-by-name.ts",
+    "src/features/stats/continent-pools.ts",
+    "src/features/theme/theme.ts",
+    "src/features/app-shell/navigation.ts",
+    "src/features/app-shell/resume-reload.ts",
+    "src/shared/store.ts"
   ]
 }

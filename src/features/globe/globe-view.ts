@@ -1,6 +1,7 @@
 import { mountCountrySearch } from "@/features/globe/country-search";
 import { mountCountrySheet } from "@/features/globe/country-sheet";
-import { countryMeta, decodeGlobeCountries } from "@/features/globe/globe-countries";
+import { decodeCountryRows } from "@/features/countries";
+import { countryMeta } from "@/features/globe/globe-countries";
 import type { GlobeCountry } from "@/features/globe/globe-countries";
 import { GLOBE_ENGINE_EVENT } from "@/features/globe/globe-engine-contract";
 import type { GlobeEngine, RunningGlobe } from "@/features/globe/globe-engine-contract";
@@ -28,6 +29,10 @@ type CountryPanel = {
 
 function setText(element: Element | null, text: string) {
   if (element !== null && element.textContent !== text) element.textContent = text;
+}
+
+function setHidden(element: HTMLElement | null, isHidden: boolean) {
+  if (element !== null) element.hidden = isHidden;
 }
 
 function countryPanel(root: HTMLElement, marks: MarksStore): CountryPanel {
@@ -68,7 +73,7 @@ export function mountGlobeView(host: HTMLElement, options: GlobeViewOptions): Mo
     subscribeTheme: options.subscribeTheme,
   };
 
-  const countries = decodeGlobeCountries(
+  const countries = decodeCountryRows(
     host.querySelector("[data-globe-countries]")?.textContent ?? "",
   );
 
@@ -77,6 +82,8 @@ export function mountGlobeView(host: HTMLElement, options: GlobeViewOptions): Mo
   const sheet = sheetWrapper === null ? null : mountCountrySheet(sheetWrapper, clearSelection);
   const cardPanel = card === null ? null : countryPanel(card, options.marks);
   const sheetPanel = sheetWrapper === null ? null : countryPanel(sheetWrapper, options.marks);
+
+  const panels = [cardPanel, sheetPanel].flatMap((panel) => (panel === null ? [] : [panel]));
 
   let globe: RunningGlobe | null = null;
   let isStarting = false;
@@ -95,14 +102,11 @@ export function mountGlobeView(host: HTMLElement, options: GlobeViewOptions): Mo
   const renderSelection = () => {
     const country = countriesByCode.get(selection.getState().selectedCode ?? "");
 
-    if (card !== null) card.hidden = country === undefined;
-
-    if (hint !== null) hint.hidden = country !== undefined;
+    setHidden(card, country === undefined);
+    setHidden(hint, country !== undefined);
 
     if (country !== undefined) {
-      if (cardPanel !== null) showCountry(cardPanel, country);
-
-      if (sheetPanel !== null) showCountry(sheetPanel, country);
+      for (const panel of panels) showCountry(panel, country);
     }
 
     if (country !== undefined && isShown) sheet?.show();

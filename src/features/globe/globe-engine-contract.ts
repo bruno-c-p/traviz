@@ -11,7 +11,7 @@ export type GlobeEngine = {
   readonly start: (container: HTMLElement, stores: GlobeStores) => Promise<RunningGlobe>;
 };
 
-export type GlobeEngineRegistry = { travizGlobeEngine?: GlobeEngine };
+type GlobeEngineRegistry = { travizGlobeEngine?: GlobeEngine };
 
 export const GLOBE_ENGINE_EVENT = "traviz:globe-engine";
 

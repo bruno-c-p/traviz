@@ -13,13 +13,6 @@ export const STATE_COLORS: Record<StateColorKey, string> = {
   unmarked: "var(--color-land)",
 };
 
-export const STATE_ON_COLORS: Record<StateColorKey, string> = {
-  visited: "var(--color-on-primary)",
-  want: "#ffffff",
-  not_interested: "var(--color-ink)",
-  unmarked: "var(--color-ink)",
-};
-
 export const STATE_LABELS: Record<CountryState, string> = {
   visited: "Visited",
   want: "Want to go",

@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { CONTINENT_ORDER, countries, searchCountries } from "@/features/countries";
+import {
+  CONTINENT_ORDER,
+  countries,
+  decodeCountryRows,
+  encodeCountryRows,
+  searchCountries,
+} from "@/features/countries";
 import {
   continentOptions,
-  decodeListRows,
-  encodeListRows,
   listLayout,
   listRowsOf,
   parseListFilter,
@@ -31,11 +35,11 @@ describe("the list rows", () => {
   });
 
   test("survive the wire that carries them in the page", () => {
-    expect(decodeListRows(encodeListRows(rows))).toEqual(rows);
+    expect(decodeCountryRows(encodeCountryRows(rows))).toEqual(rows);
   });
 
   test("hold no character that would break the wire or end its script element", () => {
-    expect(encodeListRows(rows)).not.toMatch(/[<&]/);
+    expect(encodeCountryRows(rows)).not.toMatch(/[<&]/);
     expect(rows.filter((row) => /[\t\n]/.test(row.name + row.code + row.continent))).toEqual([]);
   });
 

@@ -78,7 +78,7 @@
         "strict": true
       },
       "include": ["src", "scripts", "astro.config.ts", "paths.ts", ".astro/types.d.ts"],
-      "exclude": ["node_modules", "dist", "legacy-react"]
+      "exclude": ["node_modules", "dist"]
     },
     ".oxlintrc.json": {
       "$schema": "./node_modules/oxlint/configuration_schema.json",
@@ -174,7 +174,7 @@
           }
         }
       ],
-      "ignorePatterns": ["tools/oxlint/anti-slop/**", "legacy-react/**"],
+      "ignorePatterns": ["tools/oxlint/anti-slop/**"],
       "jsPlugins": [
         {
           "name": "anti-slop",
@@ -188,62 +188,9 @@
     },
     ".fallowrc.json": {
       "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-      "entry": ["src/features/*/*-entry.ts"],
-      "ignorePatterns": ["tools/**", "legacy-react/**"],
+      "entry": ["src/features/*/*-entry.ts", "src/shared/testing/clerk-api-call.ts"],
+      "ignorePatterns": ["tools/**"],
       "ignoreDependencies": ["@oxlint/plugins"],
-      "ignoreExports": [
-        {
-          "file": "paths.ts",
-          "exports": ["decoratedPath"]
-        },
-        {
-          "file": "src/features/auth/index.ts",
-          "exports": ["clerkSession"]
-        },
-        {
-          "file": "src/features/auth/server.ts",
-          "exports": ["Authenticate", "RequestAuth"]
-        },
-        {
-          "file": "src/features/globe/mount-globe.ts",
-          "exports": ["mountGlobe"]
-        },
-        {
-          "file": "src/features/globe/sheet-exit.ts",
-          "exports": ["EXIT_MS"]
-        },
-        {
-          "file": "src/features/globe/create-globe.ts",
-          "exports": ["Globe"]
-        },
-        {
-          "file": "src/features/marks/colors.ts",
-          "exports": ["STATE_ON_COLORS", "STATE_HINTS"]
-        },
-        {
-          "file": "src/features/marks/index.ts",
-          "exports": ["STATE_ON_COLORS", "endMarksSession", "SavingScopes", "SyncProblem"]
-        },
-        {
-          "file": "src/features/theme/index.ts",
-          "exports": [
-            "THEME_CHOICES",
-            "THEME_LABELS",
-            "chooseTheme",
-            "subscribeTheme",
-            "themeChoice",
-            "ThemeChoice"
-          ]
-        },
-        {
-          "file": "src/features/theme/theme-store.ts",
-          "exports": ["themeChoice", "chooseTheme"]
-        },
-        {
-          "file": "src/features/theme/theme.ts",
-          "exports": ["THEME_CHOICES", "THEME_LABELS"]
-        }
-      ],
       "health": {
         "maxCrap": 73
       }
@@ -272,7 +219,24 @@
         "src/features/globe/globe-camera.ts",
         "src/features/globe/globe-gestures.ts",
         "src/features/globe/globe-keys.ts",
-        "src/features/globe/globe-labels.ts"
+        "src/features/globe/globe-labels.ts",
+        "src/features/globe/sheet-drag.ts",
+        "src/features/globe/country-search-state.ts",
+        "src/features/globe/sheet-exit.ts",
+        "src/features/globe/globe-countries.ts",
+        "src/features/auth/account-menu-loader.ts",
+        "src/features/auth/account-section.ts",
+        "src/features/auth/email-link-sign-in.ts",
+        "src/features/auth/email-link-verification.ts",
+        "src/features/auth/session-cookies.ts",
+        "src/features/auth/scope-utilities.ts",
+        "src/features/countries/country-rows.ts",
+        "src/features/countries/search-by-name.ts",
+        "src/features/stats/continent-pools.ts",
+        "src/features/theme/theme.ts",
+        "src/features/app-shell/navigation.ts",
+        "src/features/app-shell/resume-reload.ts",
+        "src/shared/store.ts"
       ]
     }
   },

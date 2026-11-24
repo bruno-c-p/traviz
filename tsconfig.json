@@ -27,5 +27,5 @@
     "strict": true
   },
   "include": ["src", "scripts", "astro.config.ts", "paths.ts", ".astro/types.d.ts"],
-  "exclude": ["node_modules", "dist", "legacy-react"]
+  "exclude": ["node_modules", "dist"]
 }

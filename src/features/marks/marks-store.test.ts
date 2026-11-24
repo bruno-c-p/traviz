@@ -11,12 +11,7 @@ import {
   type MarkChangeResult,
   type MarksSnapshot,
 } from "@/features/marks/marks-sync";
-import {
-  createBrowserMarksStore,
-  createMarksStore,
-  endMarksSession,
-  marksStore,
-} from "@/features/marks/marks-store";
+import { createBrowserMarksStore, createMarksStore } from "@/features/marks/marks-store";
 
 const OWNER = "user_a";
 const OTHER_OWNER = "user_b";
@@ -573,18 +568,6 @@ describe("ending the session", () => {
 
     expect(store.getState().marks).toEqual({});
     expect(store.getState().ownerId).toBeNull();
-  });
-
-  test("endMarksSession ends the browser store's session", () => {
-    marksStore.getState().startSession(OWNER);
-    marksStore.getState().receiveSnapshot({ ok: true, ownerId: OWNER, marks: { FRA: "want" } });
-
-    expect(marksStore.getState().marks).toEqual({ FRA: "want" });
-
-    endMarksSession();
-
-    expect(marksStore.getState().marks).toEqual({});
-    expect(marksStore.getState().ownerId).toBeNull();
   });
 });
 
