@@ -1,0 +1,15 @@
+---
+type Props = { isActive: boolean };
+
+const { isActive } = Astro.props;
+---
+
+<div data-view="globe" class:list={["absolute inset-0", !isActive && "view-inactive"]}>
+  <div
+    data-globe-host
+    data-placeholder="wave-2a"
+    class="flex h-full w-full items-center justify-center bg-land px-6 text-center text-[15px] text-body"
+  >
+    The globe moves here in the next step of the migration.
+  </div>
+</div>

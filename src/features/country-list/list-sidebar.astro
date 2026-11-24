@@ -1,0 +1,49 @@
+---
+import {
+  barTransform,
+  sidebarItemClass,
+  sidebarLabelClass,
+} from "@/features/country-list/list-classes";
+import { continentOptions } from "@/features/country-list/list-model";
+import { LIST_ROWS } from "@/features/country-list/list-rows-source";
+import { STATE_COLORS } from "@/features/marks";
+import type { MarksSnapshot } from "@/features/marks";
+
+type Props = { marks: Promise<MarksSnapshot | null> };
+
+const snapshot = await Astro.props.marks;
+const options = continentOptions(LIST_ROWS, snapshot?.ok === true ? snapshot.marks : {});
+---
+
+<nav
+  aria-label="Continents"
+  data-list-sidebar
+  class="hidden w-[280px] shrink-0 flex-col gap-1 rounded-3xl bg-canvas p-2.5 shadow-card md:sticky md:top-2 md:order-first md:flex"
+>
+  {
+    options.map((option) => (
+      <button
+        type="button"
+        data-continent={option.continent ?? ""}
+        aria-pressed={option.continent === null ? "true" : "false"}
+        class={sidebarItemClass(option.continent === null)}
+      >
+        <span class="flex items-baseline justify-between gap-3">
+          <span data-label class={sidebarLabelClass(option.continent === null)}>
+            {option.label}
+          </span>
+          <span data-count class="font-mono text-xs tabular-nums text-mute">
+            {`${option.visited} / ${option.total}`}
+          </span>
+        </span>
+        <span class="block h-1.5 overflow-hidden rounded-full bg-land">
+          <span
+            data-bar
+            class="block h-full rounded-full transition-transform duration-300 ease-out"
+            style={`transform:${barTransform(option.visited, option.total)};background-color:${STATE_COLORS.visited}`}
+          />
+        </span>
+      </button>
+    ))
+  }
+</nav>

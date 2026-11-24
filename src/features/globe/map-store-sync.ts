@@ -1,7 +1,7 @@
 import { countryCenter } from "@/features/countries";
 import type { Marks } from "@/features/marks";
-import { useCountriesStore } from "@/features/marks";
-import { useSelectedCountryStore } from "@/features/globe/selected-country";
+import { marksStore } from "@/features/marks";
+import { selectedCountryStore } from "@/features/globe/selected-country";
 
 const FLY_TO_ZOOM = 3;
 
@@ -14,15 +14,15 @@ export interface SyncedMap {
 }
 
 function bindMarksSync(map: SyncedMap) {
-  map.setMarks(useCountriesStore.getState().marks);
+  map.setMarks(marksStore.getState().marks);
 
-  return useCountriesStore.subscribe((state, previousState) => {
+  return marksStore.subscribe((state, previousState) => {
     if (state.marks !== previousState.marks) map.setMarks(state.marks);
   });
 }
 
 function flyToPendingCountry(map: SyncedMap, stopSpin: () => void) {
-  const code = useSelectedCountryStore.getState().takePendingFly();
+  const code = selectedCountryStore.getState().takePendingFly();
   const center = code ? countryCenter(code) : null;
 
   if (center) {
@@ -32,10 +32,10 @@ function flyToPendingCountry(map: SyncedMap, stopSpin: () => void) {
 }
 
 function bindSelectionSync(map: SyncedMap, stopSpin: () => void) {
-  map.setSelectedCode(useSelectedCountryStore.getState().selectedCode);
+  map.setSelectedCode(selectedCountryStore.getState().selectedCode);
   flyToPendingCountry(map, stopSpin);
 
-  return useSelectedCountryStore.subscribe((state, previousState) => {
+  return selectedCountryStore.subscribe((state, previousState) => {
     if (state.selectedCode !== previousState.selectedCode) {
       map.setSelectedCode(state.selectedCode);
 
@@ -50,7 +50,7 @@ export function bindStoreSync(map: SyncedMap, stopSpin: () => void) {
   const unsubscribeMarks = bindMarksSync(map);
   const unsubscribeSelection = bindSelectionSync(map, stopSpin);
 
-  map.onCountryClick((code) => useSelectedCountryStore.getState().select(code));
+  map.onCountryClick((code) => selectedCountryStore.getState().select(code));
 
   return () => {
     unsubscribeMarks();

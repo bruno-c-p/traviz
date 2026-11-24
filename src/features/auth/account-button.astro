@@ -1,0 +1,19 @@
+---
+type Props = { class?: string };
+
+const { class: className } = Astro.props;
+---
+
+<button
+  type="button"
+  data-account-button
+  aria-label="Account and theme"
+  aria-haspopup="dialog"
+  aria-expanded="false"
+  class:list={[
+    "flex size-12 shrink-0 items-center justify-center rounded-full bg-ink-deep text-base font-semibold text-primary shadow-float pressable hover:bg-ink-deep-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
+    className,
+  ]}
+>
+  <span aria-hidden="true" class="icon icon-user size-5"></span>
+</button>

@@ -152,7 +152,7 @@ test("check:gates fails when strict is off or weakened", () => {
   );
   expectFailure(
     "tsconfig.json.include differs from gates.json",
-    edit("tsconfig.json", '"include": [\n    "src",', '"include": ['),
+    edit("tsconfig.json", '"include": ["src",', '"include": ['),
   );
 });
 
@@ -203,7 +203,7 @@ test("check:gates fails on oxlint config that loosens rules from elsewhere", () 
     ".oxlintrc.json.ignorePatterns differs from gates.json",
     edit(
       ".oxlintrc.json",
-      '"ignorePatterns": ["tools/oxlint/anti-slop/**"]',
+      '"ignorePatterns": ["tools/oxlint/anti-slop/**", "legacy-react/**"]',
       '"ignorePatterns": ["src/**"]',
     ),
   );

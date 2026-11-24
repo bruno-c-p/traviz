@@ -1,1 +1,1 @@
-export { CountryList } from "@/features/country-list/country-list";
+export { mountListView } from "@/features/country-list/list-view";

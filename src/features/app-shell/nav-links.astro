@@ -1,0 +1,24 @@
+---
+import { NAVIGATION_ITEMS, navLinkClass } from "@/features/app-shell/navigation";
+import type { NavPlacement, ViewName } from "@/features/app-shell/navigation";
+
+type Props = { view: ViewName; placement: NavPlacement };
+
+const { view, placement } = Astro.props;
+const iconSize = placement === "tab" ? "size-5" : "size-4";
+---
+
+{
+  NAVIGATION_ITEMS.map((item) => (
+    <a
+      href={item.href}
+      data-view-link={item.view}
+      data-nav={placement}
+      aria-current={item.view === view ? "page" : undefined}
+      class={navLinkClass(placement, item.view === view)}
+    >
+      <span aria-hidden="true" class:list={["icon", item.iconClass, iconSize]} />
+      {item.label}
+    </a>
+  ))
+}

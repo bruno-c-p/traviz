@@ -1,0 +1,39 @@
+---
+import NavLinks from "@/features/app-shell/nav-links.astro";
+import type { ViewName } from "@/features/app-shell/navigation";
+import AccountButton from "@/features/auth/account-button.astro";
+import { homePath } from "@/paths";
+import BrandMark from "@/shared/brand-mark.astro";
+
+type Props = { view: ViewName };
+
+const { view } = Astro.props;
+---
+
+<header
+  data-top-bar
+  class:list={[
+    "pointer-events-none fixed inset-x-0 top-0 z-40 hidden grid-cols-[1fr_auto_1fr] items-center gap-4 px-6 py-3.5 md:grid",
+    view !== "globe" && "bg-canvas-soft",
+  ]}
+>
+  <a
+    href={homePath()}
+    data-view-link="globe"
+    aria-label="Traviz home"
+    class="pointer-events-auto flex items-center gap-2.5 justify-self-start rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+  >
+    <BrandMark size={40} class="text-primary" />
+    <span class="hidden text-xl font-bold tracking-tight text-ink lg:inline">Traviz</span>
+  </a>
+  <nav
+    aria-label="Main"
+    class="pointer-events-auto flex gap-1 rounded-full bg-canvas p-1.5 shadow-card"
+  >
+    <NavLinks view={view} placement="top" />
+  </nav>
+  <div class="pointer-events-auto flex items-center gap-2.5 justify-self-end">
+    <div data-top-bar-globe-tools class="contents" hidden={view !== "globe"}></div>
+    <AccountButton />
+  </div>
+</header>

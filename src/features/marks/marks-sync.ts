@@ -92,30 +92,6 @@ export function visibleMarks(state: MarksSyncState): Marks {
   return foldChanges(baseMarks(state.base), state.pending);
 }
 
-export type SeedCover =
-  | { readonly kind: "replaces"; readonly ownerId: string | null }
-  | {
-      readonly kind: "overlays";
-      readonly ownerId: string | null;
-      readonly pending: readonly PendingChange[];
-    };
-
-export function seedCover(state: MarksSyncState): SeedCover {
-  if (state.ended !== null) return { kind: "replaces", ownerId: state.ended.ownerId };
-
-  if (state.base.source === "server") return { kind: "replaces", ownerId: state.ownerId };
-
-  return { kind: "overlays", ownerId: state.ownerId, pending: state.pending };
-}
-
-export function shownMarks(seed: MarksSnapshot | null, cover: SeedCover, stored: Marks): Marks {
-  if (seed === null || !seed.ok) return stored;
-
-  if (cover.ownerId !== null && cover.ownerId !== seed.ownerId) return seed.marks;
-
-  return cover.kind === "replaces" ? stored : foldChanges(seed.marks, cover.pending);
-}
-
 export function changeScope(change: MarkChange): string {
   return change.kind === "reset" ? "all-marks" : change.code;
 }

@@ -1,0 +1,19 @@
+---
+import { MARKS_SNAPSHOT_ID, encodeMarksSnapshot } from "@/features/marks/server";
+import type { MarksSnapshot } from "@/features/marks";
+
+type Props = { marks: Promise<MarksSnapshot | null> };
+
+const snapshot = await Astro.props.marks;
+---
+
+{
+  snapshot !== null && (
+    <script
+      is:inline
+      type="text/plain"
+      id={MARKS_SNAPSHOT_ID}
+      set:html={encodeMarksSnapshot(snapshot)}
+    />
+  )
+}

@@ -1,5 +1,5 @@
-export { ThemePicker } from "@/features/theme/theme-picker";
+export type { Theme, ThemeChoice } from "@/features/theme/theme";
 
-export { ThemeScript } from "@/features/theme/theme-script";
+export { THEME_CHOICES, THEME_LABELS } from "@/features/theme/theme";
 
-export type { Theme } from "@/features/theme/theme";
+export { chooseTheme, shownTheme, subscribeTheme, themeChoice } from "@/features/theme/theme-store";

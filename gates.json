@@ -61,7 +61,6 @@
         "moduleResolution": "bundler",
         "paths": {
           "@/paths": ["./paths.ts"],
-          "@/landing/*": ["./landing/*"],
           "@/*": ["./src/*"]
         },
         "types": ["node", "geojson", "bun"],
@@ -75,30 +74,15 @@
         "skipLibCheck": true,
         "noEmit": true,
         "incremental": true,
-        "jsx": "react-jsx",
         "forceConsistentCasingInFileNames": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "erasableSyntaxOnly": true,
         "noFallthroughCasesInSwitch": true,
-        "plugins": [
-          {
-            "name": "next"
-          }
-        ],
         "strict": true
       },
-      "include": [
-        "src",
-        "scripts",
-        "landing",
-        "next.config.ts",
-        "astro.config.ts",
-        "next-env.d.ts",
-        ".next/types/**/*.ts",
-        ".next/dev/types/**/*.ts"
-      ],
-      "exclude": ["node_modules"]
+      "include": ["src", "scripts", "astro.config.ts", "paths.ts", ".astro/types.d.ts"],
+      "exclude": ["node_modules", "dist", "legacy-react"]
     },
     ".oxlintrc.json": {
       "$schema": "./node_modules/oxlint/configuration_schema.json",
@@ -203,7 +187,7 @@
           }
         }
       ],
-      "ignorePatterns": ["tools/oxlint/anti-slop/**"],
+      "ignorePatterns": ["tools/oxlint/anti-slop/**", "legacy-react/**"],
       "jsPlugins": [
         {
           "name": "anti-slop",
@@ -245,8 +229,7 @@
       "compilerOptions": {
         "lib": ["ES2023"],
         "types": [],
-        "incremental": false,
-        "jsx": "preserve"
+        "incremental": false
       },
       "include": [],
       "files": [
@@ -262,11 +245,11 @@
   },
   "scripts": {
     "lint": "oxlint --type-aware --deny-warnings",
-    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.pure.json",
+    "typecheck": "astro sync && astro check && tsc --noEmit && tsc --noEmit -p tsconfig.pure.json",
     "test": "bun test",
     "test:rules": "node --import ./tools/oxlint/node-test-setup.ts --test 'tools/oxlint/**/*.test.ts'",
     "format": "oxfmt .",
-    "build": "astro build && next build",
+    "build": "astro build",
     "fallow": "fallow",
     "react-doctor": "react-doctor",
     "check:gates": "bun scripts/check-gates.ts",

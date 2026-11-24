@@ -1,8 +1,19 @@
 import { describe, expect, test } from "bun:test";
-import type { Route } from "next";
-import { homePath, listPath, signInPath, signInVerifyPath, statsPath, welcomePath } from "@/paths";
-import type { RouteAccess } from "@/paths";
+import {
+  applyMarkChangePath,
+  homePath,
+  listFragmentPath,
+  listPath,
+  notFoundPath,
+  readMarksPath,
+  signInPath,
+  signInVerifyPath,
+  statsPath,
+  welcomePath,
+} from "@/paths";
+import type { Route, RouteAccess } from "@/paths";
 import { decideGate, gateRequest, redirectFor, routeAccess } from "@/shared/route-gate";
+import type { GateAuth } from "@/shared/route-gate";
 
 describe("routeAccess", () => {
   const cases: { pathname: string; access: RouteAccess }[] = [
@@ -12,6 +23,10 @@ describe("routeAccess", () => {
     { pathname: signInPath(), access: "signedOut" },
     { pathname: welcomePath(), access: "signedOut" },
     { pathname: signInVerifyPath(), access: "anyone" },
+    { pathname: listFragmentPath(), access: "signedIn" },
+    { pathname: applyMarkChangePath(), access: "anyone" },
+    { pathname: readMarksPath(), access: "anyone" },
+    { pathname: notFoundPath(), access: "anyone" },
     { pathname: "/unknown", access: "signedIn" },
     { pathname: "/sign-in/unknown", access: "signedIn" },
   ];
@@ -62,36 +77,130 @@ describe("redirectFor", () => {
 });
 
 describe("gateRequest", () => {
-  const signedOut = () => Promise.resolve(false);
+  const origin = "https://traviz.test";
 
-  test("a Server Action POST to a signed-in route passes without reading the session", async () => {
-    let sessionReads = 0;
+  const answers =
+    (userId: string | null, headers: Headers = new Headers()) =>
+    (): Promise<GateAuth> =>
+      Promise.resolve({ kind: "resolved", userId, headers });
 
-    const redirect = await gateRequest(
-      { method: "POST", hasActionHeader: true, pathname: listPath() },
-      () => {
-        sessionReads += 1;
+  const page = (userId: string | null) =>
+    Promise.resolve(new Response(`page for ${userId ?? "nobody"}`, { status: 200 }));
 
-        return Promise.resolve(false);
-      },
-    );
+  const neverRendered = () => Promise.reject(new Error("The gate rendered a page."));
 
-    expect(redirect).toBeUndefined();
-    expect(sessionReads).toBe(0);
-  });
-
-  const redirectCases: { method: string; hasActionHeader: boolean }[] = [
-    { method: "GET", hasActionHeader: false },
-    { method: "POST", hasActionHeader: false },
-    { method: "GET", hasActionHeader: true },
+  const signedOutCases: { pathname: string; location: Route }[] = [
+    { pathname: homePath(), location: welcomePath() },
+    { pathname: listPath(), location: signInPath() },
+    { pathname: statsPath(), location: signInPath() },
+    { pathname: listFragmentPath(), location: signInPath() },
+    { pathname: "/unknown", location: signInPath() },
   ];
 
-  test.each(redirectCases)(
-    "a signed-out $method with hasActionHeader=$hasActionHeader goes to sign-in",
-    async ({ method, hasActionHeader }) => {
-      expect(await gateRequest({ method, hasActionHeader, pathname: listPath() }, signedOut)).toBe(
-        signInPath(),
+  test.each(signedOutCases)(
+    "a signed-out request to $pathname is sent to $location",
+    async ({ pathname, location }) => {
+      const response = await gateRequest(
+        new Request(`${origin}${pathname}`),
+        answers(null),
+        neverRendered,
       );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get("location")).toBe(location);
     },
   );
+
+  test.each([welcomePath(), signInPath(), signInVerifyPath(), applyMarkChangePath()])(
+    "a signed-out request to %s is rendered with no user",
+    async (pathname) => {
+      const response = await gateRequest(new Request(`${origin}${pathname}`), answers(null), page);
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe("page for nobody");
+    },
+  );
+
+  test.each([homePath(), listPath(), statsPath(), signInVerifyPath(), readMarksPath()])(
+    "a signed-in request to %s is rendered for its user",
+    async (pathname) => {
+      const response = await gateRequest(
+        new Request(`${origin}${pathname}`),
+        answers("user_a"),
+        page,
+      );
+
+      expect(await response.text()).toBe("page for user_a");
+    },
+  );
+
+  test.each([welcomePath(), signInPath()])(
+    "a signed-in request to %s is sent home",
+    async (pathname) => {
+      const response = await gateRequest(
+        new Request(`${origin}${pathname}`),
+        answers("user_a"),
+        neverRendered,
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get("location")).toBe(homePath());
+    },
+  );
+
+  test("the query string does not change the route that is gated", async () => {
+    const response = await gateRequest(
+      new Request(`${origin}${listPath()}?continent=Europe`),
+      answers(null),
+      neverRendered,
+    );
+
+    expect(response.headers.get("location")).toBe(signInPath());
+  });
+
+  test("a redirect the session asks for is answered before any page renders, with its cookies", async () => {
+    const headers = new Headers();
+
+    headers.append("set-cookie", "__clerk_db_jwt=one; Path=/");
+    headers.append("set-cookie", "__client_uat=0; Path=/");
+
+    const response = await gateRequest(
+      new Request(`${origin}${listPath()}`),
+      () =>
+        Promise.resolve({
+          kind: "redirect",
+          location: "https://clerk.example/v1/client/handshake",
+          headers,
+        }),
+      neverRendered,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://clerk.example/v1/client/handshake");
+    expect(response.headers.getSetCookie()).toEqual([
+      "__clerk_db_jwt=one; Path=/",
+      "__client_uat=0; Path=/",
+    ]);
+  });
+
+  test("the session's headers ride on the rendered page and on a gate redirect", async () => {
+    const headers = new Headers({ "set-cookie": "__session=fresh; Path=/" });
+
+    const rendered = await gateRequest(
+      new Request(`${origin}${listPath()}`),
+      answers("user_a", headers),
+      page,
+    );
+
+    const redirected = await gateRequest(
+      new Request(`${origin}${listPath()}`),
+      answers(null, headers),
+      neverRendered,
+    );
+
+    expect(rendered.status).toBe(200);
+    expect(rendered.headers.getSetCookie()).toEqual(["__session=fresh; Path=/"]);
+    expect(await rendered.text()).toBe("page for user_a");
+    expect(redirected.headers.getSetCookie()).toEqual(["__session=fresh; Path=/"]);
+  });
 });

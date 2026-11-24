@@ -6,7 +6,6 @@
     "moduleResolution": "bundler",
     "paths": {
       "@/paths": ["./paths.ts"],
-      "@/landing/*": ["./landing/*"],
       "@/*": ["./src/*"]
     },
     "types": ["node", "geojson", "bun"],
@@ -20,28 +19,13 @@
     "skipLibCheck": true,
     "noEmit": true,
     "incremental": true,
-    "jsx": "react-jsx",
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
     "strict": true
   },
-  "include": [
-    "src",
-    "scripts",
-    "landing",
-    "next.config.ts",
-    "astro.config.ts",
-    "next-env.d.ts",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": ["node_modules"]
+  "include": ["src", "scripts", "astro.config.ts", "paths.ts", ".astro/types.d.ts"],
+  "exclude": ["node_modules", "dist", "legacy-react"]
 }

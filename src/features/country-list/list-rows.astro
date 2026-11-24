@@ -1,0 +1,54 @@
+---
+import CountryRow from "@/features/country-list/country-row.astro";
+import { ROW_HEIGHT, SERVER_ROW_COUNT } from "@/features/country-list/list-classes";
+import { continentsOf, encodeListRows } from "@/features/country-list/list-model";
+import { LIST_ROWS } from "@/features/country-list/list-rows-source";
+import type { MarksSnapshot } from "@/features/marks";
+
+type Props = { marks: Promise<MarksSnapshot | null> };
+
+const snapshot = await Astro.props.marks;
+const marks = snapshot?.ok === true ? snapshot.marks : {};
+const serverRows = LIST_ROWS.slice(0, SERVER_ROW_COUNT);
+
+const sections = continentsOf(LIST_ROWS).map((continent) => {
+  const total = LIST_ROWS.filter((row) => row.continent === continent).length;
+  const rows = serverRows.filter((row) => row.continent === continent);
+
+  return { continent, total, rows, deferredCount: total - rows.length };
+});
+---
+
+<div data-list-card class="overflow-clip rounded-3xl bg-canvas shadow-card">
+  {
+    sections.map((section) => (
+      <div data-list-section={section.continent}>
+        <div
+          class="sticky top-0 z-10 flex items-center gap-2 bg-canvas-soft/95 px-5 font-mono text-xs uppercase tracking-wider text-mute"
+          style="height:40px"
+        >
+          <span class="text-ink">{section.continent}</span>
+          <span data-count>{section.total}</span>
+        </div>
+        {section.rows.map((row) => (
+          <CountryRow
+            code={row.code}
+            name={row.name}
+            isTerritory={row.isTerritory}
+            state={marks[row.code]}
+            isDeferred={false}
+          />
+        ))}
+        {section.deferredCount > 0 && (
+          <div data-row-spacer style={`height:${section.deferredCount * ROW_HEIGHT}px`} />
+        )}
+      </div>
+    ))
+  }
+  <div data-list-results></div>
+  <p data-list-empty hidden class="px-6 py-12 text-center text-[15px] text-body"></p>
+</div>
+<template data-row-template>
+  <CountryRow code="" name="" isTerritory={true} state={undefined} isDeferred={true} />
+</template>
+<script is:inline type="text/plain" data-list-rows set:html={encodeListRows(LIST_ROWS)} />

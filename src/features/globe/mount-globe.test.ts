@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { countryCenter } from "@/features/countries";
-import { useCountriesStore } from "@/features/marks";
+import { marksStore } from "@/features/marks";
 import {
   createCameraHandoff,
   resetGlobeOnAccountChange,
   startGlobe,
 } from "@/features/globe/mount-globe";
 import type { GlobeCamera } from "@/features/globe/mount-globe";
-import { useSelectedCountryStore } from "@/features/globe/selected-country";
+import { selectedCountryStore } from "@/features/globe/selected-country";
 
 function createFakeMap() {
   const interactionListeners: Array<() => void> = [];
@@ -95,15 +95,15 @@ function mountFakeGlobe({ isSpinning = true }: { isSpinning?: boolean } = {}) {
 }
 
 function changeMarksAndSelection() {
-  useCountriesStore.setState({ marks: { FRA: "visited" } });
-  useSelectedCountryStore.getState().select("JPN");
-  useSelectedCountryStore.getState().selectAndFly("BRA");
+  marksStore.setState({ marks: { FRA: "visited" } });
+  selectedCountryStore.getState().select("JPN");
+  selectedCountryStore.getState().selectAndFly("BRA");
 }
 
 describe("globe lifecycle", () => {
   beforeEach(() => {
-    useCountriesStore.setState({ marks: {} });
-    useSelectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
+    marksStore.setState({ marks: {} });
+    selectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
   });
 
   test("spins once started and leaves no frame running after unmount", () => {
@@ -124,19 +124,19 @@ describe("globe lifecycle", () => {
   });
 
   test("a search made before any globe mounts flies there once the next globe starts", () => {
-    useSelectedCountryStore.getState().selectAndFly("JPN");
+    selectedCountryStore.getState().selectAndFly("JPN");
 
     const globe = mountFakeGlobe();
     globe.unmount();
 
     expect(globe.map.flights).toEqual([countryCenter("JPN")]);
-    expect(useSelectedCountryStore.getState().pendingFlyCode).toBeNull();
+    expect(selectedCountryStore.getState().pendingFlyCode).toBeNull();
   });
 
   test("store changes after unmount reach no map method", () => {
     const globe = mountFakeGlobe();
 
-    useCountriesStore.setState({ marks: { DEU: "want" } });
+    marksStore.setState({ marks: { DEU: "want" } });
 
     expect(globe.map.calls).toContain("setMarks");
 
@@ -235,8 +235,8 @@ describe("camera handoff", () => {
 
     afterEach(() => {
       unbind();
-      useCountriesStore.setState({ ownerId: null, marks: {} });
-      useSelectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
+      marksStore.setState({ ownerId: null, marks: {} });
+      selectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
     });
 
     function bindHandoff() {
@@ -251,7 +251,7 @@ describe("camera handoff", () => {
       globe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
       globe.map.interact();
       globe.unmount();
-      useSelectedCountryStore.getState().selectAndFly("JPN");
+      selectedCountryStore.getState().selectAndFly("JPN");
     }
 
     function nextCamera(handoff: ReturnType<typeof createCameraHandoff>) {
@@ -265,9 +265,9 @@ describe("camera handoff", () => {
       const handoff = bindHandoff();
       leaveGlobeMovedAndSelected(handoff);
 
-      useCountriesStore.setState({ ownerId: "user_a" });
+      marksStore.setState({ ownerId: "user_a" });
 
-      expect(useSelectedCountryStore.getState()).toMatchObject({
+      expect(selectedCountryStore.getState()).toMatchObject({
         selectedCode: "JPN",
         pendingFlyCode: "JPN",
       });
@@ -276,12 +276,12 @@ describe("camera handoff", () => {
 
     test("a marks change for the same account keeps the selected country and the camera", () => {
       const handoff = bindHandoff();
-      useCountriesStore.setState({ ownerId: "user_a" });
+      marksStore.setState({ ownerId: "user_a" });
       leaveGlobeMovedAndSelected(handoff);
 
-      useCountriesStore.setState({ marks: { JPN: "visited" } });
+      marksStore.setState({ marks: { JPN: "visited" } });
 
-      expect(useSelectedCountryStore.getState().selectedCode).toBe("JPN");
+      expect(selectedCountryStore.getState().selectedCode).toBe("JPN");
       expect(nextCamera(handoff)).toEqual(MOVED_CAMERA);
     });
 
@@ -291,12 +291,12 @@ describe("camera handoff", () => {
     ] as const) {
       test(`${change} clears the selected country and starts the next globe from the default camera`, () => {
         const handoff = bindHandoff();
-        useCountriesStore.setState({ ownerId: "user_a" });
+        marksStore.setState({ ownerId: "user_a" });
         leaveGlobeMovedAndSelected(handoff);
 
-        useCountriesStore.setState({ ownerId: nextOwnerId });
+        marksStore.setState({ ownerId: nextOwnerId });
 
-        expect(useSelectedCountryStore.getState()).toMatchObject({
+        expect(selectedCountryStore.getState()).toMatchObject({
           selectedCode: null,
           pendingFlyCode: null,
         });
@@ -314,10 +314,10 @@ describe("camera handoff", () => {
 
     test("an account change while a globe is mounted starts the next globe from the default camera", () => {
       const handoff = bindHandoff();
-      useCountriesStore.setState({ ownerId: "user_a" });
+      marksStore.setState({ ownerId: "user_a" });
       const globe = moveMountedGlobe(handoff);
 
-      useCountriesStore.setState({ ownerId: "user_b" });
+      marksStore.setState({ ownerId: "user_b" });
       globe.unmount();
 
       expect(nextCamera(handoff)).toEqual(DEFAULT_CAMERA);
@@ -325,10 +325,10 @@ describe("camera handoff", () => {
 
     test("a mounted globe with no account change hands its camera to the next globe", () => {
       const handoff = bindHandoff();
-      useCountriesStore.setState({ ownerId: "user_a" });
+      marksStore.setState({ ownerId: "user_a" });
       const globe = moveMountedGlobe(handoff);
 
-      useCountriesStore.setState({ marks: { JPN: "visited" } });
+      marksStore.setState({ marks: { JPN: "visited" } });
       globe.unmount();
 
       expect(nextCamera(handoff)).toEqual(MOVED_CAMERA);
@@ -336,8 +336,8 @@ describe("camera handoff", () => {
 
     test("a globe mounted after an account change hands its camera to the next globe", () => {
       const handoff = bindHandoff();
-      useCountriesStore.setState({ ownerId: "user_a" });
-      useCountriesStore.setState({ ownerId: "user_b" });
+      marksStore.setState({ ownerId: "user_a" });
+      marksStore.setState({ ownerId: "user_b" });
 
       moveMountedGlobe(handoff).unmount();
 

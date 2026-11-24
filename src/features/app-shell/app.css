@@ -1,0 +1,10 @@
+@import "tailwindcss" source(none);
+@import "../../shared/styles/theme.css";
+@import "../../shared/styles/fonts.css";
+@import "../../shared/styles/icons.css";
+
+@source "../";
+@source not "../landing";
+@source "../../pages";
+@source not "../../pages/welcome.astro";
+@source not "../../pages/404.astro";

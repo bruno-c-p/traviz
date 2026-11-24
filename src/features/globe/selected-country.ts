@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { createStore } from "@/shared/store";
 
 interface SelectedCountryState {
   selectedCode: string | null;
@@ -9,7 +9,7 @@ interface SelectedCountryState {
   clearSelection: () => void;
 }
 
-export const useSelectedCountryStore = create<SelectedCountryState>()((set, get) => ({
+export const selectedCountryStore = createStore<SelectedCountryState>((set, get) => ({
   selectedCode: null,
   pendingFlyCode: null,
 

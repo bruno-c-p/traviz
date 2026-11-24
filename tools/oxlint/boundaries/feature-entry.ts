@@ -6,13 +6,14 @@ import type { ModuleSourceNode } from "./project-path.ts";
 
 const featureImportPattern = /^@\/features\/([^/]+)(?:\/(.*))?$/;
 const featureFilePattern = /^src\/features\/([^/]+)\/./;
-const entrySubpathPattern = /^(?:core|server|actions\/[^/.]+)$/;
+const entrySubpathPattern = /^(?:core|server|[^/]+\.(?:astro|css))$/;
 
 const allowedSourceLocations = [
-  /^src\/app\//,
+  /^src\/pages\//,
   featureFilePattern,
   /^src\/shared\//,
-  /^src\/proxy\.ts$/,
+  /^src\/middleware\.ts$/,
+  /^src\/env\.d\.ts$/,
 ];
 
 function isAllowedLocation(path: string): boolean {
@@ -24,13 +25,13 @@ export const featureEntryRule = defineRule({
     type: "problem",
     docs: {
       description:
-        "Keep src to app, features, shared and proxy.ts, and import a feature only through its entry.",
+        "Keep src to pages, features, shared, middleware.ts and env.d.ts, and import a feature only through its entry.",
     },
     messages: {
       strayFile:
-        "{{path}} sits outside src/app, src/features/<name>, src/shared and src/proxy.ts. Move it into the feature that owns it, or into src/shared.",
+        "{{path}} sits outside src/pages, src/features/<name>, src/shared, src/middleware.ts and src/env.d.ts. Move it into the feature that owns it, or into src/shared.",
       deepImport:
-        'Import {{feature}} through "@/features/{{feature}}", "@/features/{{feature}}/core", "@/features/{{feature}}/server" or "@/features/{{feature}}/actions/<verb>", not "{{source}}".',
+        'Import {{feature}} through "@/features/{{feature}}", "@/features/{{feature}}/core", "@/features/{{feature}}/server" or one of its .astro or .css files, not "{{source}}".',
       sharedImportsFeature:
         'src/shared imports no feature. Move the code that needs "{{source}}" into a feature.',
     },

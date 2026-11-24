@@ -4,8 +4,8 @@ import type { FrameScheduler, SpinnableMap } from "@/features/globe/map-spin";
 import { bindStoreSync } from "@/features/globe/map-store-sync";
 import type { SyncedMap } from "@/features/globe/map-store-sync";
 import type { CountryTopology } from "@/features/globe/globe-scene";
-import { useCountriesStore } from "@/features/marks";
-import { useSelectedCountryStore } from "@/features/globe/selected-country";
+import { marksStore } from "@/features/marks";
+import { selectedCountryStore } from "@/features/globe/selected-country";
 
 type GlobeMap = SpinnableMap & SyncedMap & { remove: () => void };
 
@@ -77,10 +77,10 @@ export function createCameraHandoff() {
 }
 
 export function resetGlobeOnAccountChange(handoff: { reset: () => void }) {
-  return useCountriesStore.subscribe((state, previousState) => {
+  return marksStore.subscribe((state, previousState) => {
     if (previousState.ownerId === null || state.ownerId === previousState.ownerId) return;
 
-    useSelectedCountryStore.getState().clearSelection();
+    selectedCountryStore.getState().clearSelection();
     handoff.reset();
   });
 }

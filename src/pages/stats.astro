@@ -1,0 +1,11 @@
+---
+import AppLayout from "@/features/app-shell/app-layout.astro";
+import { loadUserMarks } from "@/features/marks/server";
+import StatsView from "@/features/stats/stats-view.astro";
+
+const marks = loadUserMarks(Astro.locals.userId);
+---
+
+<AppLayout view="stats" marks={marks}>
+  <StatsView marks={marks} isActive={true} />
+</AppLayout>

@@ -1,0 +1,9 @@
+---
+import GlobeView from "@/features/globe/globe-view.astro";
+
+export const partial = true;
+
+Astro.response.headers.set("cache-control", "no-store");
+---
+
+<GlobeView isActive={false} />

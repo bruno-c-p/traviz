@@ -1,9 +1,22 @@
 import "server-only";
-import { cache } from "react";
-import { auth } from "@clerk/nextjs/server";
+import { authenticateWith, fixedUserSession } from "@/features/auth/authenticate";
+import type { Authenticate } from "@/features/auth/authenticate";
+import { readClerkSession } from "@/features/auth/clerk-session-reader";
+import { env } from "@/shared/server/env";
 
-export const getUserId = cache(async () => {
-  const { userId } = await auth();
+export type { Authenticate, RequestAuth } from "@/features/auth/authenticate";
 
-  return userId;
-});
+let authenticate: Authenticate | undefined;
+
+export function authenticateRequest(request: Request) {
+  authenticate ??= authenticateWith(
+    env.TRAVIZ_FIXED_USER_ID === undefined
+      ? readClerkSession({
+          secretKey: env.CLERK_SECRET_KEY,
+          publishableKey: env.PUBLIC_CLERK_PUBLISHABLE_KEY,
+        })
+      : fixedUserSession(env.TRAVIZ_FIXED_USER_ID),
+  );
+
+  return authenticate(request);
+}

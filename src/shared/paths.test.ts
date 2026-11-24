@@ -1,48 +1,37 @@
 import { describe, expect, test } from "bun:test";
 import { Glob } from "bun";
 import { join } from "node:path";
-import { ROUTES, welcomePath } from "@/paths";
+import { ROUTES, notFoundPath, welcomePath } from "@/paths";
 
-const appDirectory = join(import.meta.dir, "..", "app");
+const pagesDirectory = join(import.meta.dir, "..", "pages");
 
-const routeFiles = (): string[] =>
-  [...new Glob("**/{page,route}.{ts,tsx,js,jsx}").scanSync(appDirectory)].filter(
+const pageFiles = (): string[] =>
+  [...new Glob("**/*.{astro,ts,js,md,mdx,html}").scanSync(pagesDirectory)].filter(
     (file) => !file.split("/").some((segment) => segment.startsWith("_")),
   );
 
-const landingDirectory = join(import.meta.dir, "..", "..", "landing", "pages");
-
-const landingPagePaths = (): string[] =>
-  [...new Glob("**/*.astro").scanSync(landingDirectory)].map((file) => {
-    const segments = file
-      .replace(/\.astro$/, "")
-      .split("/")
-      .filter((segment) => segment !== "index");
-
-    return [welcomePath(), ...segments].join("/");
-  });
-
 const routePathOf = (file: string): string => {
   const segments = file
+    .replace(/\.[^.]+$/, "")
     .split("/")
-    .slice(0, -1)
-    .filter((segment) => !segment.startsWith("("));
+    .filter((segment) => segment !== "index");
 
   return `/${segments.join("/")}`;
 };
 
 describe("ROUTES", () => {
-  test("has no dynamic, catch-all or parallel route that exact matching cannot gate", () => {
-    expect(routeFiles().filter((file) => /\[|@|\(\./.test(file))).toEqual([]);
+  test("has no dynamic or rest route that exact matching cannot gate", () => {
+    expect(pageFiles().filter((file) => file.includes("["))).toEqual([]);
   });
 
-  test("has exactly one row for every page and route handler under src/app and every landing page", () => {
+  test("has exactly one row for every page and endpoint under src/pages", () => {
     expect(ROUTES.map((route): string => route.path).sort()).toEqual(
-      [...routeFiles().map(routePathOf), ...landingPagePaths()].sort(),
+      pageFiles().map(routePathOf).sort(),
     );
   });
 
-  test("serves the landing page that Astro builds at the welcome path", () => {
-    expect(landingPagePaths()).toEqual([welcomePath()]);
+  test("serves the landing page at the welcome path and the not-found page at /404", () => {
+    expect(pageFiles().map(routePathOf)).toContain(welcomePath());
+    expect(pageFiles().map(routePathOf)).toContain(notFoundPath());
   });
 });

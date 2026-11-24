@@ -1,4 +1,3 @@
-import "client-only";
 import { parseThemeChoice, resolveTheme, THEME_STORAGE_KEY } from "@/features/theme/theme";
 import type { Theme, ThemeChoice } from "@/features/theme/theme";
 

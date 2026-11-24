@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { countries, searchCountries } from "@/features/countries";
 import type { Marks } from "@/features/marks";
-import { useCountriesStore } from "@/features/marks";
+import { marksStore } from "@/features/marks";
 import { createGlobeSpin } from "@/features/globe/map-spin";
 import type { SpinnableMap } from "@/features/globe/map-spin";
 import { bindStoreSync } from "@/features/globe/map-store-sync";
 import type { SyncedMap } from "@/features/globe/map-store-sync";
-import { useSelectedCountryStore } from "@/features/globe/selected-country";
+import { selectedCountryStore } from "@/features/globe/selected-country";
 
 function recordingMap() {
   const flights: [number, number][] = [];
@@ -93,25 +93,25 @@ function searchAndChoose(query: string, code: string) {
 
   if (!match) throw new Error(`Searching "${query}" did not find ${code}`);
 
-  useSelectedCountryStore.getState().selectAndFly(match.code);
+  selectedCountryStore.getState().selectAndFly(match.code);
 }
 
 beforeEach(() => {
-  useCountriesStore.setState({ marks: {} });
-  useSelectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
+  marksStore.setState({ marks: {} });
+  selectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
 });
 
 describe("globe colours and outline", () => {
   test("paints the current marks when it binds and again when they change", () => {
     const { map, paintedMarks } = recordingMap();
 
-    useCountriesStore.setState({ marks: { FRA: "visited" } });
+    marksStore.setState({ marks: { FRA: "visited" } });
 
     const unbind = bindStoreSync(map, () => undefined);
 
-    useCountriesStore.setState({ marks: { FRA: "visited", JPN: "want" } });
+    marksStore.setState({ marks: { FRA: "visited", JPN: "want" } });
     unbind();
-    useCountriesStore.setState({ marks: {} });
+    marksStore.setState({ marks: {} });
 
     expect(paintedMarks).toEqual([{ FRA: "visited" }, { FRA: "visited", JPN: "want" }]);
   });
@@ -120,8 +120,8 @@ describe("globe colours and outline", () => {
     const { map, outlinedCodes } = recordingMap();
     const unbind = bindStoreSync(map, () => undefined);
 
-    useSelectedCountryStore.getState().select("BEL");
-    useSelectedCountryStore.getState().clearSelection();
+    selectedCountryStore.getState().select("BEL");
+    selectedCountryStore.getState().clearSelection();
     unbind();
 
     expect(outlinedCodes).toEqual([null, "BEL", null]);
@@ -134,7 +134,7 @@ describe("globe colours and outline", () => {
     clickCountry("UNK");
     unbind();
 
-    expect(useSelectedCountryStore.getState()).toMatchObject({
+    expect(selectedCountryStore.getState()).toMatchObject({
       selectedCode: "UNK",
       pendingFlyCode: null,
     });
@@ -202,7 +202,7 @@ describe("globe search fly-to", () => {
     const { map, flights } = recordingMap();
 
     searchAndChoose("japan", "JPN");
-    useSelectedCountryStore.getState().clearSelection();
+    selectedCountryStore.getState().clearSelection();
     bindStoreSync(map, () => undefined)();
 
     expect(flights).toEqual([]);

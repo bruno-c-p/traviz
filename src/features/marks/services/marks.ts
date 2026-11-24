@@ -47,7 +47,7 @@ export async function loadMarksSnapshot(
   }
 }
 
-type OwnMarksReader = MarksReader & {
+export type OwnMarksReader = MarksReader & {
   readonly getUserId: () => Promise<string | null>;
 };
 

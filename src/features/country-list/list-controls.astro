@@ -1,0 +1,54 @@
+---
+import { chipClass, countClass, filterClass } from "@/features/country-list/list-classes";
+import { LIST_FILTERS, continentOptions, stateCounts } from "@/features/country-list/list-model";
+import { LIST_ROWS } from "@/features/country-list/list-rows-source";
+import { STATE_COLORS } from "@/features/marks";
+import type { MarksSnapshot } from "@/features/marks";
+
+type Props = { marks: Promise<MarksSnapshot | null> };
+
+const snapshot = await Astro.props.marks;
+const marks = snapshot?.ok === true ? snapshot.marks : {};
+const options = continentOptions(LIST_ROWS, marks);
+const counts = stateCounts(LIST_ROWS, marks, null);
+---
+
+<div
+  role="group"
+  aria-label="Continent"
+  data-list-chips
+  class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden"
+>
+  {
+    options.map((option) => (
+      <button
+        type="button"
+        data-continent={option.continent ?? ""}
+        aria-pressed={option.continent === null ? "true" : "false"}
+        class={chipClass(option.continent === null)}
+      >
+        {option.label}
+        <span data-count class={countClass(option.continent === null)}>
+          {`${option.visited}/${option.total}`}
+        </span>
+      </button>
+    ))
+  }
+</div>
+<div role="group" aria-label="Filter by status" data-list-filters class="flex flex-wrap gap-2">
+  {
+    LIST_FILTERS.map((filter) => (
+      <button type="button" data-filter={filter.value} aria-pressed="false" class={filterClass(false)}>
+        <span
+          aria-hidden="true"
+          class="size-2.5 rounded-full ring-1 ring-ink/15"
+          style={`background-color:${STATE_COLORS[filter.value]}`}
+        />
+        {filter.label}
+        <span data-count class={countClass(false)}>
+          {counts[filter.value]}
+        </span>
+      </button>
+    ))
+  }
+</div>
