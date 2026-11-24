@@ -20,6 +20,8 @@ export type { MarksSnapshot, SyncProblem } from "@/features/marks/marks-sync";
 
 export { markStatusText } from "@/features/marks/mark-status";
 
+export { mountMarkControls } from "@/features/marks/mark-controls";
+
 export { MARKS_SNAPSHOT_ID, startMarksSession } from "@/features/marks/start-marks-session";
 
 export { replayEarlyTaps, takeEarlyTaps } from "@/features/marks/early-taps";

@@ -1,0 +1,21 @@
+---
+import Icon from "@/shared/icons/icon.astro";
+---
+
+<section
+  data-globe-hint
+  aria-label="How to mark countries"
+  class="flex items-start gap-4 rounded-3xl bg-canvas p-5 shadow-card"
+>
+  <span
+    class="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary"
+  >
+    <Icon name="cursor-arrow" size="size-5" />
+  </span>
+  <span class="flex flex-col gap-1">
+    <span class="text-lg font-bold tracking-tight text-ink">Pick a country</span>
+    <span class="text-[15px] leading-relaxed text-body">
+      Click any country on the globe, or search for one above, to mark it.
+    </span>
+  </span>
+</section>

@@ -1,0 +1,34 @@
+---
+import Icon from "@/shared/icons/icon.astro";
+
+type Props = { listboxId: string; class?: string };
+
+const { listboxId, class: className } = Astro.props;
+---
+
+<div data-country-search class:list={["relative", className]}>
+  <Icon
+    name="magnifying-glass"
+    size="size-[18px]"
+    class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-mute"
+  />
+  <input
+    type="text"
+    role="combobox"
+    aria-label="Find a country"
+    aria-expanded="false"
+    aria-controls={listboxId}
+    aria-autocomplete="list"
+    placeholder="Find a country"
+    autocomplete="off"
+    class="h-12 w-full rounded-full border border-line bg-canvas pl-11 pr-4 text-[15px] text-ink shadow-float placeholder:text-mute focus:border-ink focus:outline-none focus:ring-2 focus:ring-primary"
+  />
+  <ul
+    id={listboxId}
+    role="listbox"
+    aria-label="Countries"
+    hidden
+    class="absolute inset-x-0 top-full z-50 mt-2 flex flex-col gap-0.5 rounded-2xl bg-canvas p-1.5 shadow-card"
+  >
+  </ul>
+</div>

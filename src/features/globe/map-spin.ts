@@ -39,19 +39,26 @@ export function createGlobeSpin(map: SpinnableMap, { startsStopped, frames }: Gl
     spinFrameId = frames.requestAnimationFrame(spinFrame);
   }
 
+  function pause() {
+    if (spinFrameId !== null) frames.cancelAnimationFrame(spinFrameId);
+
+    spinFrameId = null;
+    lastFrameTime = null;
+  }
+
   function stop() {
     if (stopped) return;
     stopped = true;
+    pause();
+  }
 
-    if (spinFrameId !== null) {
-      frames.cancelAnimationFrame(spinFrameId);
-      spinFrameId = null;
-    }
+  function allowSpin() {
+    stopped = false;
   }
 
   function stopOnUserInteraction() {
     map.onUserInteraction(stop);
   }
 
-  return { start, stop, stopOnUserInteraction, isStopped: () => stopped };
+  return { start, stop, pause, allowSpin, stopOnUserInteraction, isStopped: () => stopped };
 }

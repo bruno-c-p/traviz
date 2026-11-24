@@ -40,3 +40,15 @@
 @utility icon-circle-backslash {
   --icon: url("./circle-backslash.svg");
 }
+
+@utility icon-plus {
+  --icon: url("./plus.svg");
+}
+
+@utility icon-minus {
+  --icon: url("./minus.svg");
+}
+
+@utility icon-cursor-arrow {
+  --icon: url("./cursor-arrow.svg");
+}

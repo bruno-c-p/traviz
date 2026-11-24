@@ -11,6 +11,7 @@ import {
   takeEarlyTaps,
 } from "@/features/marks";
 import { mountStatsView } from "@/features/stats";
+import { subscribeTheme } from "@/features/theme";
 
 const INSTALLED_QUERY = "(display-mode: standalone)";
 
@@ -35,7 +36,7 @@ export function startApp() {
   replayEarlyTaps(marksStore.getState(), takeEarlyTaps(window));
 
   startViewRouter({
-    globe: (host) => mountGlobeView(host),
+    globe: (host) => mountGlobeView(host, { marks: marksStore, subscribeTheme }),
     list: (host) => mountListView(host, marksStore),
     stats: (host) => mountStatsView(host, marksStore),
   });

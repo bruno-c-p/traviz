@@ -7,5 +7,5 @@ const marks = loadUserMarks(Astro.locals.userId);
 ---
 
 <AppLayout view="globe" marks={marks}>
-  <GlobeView slot="globe" isActive={true} />
+  <GlobeView slot="globe" marks={marks} isActive={true} />
 </AppLayout>

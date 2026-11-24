@@ -30,7 +30,12 @@ const INERTIA_DECELERATION = 2500;
 const INERTIA_MAX_SPEED = 1400;
 const LINE_DELTA_PIXELS = 40;
 
-type GlobeOptions = { camera: Camera; prefersReducedMotion: boolean; isInteractive?: boolean };
+type GlobeOptions = {
+  camera: Camera;
+  prefersReducedMotion: boolean;
+  isInteractive?: boolean;
+  watchTheme?: (listener: () => void) => () => void;
+};
 
 type Animation = { durationMs: number; startTime: number | null; step: (progress: number) => void };
 
@@ -47,7 +52,12 @@ function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
 export function createGlobe(
   container: HTMLElement,
   topology: CountryTopology,
-  { camera: initialCamera, prefersReducedMotion, isInteractive = true }: GlobeOptions,
+  {
+    camera: initialCamera,
+    prefersReducedMotion,
+    isInteractive = true,
+    watchTheme = subscribeTheme,
+  }: GlobeOptions,
 ) {
   const scene = buildScene(topology);
   const markers = buildMarkers(scene);
@@ -377,7 +387,7 @@ export function createGlobe(
     { signal: listeners.signal },
   );
 
-  const unsubscribeTheme = subscribeTheme(() => {
+  const unsubscribeTheme = watchTheme(() => {
     palette = GLOBE_PALETTES[shownTheme()];
     scheduleDraw();
   });

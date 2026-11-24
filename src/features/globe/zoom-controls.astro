@@ -1,0 +1,23 @@
+---
+import Icon from "@/shared/icons/icon.astro";
+
+type Props = { class?: string };
+
+const { class: className } = Astro.props;
+
+const ZOOM_BUTTON_CLASS =
+  "flex size-11 items-center justify-center rounded-xl text-ink pressable hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink";
+---
+
+<div
+  role="group"
+  aria-label="Zoom"
+  class:list={["flex-col gap-1 rounded-2xl bg-canvas p-1 shadow-float", className]}
+>
+  <button type="button" data-zoom="in" aria-label="Zoom in" class={ZOOM_BUTTON_CLASS}>
+    <Icon name="plus" size="size-[18px]" />
+  </button>
+  <button type="button" data-zoom="out" aria-label="Zoom out" class={ZOOM_BUTTON_CLASS}>
+    <Icon name="minus" size="size-[18px]" />
+  </button>
+</div>

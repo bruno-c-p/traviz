@@ -8,6 +8,9 @@ export const ICON_NAMES = [
   "check",
   "star",
   "circle-backslash",
+  "plus",
+  "minus",
+  "cursor-arrow",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -22,6 +25,9 @@ const ICON_CLASSES: Record<IconName, string> = {
   check: "icon-check",
   star: "icon-star",
   "circle-backslash": "icon-circle-backslash",
+  plus: "icon-plus",
+  minus: "icon-minus",
+  "cursor-arrow": "icon-cursor-arrow",
 };
 
 export function iconClass(name: IconName, sizeClass: string): string {
