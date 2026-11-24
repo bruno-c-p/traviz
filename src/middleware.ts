@@ -5,7 +5,7 @@ import { gzipResponse } from "@/shared/server/gzip-response";
 
 function withPrivateCache(response: Response): Response {
   if (!response.headers.has("cache-control")) {
-    response.headers.set("cache-control", "private, no-cache");
+    response.headers.set("cache-control", "private, no-store");
   }
 
   return response;

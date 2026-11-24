@@ -1,6 +1,7 @@
 import { clerkSession } from "@/features/auth/clerk-session";
 import { createEmailLinkSignIn } from "@/features/auth/email-link-sign-in";
 import type { EmailLinkAttempts, EmailLinkView } from "@/features/auth/email-link-sign-in";
+import { hasActiveClient } from "@/features/auth/session-cookies";
 import {
   SENDING_LABEL,
   SUBMIT_LABEL,
@@ -16,6 +17,19 @@ async function loadAttempts(): Promise<EmailLinkAttempts> {
   if (client === undefined) throw new Error("Clerk loaded without a client.");
 
   return { signIn: client.signIn.__internal_future, signUp: client.signUp.__internal_future };
+}
+
+function goHomeWhenSignedInElsewhere() {
+  const check = () => {
+    if (document.visibilityState === "visible" && hasActiveClient(document.cookie)) {
+      window.location.replace(homePath());
+    }
+  };
+
+  document.addEventListener("visibilitychange", check);
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) check();
+  });
 }
 
 export function startSignInPage() {
@@ -67,5 +81,6 @@ export function startSignInPage() {
 
   sent.querySelector("[data-use-different-email]")?.addEventListener("click", signIn.restart);
 
+  goHomeWhenSignedInElsewhere();
   clerkSession.loadNow();
 }

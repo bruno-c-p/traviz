@@ -14,7 +14,29 @@ export function missingClerkKeys({ secretKey, publishableKey }: ClerkKeys): stri
   ];
 }
 
-export function readClerkSession(keys: ClerkKeys): SessionReader {
+export function parseAuthorizedParties(value: string | undefined): string[] | undefined {
+  const origins = (value ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => origin !== "");
+
+  const invalid = origins.filter(
+    (origin) => !URL.canParse(origin) || new URL(origin).origin !== origin,
+  );
+
+  if (invalid.length > 0) {
+    throw new Error(
+      `Invalid environment: CLERK_AUTHORIZED_PARTIES must list origins such as https://traviz.example, not ${invalid.join(", ")}.`,
+    );
+  }
+
+  return origins.length > 0 ? origins : undefined;
+}
+
+export function readClerkSession(
+  keys: ClerkKeys,
+  authorizedParties: string[] | undefined,
+): SessionReader {
   const missing = missingClerkKeys(keys);
 
   if (missing.length > 0) {
@@ -26,7 +48,7 @@ export function readClerkSession(keys: ClerkKeys): SessionReader {
   const client = createClerkClient(keys);
 
   return async (request) => {
-    const state = await client.authenticateRequest(request);
+    const state = await client.authenticateRequest(request, { authorizedParties });
 
     if (state.status === "handshake" && !state.headers.has("location")) {
       throw new Error("Clerk asked for a handshake without a redirect.");

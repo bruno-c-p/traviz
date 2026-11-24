@@ -27,9 +27,7 @@ function showInitial() {
 async function fetchAccountMenu(): Promise<HTMLDialogElement | null> {
   const response = await fetch(accountMenuFragmentPath(), { credentials: "same-origin" });
 
-  if (response.redirected) window.location.reload();
-
-  if (!response.ok || response.redirected) return null;
+  if (!response.ok) return null;
 
   const menu = document.createRange().createContextualFragment(await response.text());
   const dialog = menu.querySelector<HTMLDialogElement>(ACCOUNT_MENU_SELECTOR);
