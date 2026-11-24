@@ -5,19 +5,19 @@
   },
   "routes": {
     "/": {
-      "firstLoadGzipBytes": 89209,
+      "firstLoadGzipBytes": 89261,
       "lazyGzipBytes": 0,
-      "htmlGzipBytes": 30883
+      "htmlGzipBytes": 30932
     },
     "/list": {
-      "firstLoadGzipBytes": 13283,
+      "firstLoadGzipBytes": 13335,
       "lazyGzipBytes": 0,
-      "htmlGzipBytes": 30863
+      "htmlGzipBytes": 30913
     },
     "/stats": {
-      "firstLoadGzipBytes": 13283,
+      "firstLoadGzipBytes": 13335,
       "lazyGzipBytes": 0,
-      "htmlGzipBytes": 27742
+      "htmlGzipBytes": 27794
     },
     "/fragments/globe": {
       "firstLoadGzipBytes": 0,

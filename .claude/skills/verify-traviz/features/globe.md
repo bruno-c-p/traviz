@@ -1,6 +1,6 @@
 # Globe
 
-The `/` page shows a canvas globe that spins until the user touches it. The user picks a country by clicking it or by searching for it, which flies the camera to the country and opens its card (a side card on wide screens, a bottom sheet on narrow ones). Countries are filled in their mark colour. A direct load of `/list` or `/stats` does not load the globe engine and its outlines: they load when the Globe tab is first opened there. Re-check every name and step in this file against `src/features/globe` after a change to the globe view.
+The `/` page shows a canvas globe that spins until the user touches it. The user picks a country by clicking it or by searching for it, which flies the camera to the country and opens its card (a side card on wide screens, a bottom sheet on narrow ones). Countries are filled in their mark colour. A direct load of `/list` or `/stats` does not load the globe engine and its outlines: they load when the Globe tab is first opened there. Once the globe fragment has arrived, when the browser is idle, the page preloads the engine's entry file alone (`globe-engine-script…js`, about 1 KB), so expect that one request and no `create-globe`, `country-topology` or `countries` chunk before the tab is opened. Re-check every name and step in this file against `src/features/globe` after a change to the globe view.
 
 ## Sub-features
 

@@ -6,7 +6,7 @@ import type { GlobeCountry } from "@/features/globe/globe-countries";
 import { GLOBE_ENGINE_EVENT } from "@/features/globe/globe-engine-contract";
 import type { GlobeEngine, RunningGlobe } from "@/features/globe/globe-engine-contract";
 import type { GlobeStores } from "@/features/globe/globe-stores";
-import { activateLazyScript } from "@/features/globe/lazy-script";
+import { activateLazyScript, preloadLazyScript } from "@/features/globe/lazy-script";
 import { createSelectionStore } from "@/features/globe/selected-country";
 import { mountMarkControls } from "@/features/marks";
 import type { Marks, MarksStore } from "@/features/marks";
@@ -141,6 +141,7 @@ export function mountGlobeView(host: HTMLElement, marksStore: MarksStore): Mount
   }
 
   moveSearchToTopBar(host);
+  preloadLazyScript(host, ENGINE_SCRIPT_NAME);
 
   if (sheetWrapper !== null) document.body.append(sheetWrapper);
 
