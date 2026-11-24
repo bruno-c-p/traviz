@@ -2,13 +2,11 @@ import { describe, expect, test } from "bun:test";
 import type { Marks } from "@/features/marks/colors";
 import {
   createMarksOwner,
-  type MarksCache,
   type MarksDeadline,
   type MarksTransport,
 } from "@/features/marks/marks-owner";
 import {
   applyChange,
-  type CachedMarks,
   type MarkChange,
   type MarkChangeResult,
   type MarksSnapshot,
@@ -106,24 +104,6 @@ function fakeTransport(options: { readThrows?: boolean } = {}) {
   };
 }
 
-function fakeCache(stored: CachedMarks | null = null, options: { clearThrows?: boolean } = {}) {
-  let slot = stored;
-
-  const cache: MarksCache = {
-    read: () => slot,
-    write: (cached) => {
-      slot = cached;
-    },
-    clear: () => {
-      if (options.clearThrows === true) throw new Error("storage blocked");
-
-      slot = null;
-    },
-  };
-
-  return { cache, slot: () => slot };
-}
-
 function fakeDeadline() {
   const expiries: (() => void)[] = [];
 
@@ -139,25 +119,17 @@ function fakeDeadline() {
   return { startDeadline, expire };
 }
 
-function setup({
-  stored = null,
-  readThrows = false,
-  clearThrows = false,
-}: { stored?: CachedMarks | null; readThrows?: boolean; clearThrows?: boolean } = {}) {
+function setup({ readThrows = false }: { readThrows?: boolean } = {}) {
   const fake = fakeTransport({ readThrows });
-  const cache = fakeCache(stored, { clearThrows });
   const deadline = fakeDeadline();
-
-  const store = createMarksStore(
-    createMarksOwner(fake.transport, cache.cache, deadline.startDeadline),
-  );
+  const store = createMarksStore(createMarksOwner(fake.transport, deadline.startDeadline));
 
   const signIn = (ownerId: string, marks: Marks = {}) => {
     store.getState().startSession(ownerId);
     store.getState().receiveSnapshot({ ok: true, ownerId, marks });
   };
 
-  return { ...fake, ...deadline, cacheSlot: cache.slot, store, signIn };
+  return { ...fake, ...deadline, store, signIn };
 }
 
 const tapDeu: MarkChange = { kind: "set", code: "DEU", state: "visited" };
@@ -595,16 +567,6 @@ describe("server snapshots after a fresh read", () => {
 describe("ending the session", () => {
   test("ending the session shows no marks and no owner", () => {
     const { store, signIn } = setup();
-    signIn(OWNER, { FRA: "want" });
-
-    store.getState().endSession();
-
-    expect(store.getState().marks).toEqual({});
-    expect(store.getState().ownerId).toBeNull();
-  });
-
-  test("a cache that throws on clear still ends the session", () => {
-    const { store, signIn } = setup({ clearThrows: true });
     signIn(OWNER, { FRA: "want" });
 
     store.getState().endSession();

@@ -1,6 +1,6 @@
 # Landing page design
 
-The public page at `/welcome`, built by Astro from `landing/`. A signed-out visit to `/` lands here. The page and the rest of the app share the tokens in `src/app/theme.css`.
+The public page at `/welcome`, prerendered from `src/pages/welcome.astro` and the components in `src/features/landing`. A signed-out visit to `/` lands here. The page and the rest of the app share the tokens in `src/shared/styles/theme.css`.
 
 ## Brief
 
@@ -47,11 +47,11 @@ Palette (the app's own mark colours, so the page and the product read the same m
 | skip    | `#b9bdb5` on `#0e0f0c` | not-interested fill                              |
 | curtain | `#163300`              | the primary action's hover fill                  |
 
-The table lists the light theme. In the dark theme the ground, ink, muted, line and skip tokens take the dark side of their `light-dark()` pair in `src/app/theme.css`, and lime, violet and the curtain stay as they are.
+The table lists the light theme. In the dark theme the ground, ink, muted, line and skip tokens take the dark side of their `light-dark()` pair in `src/shared/styles/theme.css`, and lime, violet and the curtain stay as they are.
 
 Lime on off-white is the existing brand, not a pick from the AI-default list. Lime, violet and grey are used only for marks and the one primary action, so colour always means a state.
 
-Type: Instrument Sans for everything, preloaded on `/welcome` only by `landing/pages/index.astro`, with a metric-matched Arial fallback in `landing/styles/landing.css`, so the wall never reflows when the font arrives, 700 with -0.045em tracking at display sizes, 500 for the names. Geist Mono, tabular, for counts only. No new font files.
+Type: Instrument Sans for everything, preloaded on `/welcome` only by `src/pages/welcome.astro`, with a metric-matched Arial fallback in `src/shared/styles/fonts.css`, so the wall never reflows when the font arrives, 700 with -0.045em tracking at display sizes, 500 for the names. Geist Mono, tabular, for counts only. No new font files.
 
 Grid: 12 columns, gutter `clamp(16px, 2vw, 32px)`, outer margin equals the gutter. At 1024 px and up the hero hangs on two lines: column 1 (the sticky panel, 4 columns) and column 5 (the wall, 8 columns). Below that, one column with the panel's count in a sticky bar at the bottom of the hero.
 
@@ -114,4 +114,4 @@ A generic answer to "landing page for a travel tracker" is a centred headline ov
 - The wall is left-aligned. Justified, it opened 80 to 100 px gaps around long names.
 - The Globe, List and Stats rows each carry a live specimen of the same marks (island dots, list rows, the 195 bar), so the concept runs past the hero.
 - Below 1024 px the globe scrolls away while you pick, so the pinned bar shows the last pick as a painted chip.
-- The 404 uses a plain `<a>`. A `next/link` in the root not-found added about 3.6 KB to every route's first load.
+- The 404 is its own page, `src/pages/404.astro`. It shares the landing page's styles, links home with a plain `<a>` and ships no module script.

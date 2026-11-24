@@ -1,6 +1,6 @@
 # Sign-in and sign-out
 
-traviz signs users in with a Clerk email link only, with no passwords and no social providers. `/sign-in` takes an email address and sends a link. The link opens `/sign-in/verify`, which finishes the sign-in, and the first tab then continues on its own. Sign-out is in the account menu (the `Account and theme` button, top right on every page at 768 px and up, and on `/` and `/stats` below that). `src/proxy.ts` gates every route by its row in `ROUTES` in `paths.ts`.
+traviz signs users in with a Clerk email link only, with no passwords and no social providers. `/sign-in` takes an email address and sends a link. The link opens `/sign-in/verify`, which finishes the sign-in, and the first tab then continues on its own. Sign-out is in the account menu (the `Account and theme` button, top right on every page at 768 px and up, and inside the views below that). `src/middleware.ts` gates every route by its row in `ROUTES` in `paths.ts`. Re-check every name in this file against the pages under `src/pages/sign-in` and the account menu in `src/features/auth` after a change there.
 
 ## Sub-features
 
@@ -34,6 +34,6 @@ Preconditions:
 - A new address logs one expected `http 422` from Clerk's `/v1/client/sign_ins` in `problems`, because no user has that address yet, and the form then sends a sign-up link. Any other Clerk error counts.
 - Clerk development returns 429 when one address submits twice in a short time. Use a new `+clerk_test` address for every submit.
 - A `+clerk_test` address never receives mail, so the full link click cannot run here. A complete email round trip needs a real inbox on the dev instance, and none is set up. Report the link click as not verified instead of faking it.
-- `prefetchUI={false}` is set on the `ClerkProvider` in `src/app/sign-in/layout.tsx`, so Clerk's prebuilt UI never loads. The `(app)` routes have no `ClerkProvider`. They add `clerk.browser.js` themselves after the window `load` event, so `window.Clerk` is undefined there for the first moments of a hard load. The form is traviz's own code in `src/features/auth`.
-- `curl` sees only the proxy's redirect. A page-level redirect after Clerk loads needs the browser.
-- The sign-in pages no longer clear any marks storage. The marks cache is tagged with its owner, and a cached owner shows only when Clerk's `__session` cookie names the same user, so one user's cached marks never show for another. See [marks.md](marks.md).
+- No page loads Clerk's prebuilt UI. The form is traviz's own code in `src/features/auth`. The app pages add `clerk.browser.js` themselves after the window `load` event, so `window.Clerk` is undefined there for the first moments of a hard load. `signIn` from the verify helpers waits 5 s for `window.Clerk` on `/sign-in` and loads clerk-js itself when the page has not.
+- `curl` sees only the middleware's redirect. `/welcome` is prerendered, so the middleware never runs for it: a signed-in visitor leaves it through an inline script that reads Clerk's `__client_uat` cookie, which needs the browser.
+- No page keeps marks in browser storage. Every page carries its user's marks in its own HTML, so one user's marks never show for another. See [marks.md](marks.md).

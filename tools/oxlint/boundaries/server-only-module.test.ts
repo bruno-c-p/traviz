@@ -9,25 +9,24 @@ tester.run("boundaries/server-only-module", serverOnlyModuleRule, {
       'import "server-only";\nimport { createClient } from "@libsql/client";',
     ),
     at(
-      "src/features/auth/server.ts",
-      'import "server-only";\nimport { auth } from "@clerk/nextjs/server";',
+      "src/features/auth/clerk-session-reader.ts",
+      'import "server-only";\nimport { createClerkClient } from "@clerk/backend";',
     ),
-    at("src/features/marks/actions/set-mark.ts", '"use server";\nimport { z } from "zod";'),
-    at("src/proxy.ts", 'import { clerkMiddleware } from "@clerk/nextjs/server";'),
-    at("src/features/globe/map-canvas.tsx", 'import { useAuth } from "@clerk/nextjs";'),
+    at("src/features/auth/clerk-session.ts", 'import type { Clerk } from "@clerk/shared/types";'),
+    at("src/middleware.ts", 'import { authenticateRequest } from "@/features/auth/server";'),
     at(
       "src/features/marks/schemas.test.ts",
       'import { z } from "zod";\nimport { test } from "bun:test";',
     ),
-    at("src/features/countries/country-data.test.tsx", 'import { expect } from "bun:test";'),
+    at("src/features/countries/country-data.test.ts", 'import { expect } from "bun:test";'),
     at("src/shared/testing/server-only-preload.ts", 'import { plugin } from "bun";'),
     at("scripts/check-gates.ts", 'import { z } from "zod";\nimport { $ } from "bun";'),
     at("src/features/globe/tileset-feature.ts", 'import type { ZodType } from "zod";'),
     at("src/features/marks/colors.ts", 'export type { Client } from "@libsql/client";'),
     at("src/features/countries/countries.ts", 'import type { BunFile } from "bun";'),
     at(
-      "src/features/marks/actions/set-mark.ts",
-      '"use server";\nimport "server-only";\nimport { z } from "zod";',
+      "src/features/marks/marks-api.ts",
+      '"use strict";\nimport "server-only";\nimport { z } from "zod";',
     ),
   ],
   invalid: [
@@ -48,11 +47,26 @@ tester.run("boundaries/server-only-module", serverOnlyModuleRule, {
       errors: [{ messageId: "serverPackage" }, { messageId: "serverPackage" }],
     },
     {
-      name: "Clerk's server API in a client component",
+      name: "Clerk's backend SDK in client code",
       ...at(
-        "src/features/auth/account-button.tsx",
-        '"use client";\nimport { auth } from "@clerk/nextjs/server";',
+        "src/features/auth/keep-clerk-session.ts",
+        'import { createClerkClient } from "@clerk/backend";',
       ),
+      errors: [{ messageId: "serverPackage" }],
+    },
+    {
+      name: "a Clerk backend subpath in the middleware, which is not a server-only module",
+      ...at("src/middleware.ts", 'import { verifyToken } from "@clerk/backend/jwt";'),
+      errors: [{ messageId: "serverPackage" }],
+    },
+    {
+      name: 'a "use server" directive no longer makes a server module',
+      ...at("src/features/marks/set-mark.ts", '"use server";\nimport { z } from "zod";'),
+      errors: [{ messageId: "serverPackage" }],
+    },
+    {
+      name: "zod in an API route",
+      ...at("src/pages/api/marks/apply.ts", 'import { z } from "zod";'),
       errors: [{ messageId: "serverPackage" }],
     },
     {
@@ -78,7 +92,7 @@ tester.run("boundaries/server-only-module", serverOnlyModuleRule, {
     },
     {
       name: "a dynamic bun import in a route",
-      ...at("src/app/(app)/page.tsx", 'const bun = await import("bun");'),
+      ...at("src/pages/api/marks/read.ts", 'const bun = await import("bun");'),
       errors: [{ messageId: "bunModule" }],
     },
     {

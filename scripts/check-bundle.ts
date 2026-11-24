@@ -1,39 +1,47 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
-import { gzipSync } from "node:zlib";
 import { z } from "zod";
-import { welcomePath } from "@/paths";
+import { homePath, listPath, statsPath, welcomePath } from "@/paths";
+import { pageRoutes, renderRoutes } from "@/shared/testing/bundle/render-routes";
+import { measureRoute, type RouteBundle } from "@/shared/testing/bundle/route-bundle";
 
 const { values: options } = parseArgs({
   options: {
     root: { type: "string" },
     budget: { type: "string" },
+    pages: { type: "string" },
+    "production-static": { type: "string" },
     write: { type: "boolean", default: false },
   },
 });
 
 const repoRoot = join(import.meta.dirname, "..");
 const buildRoot = resolve(options.root ?? repoRoot);
+const clientRoot = join(buildRoot, "dist", "client");
 const budgetPath = resolve(options.budget ?? join(repoRoot, "bundle-budget.json"));
-const statsPath = join(buildRoot, ".next", "diagnostics", "route-bundle-stats.json");
-const statsChangedHint = `If next build no longer writes ${statsPath} in this shape, update scripts/check-bundle.ts.`;
+const buildHint = "Run bun run build:node first.";
 const defaultTolerance = { percent: 1, minBytes: 1024 };
-const htmlOrigin = "http://localhost";
 
-const landingPages = [
-  { route: welcomePath(), htmlPath: join("public", welcomePath(), "index.html") },
-].filter(({ htmlPath }) => existsSync(join(buildRoot, htmlPath)));
+const routesWithModuleScript: string[] = [homePath(), listPath(), statsPath(), welcomePath()];
 
-const routeStatsSchema = z
-  .array(z.object({ route: z.string(), firstLoadChunkPaths: z.array(z.string()).min(1) }))
-  .min(1);
+const sizeFields = ["firstLoadGzipBytes", "lazyGzipBytes", "htmlGzipBytes"] as const;
+
+const sizeNames: Record<(typeof sizeFields)[number], string> = {
+  firstLoadGzipBytes: "first-load JS",
+  lazyGzipBytes: "lazy JS",
+  htmlGzipBytes: "HTML",
+};
 
 const budgetSchema = z.strictObject({
   tolerance: z.strictObject({ percent: z.number(), minBytes: z.number() }),
   routes: z.record(
     z.string(),
-    z.strictObject({ firstLoadGzipBytes: z.number().int(), lazyGzipBytes: z.number().int() }),
+    z.strictObject({
+      firstLoadGzipBytes: z.number().int(),
+      lazyGzipBytes: z.number().int(),
+      htmlGzipBytes: z.number().int(),
+    }),
   ),
 });
 
@@ -44,218 +52,151 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-if (!existsSync(statsPath))
-  fail(`${statsPath} not found. Run bun run build first. ${statsChangedHint}`);
+function filesUnder(directory: string, extensions: readonly string[]): string[] {
+  if (!existsSync(directory)) return [];
 
-function readJson<T>(path: string, schema: z.ZodType<T>, problem: string): T {
-  const text = readFileSync(path, "utf8");
-  let json: unknown;
-
-  try {
-    json = JSON.parse(text);
-  } catch {
-    fail(`${path} is not valid JSON. ${problem}`);
-  }
-
-  const parsed = schema.safeParse(json);
-
-  if (!parsed.success) fail(`${path} is invalid. ${problem}\n${z.prettifyError(parsed.error)}`);
-
-  return parsed.data;
+  return readdirSync(directory, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && extensions.some((ending) => entry.name.endsWith(ending)))
+    .map((entry) => relative(directory, join(entry.parentPath, entry.name)).split(sep).join("/"))
+    .toSorted();
 }
 
-const nextRouteStats = readJson(
-  statsPath,
-  routeStatsSchema,
-  `It should be a list of routes with first-load chunks. ${statsChangedHint}`,
-);
+function routeOfPageFile(pageFile: string): string {
+  const name = pageFile.replace(/\.html$/, "");
 
-function staticImportPaths(chunkPath: string): string[] {
-  const source = readFileSync(join(buildRoot, chunkPath), "utf8");
+  return name === "index" ? "/" : `/${name}`;
+}
 
-  return [...source.matchAll(/(?:from|import)\s*["'`]\.\/([\w.-]+\.js)["'`]/g)].flatMap(
-    ([, fileName]) => (fileName === undefined ? [] : [join(dirname(chunkPath), fileName)]),
+function readPagesDirectory(pagesDirectory: string): Map<string, string> {
+  return new Map(
+    filesUnder(pagesDirectory, [".html"]).map((pageFile) => [
+      routeOfPageFile(pageFile),
+      readFileSync(join(pagesDirectory, pageFile), "utf8"),
+    ]),
   );
 }
 
-function withStaticImports(entryChunkPaths: string[]): string[] {
-  const reached = new Set(entryChunkPaths);
-  const pending = [...entryChunkPaths];
+async function renderedPages(): Promise<Map<string, string>> {
+  if (options.pages !== undefined) return readPagesDirectory(resolve(options.pages));
 
-  for (let chunkPath = pending.pop(); chunkPath !== undefined; chunkPath = pending.pop()) {
-    for (const imported of staticImportPaths(chunkPath)) {
-      if (reached.has(imported)) continue;
-
-      reached.add(imported);
-      pending.push(imported);
-    }
-  }
-
-  return [...reached];
+  return renderRoutes(buildRoot, pageRoutes()).catch((cause: unknown) =>
+    fail(cause instanceof Error ? cause.message : String(cause)),
+  );
 }
 
-function landingFirstLoadChunkPaths(htmlPath: string): string[] {
-  const html = readFileSync(join(buildRoot, htmlPath), "utf8");
+if (!existsSync(clientRoot)) fail(`${clientRoot} not found. ${buildHint}`);
 
-  const entryChunkPaths = loadedScriptUrls(html).flatMap((url) => {
-    const chunkPath = localChunkPath(url);
+const chunkSources = new Map<string, string | null>();
 
-    if (chunkPath === null) return [];
+function readChunk(chunkPath: string): string | null {
+  const known = chunkSources.get(chunkPath);
 
-    if (!existsSync(join(buildRoot, chunkPath)))
-      fail(`${htmlPath} loads ${chunkPath}, which is not on disk. Run bun run build first.`);
+  if (known !== undefined) return known;
 
-    return [chunkPath];
-  });
+  const absolutePath = resolve(clientRoot, chunkPath);
+  const isInside = absolutePath.startsWith(clientRoot + sep);
+  const source = isInside && existsSync(absolutePath) ? readFileSync(absolutePath, "utf8") : null;
 
-  if (entryChunkPaths.length === 0)
-    fail(
-      `${htmlPath} loads no script. A script that only imports for side effects is dropped unless package.json lists it in sideEffects.`,
-    );
+  chunkSources.set(chunkPath, source);
 
-  return withStaticImports(entryChunkPaths);
+  return source;
 }
 
-const routeStats = [
-  ...nextRouteStats,
-  ...landingPages.map(({ route, htmlPath }) => ({
-    route,
-    firstLoadChunkPaths: landingFirstLoadChunkPaths(htmlPath),
-  })),
-];
+const pages = await renderedPages();
 
-const gzipBytesByPath = new Map<string, number>();
+if (pages.size === 0) fail(`No page was rendered from ${buildRoot}. ${buildHint}`);
 
-function gzipBytesOf(chunkPath: string): number {
-  const cached = gzipBytesByPath.get(chunkPath);
-
-  if (cached !== undefined) return cached;
-
-  const absolutePath = join(buildRoot, chunkPath);
-
-  if (!existsSync(absolutePath))
-    fail(`${chunkPath} is in route-bundle-stats.json but not on disk. ${statsChangedHint}`);
-
-  const gzipBytes = gzipSync(readFileSync(absolutePath), { level: 9 }).length;
-  gzipBytesByPath.set(chunkPath, gzipBytes);
-
-  return gzipBytes;
-}
-
-const firstLoadGzipBytesByRoute = new Map(
-  routeStats.map(({ route, firstLoadChunkPaths }) => [
-    route,
-    firstLoadChunkPaths.reduce((total, chunkPath) => total + gzipBytesOf(chunkPath), 0),
-  ]),
-);
-
-const referencedChunkPathsByPath = new Map<string, string[]>();
-
-function siblingChunkPaths(chunkPath: string, source: string): string[] {
-  const fileNames = new Set([...source.matchAll(/[\w.-]+\.js/g)].map(([fileName]) => fileName));
-
-  return [...fileNames].flatMap((fileName) => {
-    const siblingPath = join(dirname(chunkPath), fileName);
-    const isSibling = siblingPath !== chunkPath && existsSync(join(buildRoot, siblingPath));
-
-    return isSibling ? [siblingPath] : [];
-  });
-}
-
-function referencedChunkPaths(chunkPath: string): string[] {
-  const cached = referencedChunkPathsByPath.get(chunkPath);
-
-  if (cached !== undefined) return cached;
-
-  const source = readFileSync(join(buildRoot, chunkPath), "utf8");
-
-  const references = chunkPath.startsWith(".next/")
-    ? [...source.matchAll(/static\/chunks\/[\w.-]+\.js/g)].map(([reference]) => {
-        const referencePath = `.next/${reference}`;
-
-        if (!existsSync(join(buildRoot, referencePath)))
-          fail(
-            `${chunkPath} references ${referencePath}, which is not on disk. ${statsChangedHint}`,
-          );
-
-        return referencePath;
-      })
-    : siblingChunkPaths(chunkPath, source);
-
-  referencedChunkPathsByPath.set(chunkPath, references);
-
-  return references;
-}
-
-function lazyChunkPathsOf(firstLoadChunkPaths: string[]): string[] {
-  const reached = new Set(firstLoadChunkPaths);
-  const lazyChunkPaths: string[] = [];
-  const pending = [...firstLoadChunkPaths];
-
-  for (let chunkPath = pending.pop(); chunkPath !== undefined; chunkPath = pending.pop()) {
-    for (const reference of referencedChunkPaths(chunkPath)) {
-      if (reached.has(reference)) continue;
-
-      reached.add(reference);
-      lazyChunkPaths.push(reference);
-      pending.push(reference);
-    }
-  }
-
-  return lazyChunkPaths.toSorted((left, right) => gzipBytesOf(right) - gzipBytesOf(left));
-}
-
-const lazyChunkPathsByRoute = new Map(
-  routeStats.map(({ route, firstLoadChunkPaths }) => [
-    route,
-    lazyChunkPathsOf(firstLoadChunkPaths),
-  ]),
-);
-
-const lazyGzipBytesByRoute = new Map(
-  [...lazyChunkPathsByRoute].map(([route, lazyChunkPaths]) => [
-    route,
-    lazyChunkPaths.reduce((total, chunkPath) => total + gzipBytesOf(chunkPath), 0),
-  ]),
+const bundles = new Map<string, RouteBundle>(
+  [...pages].map(([route, html]) => [route, measureRoute(html, readChunk)]),
 );
 
 function readBudget(): Budget | null {
   if (!existsSync(budgetPath)) return null;
 
-  return readJson(
-    budgetPath,
-    budgetSchema,
-    "Fix it, or delete it and run bun run check:bundle --write.",
-  );
+  const recovery = "Fix it, or delete it and run bun run check:bundle --write.";
+  let json: unknown;
+
+  try {
+    json = JSON.parse(readFileSync(budgetPath, "utf8"));
+  } catch {
+    fail(`${budgetPath} is not valid JSON. ${recovery}`);
+  }
+
+  const parsed = budgetSchema.safeParse(json);
+
+  if (!parsed.success)
+    fail(`${budgetPath} is invalid. ${recovery}\n${z.prettifyError(parsed.error)}`);
+
+  return parsed.data;
 }
 
 function writeBudget(previous: Budget | null): Budget {
   const routes = Object.fromEntries(
-    [...firstLoadGzipBytesByRoute].map(([route, firstLoadGzipBytes]) => [
+    [...bundles].map(([route, bundle]) => [
       route,
-      { firstLoadGzipBytes, lazyGzipBytes: lazyGzipBytesByRoute.get(route) ?? 0 },
+      {
+        firstLoadGzipBytes: bundle.firstLoadGzipBytes,
+        lazyGzipBytes: bundle.lazyGzipBytes,
+        htmlGzipBytes: bundle.htmlGzipBytes,
+      },
     ]),
   );
 
   const budget = { tolerance: previous?.tolerance ?? defaultTolerance, routes };
+
   writeFileSync(budgetPath, `${JSON.stringify(budget, null, 2)}\n`);
   console.log(`Wrote ${budgetPath}`);
 
   return budget;
 }
 
+const failures: string[] = [];
+
+for (const [route, bundle] of bundles) {
+  for (const problem of bundle.problems) failures.push(`${route} ${problem}`);
+
+  if (routesWithModuleScript.includes(route) && !bundle.hasModuleScript)
+    failures.push(
+      `${route} runs no module script. A script that only imports for side effects is dropped unless package.json lists its entry in sideEffects.`,
+    );
+}
+
+function differingFiles(productionRoot: string): string[] {
+  const extensions = [".js", ".mjs", ".html"];
+  const local = filesUnder(clientRoot, extensions);
+  const production = filesUnder(productionRoot, extensions);
+
+  if (production.length === 0)
+    return [`${productionRoot} holds no JS or HTML. Run bun run build first.`];
+
+  return [...new Set([...local, ...production])].flatMap((file) => {
+    const localPath = join(clientRoot, file);
+    const productionPath = join(productionRoot, file);
+
+    if (!existsSync(localPath))
+      return [`${file} is in ${productionRoot} but not in the Node build, so it is unbudgeted`];
+
+    if (!existsSync(productionPath))
+      return [`${file} is in the Node build but not in ${productionRoot}`];
+
+    return readFileSync(localPath).equals(readFileSync(productionPath))
+      ? []
+      : [`${file} differs between the Node build and ${productionRoot}`];
+  });
+}
+
+if (options["production-static"] !== undefined)
+  failures.push(...differingFiles(resolve(options["production-static"])));
+
+if (options.write && failures.length > 0)
+  fail(`\nNot writing a budget for a broken build:\n${failures.join("\n")}`);
+
 const budget = options.write ? writeBudget(readBudget()) : readBudget();
 
 if (budget === null) fail(`${budgetPath} not found. Run bun run check:bundle --write.`);
 
-const failures: string[] = [];
-
 for (const route of Object.keys(budget.routes)) {
-  if (!firstLoadGzipBytesByRoute.has(route)) {
-    failures.push(
-      `${route} is in the budget but not in route-bundle-stats.json or the landing build`,
-    );
-  }
+  if (!bundles.has(route)) failures.push(`${route} is in the budget but was not rendered`);
 }
 
 function limitOf(budgetBytes: number, tolerance: Budget["tolerance"]) {
@@ -268,133 +209,60 @@ function limitOf(budgetBytes: number, tolerance: Budget["tolerance"]) {
 }
 
 console.log(
-  "route\tfirst-load gzip bytes\tbudget\tlimit\tlazy gzip bytes\tlazy budget\tlazy limit",
+  [
+    "route",
+    "first-load gzip bytes",
+    "budget",
+    "limit",
+    "lazy gzip bytes",
+    "lazy budget",
+    "lazy limit",
+    "html gzip bytes",
+    "html budget",
+    "html limit",
+  ].join("\t"),
 );
 
-for (const [route, gzipBytes] of firstLoadGzipBytesByRoute) {
+for (const [route, bundle] of bundles) {
   const routeBudget = budget.routes[route];
-  const lazyGzipBytes = lazyGzipBytesByRoute.get(route) ?? 0;
 
   if (routeBudget === undefined) {
-    console.log(`${route}\t${gzipBytes}\tnone\tnone\t${lazyGzipBytes}\tnone\tnone`);
+    console.log(
+      [route, ...sizeFields.flatMap((field) => [bundle[field], "none", "none"])].join("\t"),
+    );
     failures.push(`${route} has no budget. Add it with bun run check:bundle --write.`);
     continue;
   }
 
-  const { allowance, limit } = limitOf(routeBudget.firstLoadGzipBytes, budget.tolerance);
-  const lazy = limitOf(routeBudget.lazyGzipBytes, budget.tolerance);
-
   console.log(
-    `${route}\t${gzipBytes}\t${routeBudget.firstLoadGzipBytes}\t${limit}\t${lazyGzipBytes}\t${routeBudget.lazyGzipBytes}\t${lazy.limit}`,
+    [
+      route,
+      ...sizeFields.flatMap((field) => [
+        bundle[field],
+        routeBudget[field],
+        limitOf(routeBudget[field], budget.tolerance).limit,
+      ]),
+    ].join("\t"),
   );
 
-  if (gzipBytes > limit) {
+  for (const field of sizeFields) {
+    const { allowance, limit } = limitOf(routeBudget[field], budget.tolerance);
+
+    if (bundle[field] <= limit) continue;
+
+    const lazyChunks =
+      field === "lazyGzipBytes"
+        ? `: ${bundle.lazyChunks.map((chunk) => `${chunk.chunkPath} (${chunk.gzipBytes} B)`).join(", ")}`
+        : "";
+
     failures.push(
-      `${route} first-load JS is ${gzipBytes} B gzipped, over its limit of ${limit} B (budget ${routeBudget.firstLoadGzipBytes} B + ${allowance} B tolerance)`,
+      `${route} ${sizeNames[field]} is ${bundle[field]} B gzipped, over its limit of ${limit} B (budget ${routeBudget[field]} B + ${allowance} B tolerance)${lazyChunks}`,
     );
-  }
-
-  if (lazyGzipBytes > lazy.limit) {
-    const lazyChunks = (lazyChunkPathsByRoute.get(route) ?? [])
-      .map((chunkPath) => `${chunkPath} (${gzipBytesOf(chunkPath)} B)`)
-      .join(", ");
-
-    failures.push(
-      `${route} lazy JS is ${lazyGzipBytes} B gzipped, over its limit of ${lazy.limit} B (budget ${routeBudget.lazyGzipBytes} B + ${lazy.allowance} B tolerance): ${lazyChunks}`,
-    );
-  }
-}
-
-function prerenderedHtmlPath(route: string): string {
-  const landingPage = landingPages.find((page) => page.route === route);
-
-  if (landingPage) return join(buildRoot, landingPage.htmlPath);
-
-  const fileName = route === "/" ? "index.html" : `${route.slice(1)}.html`;
-
-  return join(buildRoot, ".next", "server", "app", fileName);
-}
-
-function attributeOf(tag: string, name: string): string | undefined {
-  return new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
-}
-
-function tagsIn(html: string, element: string): string[] {
-  return [...html.matchAll(new RegExp(`<${element}\\s[^>]*>`, "g"))].map(([tag]) => tag);
-}
-
-function preloadedScriptUrls(html: string): URL[] {
-  return tagsIn(html, "link").flatMap((tag) => {
-    const relTokens = attributeOf(tag, "rel")?.split(/\s+/) ?? [];
-    const href = attributeOf(tag, "href");
-
-    const isScriptPreload =
-      relTokens.includes("modulepreload") ||
-      (relTokens.includes("preload") && attributeOf(tag, "as") === "script");
-
-    return isScriptPreload && href !== undefined ? [new URL(href, htmlOrigin)] : [];
-  });
-}
-
-function loadedScriptUrls(html: string): URL[] {
-  return tagsIn(html, "script").flatMap((tag) => {
-    const src = attributeOf(tag, "src");
-
-    return src !== undefined && !/\snoModule\b/i.test(tag) ? [new URL(src, htmlOrigin)] : [];
-  });
-}
-
-function localChunkPath(url: URL): string | null {
-  if (url.origin !== htmlOrigin) return null;
-
-  return url.pathname.startsWith("/_next/")
-    ? url.pathname.replace(/^\/_next\//, ".next/")
-    : join("public", url.pathname);
-}
-
-function extraPreloadProblem(firstLoadChunkPaths: string[], url: URL): string | null {
-  const chunkPath = localChunkPath(url);
-
-  if (chunkPath === null) return `${url.href}, a script from another origin`;
-
-  if (firstLoadChunkPaths.includes(chunkPath)) return null;
-
-  const size = existsSync(join(buildRoot, chunkPath))
-    ? `${gzipBytesOf(chunkPath)} B gzipped`
-    : "not in the build output";
-
-  return `${chunkPath} (${size}), which is not in its first-load JS`;
-}
-
-for (const { route, firstLoadChunkPaths } of routeStats) {
-  const htmlPath = prerenderedHtmlPath(route);
-
-  if (!existsSync(htmlPath)) {
-    failures.push(`${route} has no prerendered HTML at ${htmlPath}, so its scripts are unchecked`);
-    continue;
-  }
-
-  const html = readFileSync(htmlPath, "utf8");
-
-  for (const url of loadedScriptUrls(html)) {
-    const chunkPath = localChunkPath(url);
-
-    if (chunkPath !== null && !firstLoadChunkPaths.includes(chunkPath)) {
-      const hint = chunkPath.startsWith(".next/static/") ? ` ${statsChangedHint}` : "";
-
-      failures.push(
-        `${route} HTML loads ${chunkPath}, which route-bundle-stats.json leaves out of its first-load JS.${hint}`,
-      );
-    }
-  }
-
-  for (const url of preloadedScriptUrls(html)) {
-    const problem = extraPreloadProblem(firstLoadChunkPaths, url);
-
-    if (problem !== null) failures.push(`${route} preloads ${problem}`);
   }
 }
 
 if (failures.length > 0) fail(`\n${failures.length} bundle problems:\n${failures.join("\n")}`);
 
-console.log(`\n${routeStats.length} routes within budget, no extra preloaded JS`);
+console.log(
+  `\n${bundles.size} routes within budget, no extra preloaded JS${options["production-static"] === undefined ? "" : ", and the production build serves the same JS and prerendered HTML"}`,
+);

@@ -1,10 +1,62 @@
-import { execFileSync, spawn, type ChildProcess } from "node:child_process";
-import { closeSync, mkdirSync, openSync, rmSync } from "node:fs";
+import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { closeSync, existsSync, mkdirSync, openSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { z } from "zod";
 
 export type Environment = NodeJS.ProcessEnv;
+
+export type TreeKind = "astro" | "next";
+
+export const nodeServerScript = resolve(
+  import.meta.dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "scripts",
+  "serve-node.ts",
+);
+
+export type ServerCommand = {
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly environment: Environment;
+};
+
+export function treeKind(treeDirectory: string): TreeKind {
+  return existsSync(join(treeDirectory, "next.config.ts")) ? "next" : "astro";
+}
+
+export function commitKind(root: string, sha: string): TreeKind {
+  const lookup = spawnSync("git", ["-C", root, "cat-file", "-e", `${sha}:next.config.ts`]);
+
+  return lookup.status === 0 ? "next" : "astro";
+}
+
+export function buildEnvironment(kind: TreeKind, environment: Environment): Environment {
+  return kind === "astro" ? { ...environment, TRAVIZ_ADAPTER: "node" } : environment;
+}
+
+export function serverCommand(
+  kind: TreeKind,
+  treeDirectory: string,
+  port: number,
+  environment: Environment,
+): ServerCommand {
+  if (kind === "next")
+    return {
+      command: join(treeDirectory, "node_modules", ".bin", "next"),
+      args: ["start", "--port", String(port)],
+      environment,
+    };
+
+  return {
+    command: "node",
+    args: [nodeServerScript],
+    environment: { ...environment, HOST: "127.0.0.1", PORT: String(port) },
+  };
+}
 
 export function exportTree(root: string, sha: string, treeDirectory: string): void {
   rmSync(treeDirectory, { recursive: true, force: true });
@@ -38,7 +90,7 @@ export function buildTree(
     ])
       execFileSync(process.execPath, args, {
         cwd: treeDirectory,
-        env: environment,
+        env: buildEnvironment(treeKind(treeDirectory), environment),
         stdio: ["ignore", log, log],
       });
   } catch (cause: unknown) {
@@ -68,12 +120,14 @@ export function startServer(
   logPath: string,
 ): ChildProcess {
   const log = openSync(logPath, "w");
+  const start = serverCommand(treeKind(treeDirectory), treeDirectory, port, environment);
 
-  const server: ChildProcess = spawn(
-    join(treeDirectory, "node_modules", ".bin", "next"),
-    ["start", "--port", String(port)],
-    { cwd: treeDirectory, env: environment, detached: true, stdio: ["ignore", log, log] },
-  );
+  const server: ChildProcess = spawn(start.command, start.args, {
+    cwd: treeDirectory,
+    env: start.environment,
+    detached: true,
+    stdio: ["ignore", log, log],
+  });
 
   closeSync(log);
 
@@ -89,9 +143,9 @@ export async function waitForServer(
 
   while (Date.now() < deadline) {
     if (server.exitCode !== null)
-      throw new Error(`next start on port ${port} exited with ${server.exitCode}. See ${logPath}.`);
+      throw new Error(`The server on port ${port} exited with ${server.exitCode}. See ${logPath}.`);
 
-    const isUp = await fetch(`http://localhost:${port}/`, { redirect: "manual" }).then(
+    const isUp = await fetch(`http://127.0.0.1:${port}/`, { redirect: "manual" }).then(
       () => true,
       () => false,
     );
@@ -101,7 +155,7 @@ export async function waitForServer(
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 
-  throw new Error(`next start on port ${port} did not answer within 60 s. See ${logPath}.`);
+  throw new Error(`The server on port ${port} did not answer within 60 s. See ${logPath}.`);
 }
 
 export function stopServer(server: ChildProcess): void {

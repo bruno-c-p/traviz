@@ -8,9 +8,13 @@ import {
   waitForServer,
   type Environment,
 } from "@/shared/testing/perf/builds";
-import { readPerfEnvironment } from "@/shared/testing/perf/environment";
 import {
-  buildHasPublicValues,
+  readPerfEnvironment,
+  withSignInMode,
+  type SignInMode,
+} from "@/shared/testing/perf/environment";
+import {
+  buildMatchesEnvironment,
   buildLogFile,
   buildStampFile,
   treeFingerprint,
@@ -21,11 +25,17 @@ import {
   serverLogFile,
   verifyDirectory,
 } from "@/shared/testing/verify/instance";
+import { listPath, signInPath } from "@/paths";
 
 const { values: options, positionals } = parseArgs({
   allowPositionals: true,
-  options: { "no-build": { type: "boolean", default: false } },
+  options: {
+    "no-build": { type: "boolean", default: false },
+    "fixed-user": { type: "boolean", default: false },
+  },
 });
+
+const signInMode: SignInMode = options["fixed-user"] ? "fixed-user" : "clerk";
 
 function fail(message: string): never {
   console.error(message);
@@ -49,18 +59,21 @@ function build(environment: Environment): void {
   console.log(`building, log at ${buildLogFile}`);
 
   try {
-    execFileSync(process.execPath, ["run", "build"], {
+    execFileSync(process.execPath, ["run", "build:node"], {
       cwd: repoRoot,
       env: environment,
       stdio: ["ignore", log, log],
     });
   } catch {
-    fail(`bun run build failed. See ${buildLogFile}.`);
+    fail(`bun run build:node failed. See ${buildLogFile}.`);
   } finally {
     closeSync(log);
   }
 
-  writeFileSync(buildStampFile, JSON.stringify({ tree, builtAt: new Date().toISOString() }));
+  writeFileSync(
+    buildStampFile,
+    JSON.stringify({ tree, builtAt: new Date().toISOString(), signIn: signInMode }),
+  );
 }
 
 function prepare(): Environment {
@@ -75,27 +88,37 @@ function prepare(): Environment {
 
   if (perfEnvironment.kind === "refused") fail(`Refused: ${perfEnvironment.reason}`);
 
-  const { environment } = perfEnvironment;
+  if (signInMode === "clerk" && !perfEnvironment.hasClerkKeys)
+    fail(
+      "Refused: .env.local has no Clerk development keys. Run bun run setup, or start with --fixed-user to sign every request in as one local user without Clerk.",
+    );
+
+  const environment = withSignInMode(perfEnvironment.environment, signInMode);
 
   mkdirSync(verifyDirectory, { recursive: true });
 
   if (!options["no-build"]) build(environment);
-  else if (!buildHasPublicValues(environment))
-    fail(".next was not built with this worktree's .env.local. Run start without --no-build.");
+  else if (!buildMatchesEnvironment(environment))
+    fail(
+      "dist was not built by the Node adapter for this sign-in mode and this worktree's .env.local. Run start without --no-build.",
+    );
 
   return environment;
 }
 
 async function waitUntilReady(port: number): Promise<void> {
-  const signIn = await fetch(`http://localhost:${port}/sign-in`);
+  const probePath = signInMode === "clerk" ? signInPath() : listPath();
+  const probe = await fetch(`http://127.0.0.1:${port}${probePath}`, { redirect: "manual" });
 
-  if (!signIn.ok) throw new Error(`/sign-in answered ${signIn.status}. See ${serverLogFile}.`);
+  if (probe.status !== 200)
+    throw new Error(`${probePath} answered ${probe.status}. See ${serverLogFile}.`);
 }
 
 async function start(): Promise<void> {
   const environment = prepare();
   const port = await findFreePort();
-  const server = startServer(repoRoot, port, environment, serverLogFile);
+  const serverEnvironment = { ...environment, NODE_ENV: "production" };
+  const server = startServer(repoRoot, port, serverEnvironment, serverLogFile);
 
   const stopOnSignal = () => {
     stopServer(server);
@@ -116,13 +139,18 @@ async function start(): Promise<void> {
 
   writeFileSync(
     instanceFile,
-    JSON.stringify({ pid: server.pid, port, startedAt: new Date().toISOString() }),
+    JSON.stringify({
+      pid: server.pid,
+      port,
+      startedAt: new Date().toISOString(),
+      signIn: signInMode,
+    }),
   );
 
   for (const signal of signals) process.off(signal, stopOnSignal);
 
   server.unref();
-  console.log(`ready http://localhost:${port} pid ${server.pid}`);
+  console.log(`ready http://localhost:${port} pid ${server.pid} sign-in ${signInMode}`);
 }
 
 function signalGroup(pid: number, signal: NodeJS.Signals): void {
@@ -158,4 +186,4 @@ const command = positionals[0];
 
 if (command === "start") await start();
 else if (command === "stop") await stop();
-else fail("usage: bun run verify:server start [--no-build] | stop");
+else fail("usage: bun run verify:server start [--no-build] [--fixed-user] | stop");

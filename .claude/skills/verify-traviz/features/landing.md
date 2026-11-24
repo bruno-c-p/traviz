@@ -30,7 +30,7 @@ Preconditions:
 
 ## Gotchas
 
-- Astro builds the page from `landing/` into `public/welcome/`, and Next serves it through a rewrite. `bun run verify:server start` runs `bun run build`, which builds both. The page has no React, so there is no hydration to wait for: wait for the `canvas` instead.
+- `/welcome` is prerendered from `src/pages/welcome.astro`, and the server sends it as a static file, without the middleware. The page ships one small module script (`src/features/landing/landing-entry.ts`), so there is nothing to wait for before the buttons work, except the preview globe: wait for the `canvas`.
 - `Tuvalu` and the other four islands have two buttons each, one in the wall and one in the Globe row. Scope locators to the `All 195 countries` group.
 - The globe spins unless motion is reduced, so screenshot with `prefers-reduced-motion: reduce` for pixel diffs.
 - An unknown path signed out redirects to `/sign-in`, because the gate treats it as `signedIn`. The 404 page shows only to a signed-in user.

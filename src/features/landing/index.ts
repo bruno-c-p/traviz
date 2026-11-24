@@ -17,6 +17,4 @@ export {
   tallyAnnouncement,
 } from "@/features/landing/landing-view";
 
-export { startLanding } from "@/features/landing/start-landing";
-
 export { ISLAND_CODES, WALL_CONTINENTS, WALL_COUNTRIES } from "@/features/landing/wall-countries";

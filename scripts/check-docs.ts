@@ -18,12 +18,12 @@ const packageManifest = z
   .parse(JSON.parse(readFileSync(join(root, "package.json"), "utf8")));
 
 const packageScripts = Object.keys(packageManifest.scripts);
-const moduleExtensions = ["", ".ts", ".tsx", ".js", ".json", "/index.ts", "/index.tsx"];
+const moduleExtensions = ["", ".ts", ".astro", ".js", ".json", "/index.ts"];
 
 const prefixedPathPattern =
   /(?<![\w/.-])(?:@\/|(?:src|docs|scripts|tools|\.github)\/)[\w./@()[\]*-]+/g;
 
-const backtickedFilePattern = /`([\w./@()[\]*-]+\.(?:ts|tsx|js|mjs|json|md|yml|yaml|css))`/g;
+const backtickedFilePattern = /`([\w./@()[\]*-]+\.(?:ts|astro|js|mjs|json|md|yml|yaml|css))`/g;
 const linkTargetPattern = /\]\(((?:[^()\s]|\([^()\s]*\))+)\)/g;
 const scriptPattern = /bun run ([\w:-]+)/g;
 

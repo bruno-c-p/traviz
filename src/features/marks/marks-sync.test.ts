@@ -5,7 +5,6 @@ import {
   INITIAL_MARKS_SYNC_STATE,
   reduceMarksSync,
   visibleMarks,
-  type CachedMarks,
   type MarkChangeFailure,
   type MarksSyncEvent,
   type MarksSyncState,
@@ -15,11 +14,7 @@ import {
 const OWNER = "user_a";
 const OTHER_OWNER = "user_b";
 
-const started = (ownerId: string, cached: CachedMarks | null = null): MarksSyncEvent => ({
-  type: "session-started",
-  ownerId,
-  cached,
-});
+const started = (ownerId: string): MarksSyncEvent => ({ type: "session-started", ownerId });
 
 const ended = (): MarksSyncEvent => ({ type: "session-ended" });
 
@@ -84,13 +79,7 @@ describe("R-9, appeared and fixed inside 0a897af before commit", () => {
 
 describe("F16.1, appeared in 0a897af, fixed in 6d38bf7", () => {
   test("a reset saved before the first sync survives a stale snapshot", () => {
-    const state = play([
-      started(OWNER, { ownerId: OWNER, marks: { FRA: "visited" } }),
-      reset(),
-      sent(1),
-      saved(1),
-      snapshot({ FRA: "visited" }),
-    ]);
+    const state = play([started(OWNER), reset(), sent(1), saved(1), snapshot({ FRA: "visited" })]);
 
     expect(visibleMarks(state)).toEqual({});
   });
@@ -157,18 +146,6 @@ describe("marks sync", () => {
     expect(marks).toEqual({ FRA: "visited", DEU: "want" });
   });
 
-  test("a session shows its own owner's cached marks before the snapshot", () => {
-    const state = play([started(OWNER, { ownerId: OWNER, marks: { FRA: "visited" } })]);
-
-    expect(visibleMarks(state)).toEqual({ FRA: "visited" });
-  });
-
-  test("a session ignores another owner's cached marks", () => {
-    const state = play([started(OWNER, { ownerId: OTHER_OWNER, marks: { FRA: "visited" } })]);
-
-    expect(visibleMarks(state)).toEqual({});
-  });
-
   test("a session for another owner drops the previous owner's queued changes", () => {
     const state = play([started(OWNER), setMark("FRA", "visited"), started(OTHER_OWNER)]);
 
@@ -220,11 +197,8 @@ describe("marks sync", () => {
     expect(reduceMarksSync(waiting, snapshot({ DEU: "want" }, OTHER_OWNER))).toBe(waiting);
   });
 
-  test("a failed snapshot keeps the cached marks and records a problem until one lands", () => {
-    const failing = play([
-      started(OWNER, { ownerId: OWNER, marks: { FRA: "visited" } }),
-      failedSnapshot(),
-    ]);
+  test("a failed snapshot keeps the shown marks and records a problem until one lands", () => {
+    const failing = play([started(OWNER), snapshot({ FRA: "visited" }), failedSnapshot()]);
 
     expect(visibleMarks(failing)).toEqual({ FRA: "visited" });
     expect(failing.problems).toEqual([{ scope: "snapshot", reason: "unavailable" }]);
@@ -436,17 +410,10 @@ describe("marks sync", () => {
   });
 
   test("a change saved before the first snapshot never marks the base as server-confirmed", () => {
-    const uncached = play([started(OWNER), setMark("FRA", "visited"), sent(1), saved(1)]);
+    const state = play([started(OWNER), setMark("FRA", "visited"), sent(1), saved(1)]);
 
-    const cached = play([
-      started(OWNER, { ownerId: OWNER, marks: { ITA: "want" } }),
-      setMark("FRA", "visited"),
-      sent(1),
-      saved(1),
-    ]);
-
-    expect(uncached.base).toEqual({ source: "empty" });
-    expect(cached.base).toEqual({ source: "cache", marks: { ITA: "want", FRA: "visited" } });
+    expect(state.base).toEqual({ source: "empty" });
+    expect(visibleMarks(state)).toEqual({ FRA: "visited" });
   });
 
   test("a tap after the session ended is not carried into the next session", () => {
@@ -542,16 +509,6 @@ describe("events that change nothing", () => {
     expect(visibleMarks(state)).toEqual({});
     expect(state.pending).toEqual([]);
   });
-
-  test("ending an ended session that shows a preview clears the preview", () => {
-    const before = play([
-      started(OWNER),
-      ended(),
-      { type: "cache-previewed", cached: { ownerId: OWNER, marks: { DEU: "visited" } } },
-    ]);
-
-    expect(visibleMarks(reduceMarksSync(before, ended()))).toEqual({});
-  });
 });
 
 describe("a late confirmation", () => {
@@ -590,76 +547,5 @@ describe("a late confirmation", () => {
 
     expect(visibleMarks(confirmed)).toEqual({ DEU: "visited" });
     expect(confirmed.problems).toEqual([{ scope: "DEU", reason: "rejected" }]);
-  });
-});
-
-describe("the cache preview before the session starts", () => {
-  const cached: CachedMarks = { ownerId: OWNER, marks: { DEU: "visited" } };
-
-  const previewed = (preview: CachedMarks = cached): MarksSyncEvent => ({
-    type: "cache-previewed",
-    cached: preview,
-  });
-
-  test("a preview shows the cached marks with no owner", () => {
-    const state = play([previewed()]);
-
-    expect(visibleMarks(state)).toEqual({ DEU: "visited" });
-    expect(state.ownerId).toBeNull();
-  });
-
-  test("a session for the same owner keeps the preview, and its snapshot replaces it", () => {
-    const kept = play([previewed(), started(OWNER, cached)]);
-
-    expect(visibleMarks(kept)).toEqual({ DEU: "visited" });
-
-    expect(visibleMarks(play([snapshot({ FRA: "want" })], kept))).toEqual({ FRA: "want" });
-  });
-
-  test("a session for another owner drops the preview", () => {
-    const state = play([previewed(), started(OTHER_OWNER, cached)]);
-
-    expect(visibleMarks(state)).toEqual({});
-  });
-
-  test("a preview after the session started changes nothing", () => {
-    const before = play([started(OWNER)]);
-
-    expect(play([previewed()], before)).toBe(before);
-  });
-
-  test("a preview after a snapshot changes nothing", () => {
-    const before = play([started(OWNER), snapshot({ FRA: "want" })]);
-
-    expect(play([previewed()], before)).toBe(before);
-  });
-
-  test("a second preview changes nothing", () => {
-    const before = play([previewed()]);
-
-    expect(play([previewed({ ownerId: OWNER, marks: { FRA: "want" } })], before)).toBe(before);
-  });
-
-  test("a tap made over another owner's preview is dropped at the session start", () => {
-    const state = play([previewed(), setMark("FRA", "want"), started(OTHER_OWNER, cached)]);
-
-    expect(state.pending).toEqual([]);
-    expect(visibleMarks(state)).toEqual({});
-  });
-
-  test("a tap made over a preview the session start drops is dropped with it", () => {
-    const state = play([previewed(), setMark("FRA", "want"), started(OWNER)]);
-
-    expect(state.pending).toEqual([]);
-    expect(visibleMarks(state)).toEqual({});
-  });
-
-  test("a tap made during the preview survives the session start", () => {
-    const state = play([previewed(), setMark("FRA", "want"), started(OWNER, cached)]);
-
-    expect(visibleMarks(state)).toEqual({ DEU: "visited", FRA: "want" });
-    expect(state.pending.map((entry) => entry.change)).toEqual([
-      { kind: "set", code: "FRA", state: "want" },
-    ]);
   });
 });

@@ -44,10 +44,6 @@
             {
               "if": "${{ !cancelled() && steps.install.outcome == 'success' }}",
               "run": "bun run fallow"
-            },
-            {
-              "if": "${{ !cancelled() && steps.install.outcome == 'success' }}",
-              "run": "bun run react-doctor --no-telemetry"
             }
           ]
         }
@@ -86,21 +82,12 @@
     },
     ".oxlintrc.json": {
       "$schema": "./node_modules/oxlint/configuration_schema.json",
-      "plugins": ["react", "typescript", "oxc", "unicorn", "import"],
+      "plugins": ["typescript", "oxc", "unicorn", "import"],
       "categories": {
         "correctness": "error"
       },
       "rules": {
-        "react/rules-of-hooks": "error",
-        "react/only-export-components": [
-          "error",
-          {
-            "allowConstantExport": true,
-            "allowExportNames": ["metadata", "viewport"]
-          }
-        ],
         "oxc/no-accumulating-spread": "error",
-        "react/no-multi-comp": "error",
         "unicorn/filename-case": [
           "error",
           {
@@ -151,11 +138,11 @@
         "anti-slop/no-unsafe-dictionary-type": "error",
         "anti-slop/no-widen-then-assert": "error",
         "anti-slop/require-readable-spacing": "error",
+        "boundaries/api-route": "error",
         "boundaries/feature-entry": "error",
         "boundaries/no-comments": "error",
         "boundaries/no-empty-import": "error",
         "boundaries/server-only-module": "error",
-        "boundaries/use-server-placement": "error",
         "no-restricted-globals": [
           "error",
           {
@@ -180,7 +167,7 @@
           }
         },
         {
-          "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/shared/testing/**", "scripts/**"],
+          "files": ["src/**/*.test.ts", "src/shared/testing/**", "scripts/**"],
           "rules": {
             "no-restricted-globals": "off",
             "no-restricted-properties": "off"
@@ -201,18 +188,64 @@
     },
     ".fallowrc.json": {
       "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-      "entry": ["landing/pages/**/*.astro", "landing/client.ts"],
-      "ignorePatterns": ["tools/**"],
+      "entry": ["src/features/*/*-entry.ts"],
+      "ignorePatterns": ["tools/**", "legacy-react/**"],
       "ignoreDependencies": ["@oxlint/plugins"],
+      "ignoreExports": [
+        {
+          "file": "paths.ts",
+          "exports": ["decoratedPath"]
+        },
+        {
+          "file": "src/features/auth/index.ts",
+          "exports": ["clerkSession"]
+        },
+        {
+          "file": "src/features/auth/server.ts",
+          "exports": ["Authenticate", "RequestAuth"]
+        },
+        {
+          "file": "src/features/globe/mount-globe.ts",
+          "exports": ["mountGlobe"]
+        },
+        {
+          "file": "src/features/globe/sheet-exit.ts",
+          "exports": ["EXIT_MS"]
+        },
+        {
+          "file": "src/features/globe/create-globe.ts",
+          "exports": ["Globe"]
+        },
+        {
+          "file": "src/features/marks/colors.ts",
+          "exports": ["STATE_ON_COLORS", "STATE_HINTS"]
+        },
+        {
+          "file": "src/features/marks/index.ts",
+          "exports": ["STATE_ON_COLORS", "endMarksSession", "SavingScopes", "SyncProblem"]
+        },
+        {
+          "file": "src/features/theme/index.ts",
+          "exports": [
+            "THEME_CHOICES",
+            "THEME_LABELS",
+            "chooseTheme",
+            "subscribeTheme",
+            "themeChoice",
+            "ThemeChoice"
+          ]
+        },
+        {
+          "file": "src/features/theme/theme-store.ts",
+          "exports": ["themeChoice", "chooseTheme"]
+        },
+        {
+          "file": "src/features/theme/theme.ts",
+          "exports": ["THEME_CHOICES", "THEME_LABELS"]
+        }
+      ],
       "health": {
         "maxCrap": 73
-      }
-    },
-    "doctor.config.json": {
-      "adoptExistingLintConfig": false,
-      "blocking": "warning",
-      "ignore": {
-        "files": ["tools/**"]
       }
     },
     ".oxfmtrc.json": {
@@ -245,17 +278,17 @@
   },
   "scripts": {
     "lint": "oxlint --type-aware --deny-warnings",
-    "typecheck": "astro sync && astro check && tsc --noEmit && tsc --noEmit -p tsconfig.pure.json",
+    "typecheck": "astro sync && astro check --minimumFailingSeverity warning && tsc --noEmit && tsc --noEmit -p tsconfig.pure.json",
     "test": "bun test",
     "test:rules": "node --import ./tools/oxlint/node-test-setup.ts --test 'tools/oxlint/**/*.test.ts'",
     "format": "oxfmt .",
     "build": "astro build",
+    "build:node": "TRAVIZ_ADAPTER=node astro build",
     "fallow": "fallow",
-    "react-doctor": "react-doctor",
     "check:gates": "bun scripts/check-gates.ts",
     "check:docs": "bun scripts/check-docs.ts",
     "check:bundle": "bun scripts/check-bundle.ts",
-    "check": "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run gen:countries --check && bun run test && bun run test:rules && NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && bun run check:bundle"
+    "check": "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run gen:countries --check && bun run test && bun run test:rules && PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build:node && bun run check:bundle --production-static .vercel/output/static"
   },
   "devEngines": {
     "packageManager": {
@@ -270,33 +303,55 @@
       "minBytes": 1024
     },
     "routes": {
-      "/sign-in/verify": {
-        "firstLoadGzipBytes": 192157,
-        "lazyGzipBytes": 0
-      },
-      "/sign-in": {
-        "firstLoadGzipBytes": 191053,
-        "lazyGzipBytes": 0
-      },
       "/": {
-        "firstLoadGzipBytes": 163976,
-        "lazyGzipBytes": 71303
+        "firstLoadGzipBytes": 9583,
+        "lazyGzipBytes": 0,
+        "htmlGzipBytes": 20334
       },
       "/list": {
-        "firstLoadGzipBytes": 161239,
-        "lazyGzipBytes": 3348
+        "firstLoadGzipBytes": 9583,
+        "lazyGzipBytes": 0,
+        "htmlGzipBytes": 25372
       },
       "/stats": {
-        "firstLoadGzipBytes": 159871,
-        "lazyGzipBytes": 3348
+        "firstLoadGzipBytes": 9583,
+        "lazyGzipBytes": 0,
+        "htmlGzipBytes": 22123
       },
-      "/_not-found": {
-        "firstLoadGzipBytes": 135666,
-        "lazyGzipBytes": 0
+      "/fragments/globe": {
+        "firstLoadGzipBytes": 0,
+        "lazyGzipBytes": 0,
+        "htmlGzipBytes": 202
+      },
+      "/fragments/list": {
+        "firstLoadGzipBytes": 0,
+        "lazyGzipBytes": 0,
+        "htmlGzipBytes": 5243
+      },
+      "/fragments/stats": {
+        "firstLoadGzipBytes": 0,
+        "lazyGzipBytes": 0,
+        "htmlGzipBytes": 2293
       },
       "/welcome": {
-        "firstLoadGzipBytes": 3992,
-        "lazyGzipBytes": 75140
+        "firstLoadGzipBytes": 4029,
+        "lazyGzipBytes": 75140,
+        "htmlGzipBytes": 16481
+      },
+      "/sign-in": {
+        "firstLoadGzipBytes": 129,
+        "lazyGzipBytes": 0,
+        "htmlGzipBytes": 10357
+      },
+      "/sign-in/verify": {
+        "firstLoadGzipBytes": 129,
+        "lazyGzipBytes": 0,
+        "htmlGzipBytes": 10261
+      },
+      "/404": {
+        "firstLoadGzipBytes": 129,
+        "lazyGzipBytes": 0,
+        "htmlGzipBytes": 8098
       }
     }
   }

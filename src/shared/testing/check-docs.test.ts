@@ -51,3 +51,11 @@ test("check:docs fails on a missing path and a missing script", () => {
   expect(output).toContain("AGENTS.md:1 path src/lib/db.ts");
   expect(exitCode).toBe(1);
 });
+
+test("check:docs checks a bare .astro file name as it checks a .ts one", () => {
+  const fixtureRoot = createDocsFixture("The view is `list-view.astro`, beside `README.md`.\n");
+  const { exitCode, output } = runCheckDocs(fixtureRoot);
+
+  expect(output).toContain("AGENTS.md:1 path list-view.astro");
+  expect(exitCode).toBe(1);
+});

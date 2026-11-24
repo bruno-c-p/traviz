@@ -8,11 +8,7 @@ function idleStore() {
   const neverReplies = () => new Promise<never>(() => {});
 
   return createMarksStore(
-    createMarksOwner(
-      { applyMarkChange: neverReplies, readMarks: neverReplies },
-      { read: () => null, write: () => {}, clear: () => {} },
-      () => {},
-    ),
+    createMarksOwner({ applyMarkChange: neverReplies, readMarks: neverReplies }, () => {}),
   );
 }
 

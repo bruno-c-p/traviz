@@ -9,6 +9,7 @@ import { EARLY_TAPS_SCRIPT } from "@/features/marks/core";
 import MarksSnapshotScript from "@/features/marks/marks-snapshot.astro";
 import type { MarksSnapshot } from "@/features/marks";
 import { THEME_SCRIPT } from "@/features/theme/core";
+import PageHead from "@/shared/page-head.astro";
 import appScript from "virtual:traviz-app-script";
 
 type Props = { view: ViewName; marks: Promise<MarksSnapshot | null> };
@@ -19,18 +20,7 @@ const { view, marks } = Astro.props;
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f4f6f1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f110d" media="(prefers-color-scheme: dark)" />
-    <title>traviz</title>
-    <meta name="application-name" content="traviz" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="traviz" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <link rel="icon" href="/icon.svg" sizes="any" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" type="image/png" />
+    <PageHead title="traviz" />
     <script is:inline set:html={THEME_SCRIPT} />
     <script is:inline set:html={EARLY_TAPS_SCRIPT} />
   </head>

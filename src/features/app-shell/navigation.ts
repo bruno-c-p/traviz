@@ -43,7 +43,7 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   },
 ];
 
-export const VIEW_ORDER: readonly ViewName[] = NAVIGATION_ITEMS.map((item) => item.view);
+const VIEW_ORDER: readonly ViewName[] = NAVIGATION_ITEMS.map((item) => item.view);
 
 export type NavPlacement = "top" | "tab";
 

@@ -4,9 +4,9 @@ This directory is the maintained source for verifying what a traviz user can see
 
 ## Baseline preconditions
 
-- `bun run setup` has run in this worktree, and `bun run verify:server start` printed `ready`.
+- `bun run setup` has run in this worktree, and `bun run verify:server start` printed `ready`. With `--fixed-user` the server signs every request in as `user_local_fixed` without Clerk, `signIn` does nothing, and the sign-in and sign-out journeys in [auth.md](auth.md) cannot run.
 - `bun run verify:doctor` prints only `ok` lines.
-- The dev user `agent+clerk_test@example.com` has no marks: `readMarkRows()` returns `[]` (after `bun run setup` that is `sqlite3 .data/dev.db "select count(*) from marks"` printing `0`). If it does not, clear your own leftovers on `/list` by clicking each pressed button again. Use `Reset all data` in the `Danger zone` of the account menu only when every row is yours to erase. Otherwise report the starting rows.
+- The dev user `agent+clerk_test@example.com` has no marks: `readMarkRows()` returns `[]` (it reads `.data/dev.db` through `bun:sqlite`, so no `sqlite3` binary is needed). If it does not, clear your own leftovers on `/list` by clicking each pressed button again. Use `Reset all data` in the `Danger zone` of the account menu only when every row is yours to erase. Otherwise report the starting rows.
 - Never drive a server that this run did not start, or that `.data/verify/server.json` in this worktree does not record.
 
 ## Driving conventions
@@ -36,4 +36,4 @@ Each feature file starts with an H1 title and one paragraph on what the user see
 - [Country list](country-list.md) covers `/list`: continent and status filters, search, the full list and marking from a row.
 - [Stats](stats.md) covers `/stats`: the visited headline, the three totals and the continent cards.
 - [Sign-in and sign-out](auth.md) covers the email-link form, the verify page, sign-out and the redirects in the route table.
-- [Marks](marks.md) covers setting, changing, clearing and resetting marks, the saving and failure notices, the owner-tagged cache and how marks persist.
+- [Marks](marks.md) covers setting, changing, clearing and resetting marks, the saving and failure notices and how marks persist.

@@ -10,6 +10,7 @@ import "@fontsource-variable/instrument-sans/wght.css";
 import "@/features/landing/landing.css";
 import { THEME_SCRIPT } from "@/features/theme/core";
 import { homePath } from "@/paths";
+import PageHead from "@/shared/page-head.astro";
 
 export const prerender = true;
 
@@ -25,18 +26,9 @@ const description =
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <PageHead title={title} />
     <link rel="preload" href={sansFontUrl} as="font" type="font/woff2" crossorigin />
-    <meta name="theme-color" content="#f4f6f1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f110d" media="(prefers-color-scheme: dark)" />
-    <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="application-name" content="traviz" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="traviz" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:site_name" content="Traviz" />
@@ -44,8 +36,6 @@ const description =
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <link rel="icon" href="/icon.svg" sizes="any" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" type="image/png" />
     <script is:inline set:html={themeScript} />
     <script is:inline set:html={signedInHintScript} />
   </head>
@@ -59,10 +49,6 @@ const description =
         <LandingFinale />
       </main>
     </div>
-    <script>
-      import { startLanding } from "@/features/landing";
-
-      startLanding();
-    </script>
+    <script src="@/features/landing/landing-entry.ts"></script>
   </body>
 </html>
