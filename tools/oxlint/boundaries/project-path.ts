@@ -12,12 +12,6 @@ export function isTestPath(path: string): boolean {
   return /\.test\.tsx?$/.test(path) || path.startsWith("src/shared/testing/");
 }
 
-export function hasDirective(program: ESTree.Program, directive: string): boolean {
-  return program.body.some(
-    (statement) => statement.type === "ExpressionStatement" && statement.directive === directive,
-  );
-}
-
 export function firstStatement(program: ESTree.Program): ESTree.Node | undefined {
   return program.body.find(
     (statement) => statement.type !== "ExpressionStatement" || !statement.directive,

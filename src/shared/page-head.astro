@@ -1,0 +1,24 @@
+---
+type Props = { title: string; isInstallable?: boolean };
+
+const { title, isInstallable = true } = Astro.props;
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#f4f6f1" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0f110d" media="(prefers-color-scheme: dark)" />
+<title>{title}</title>
+<meta name="application-name" content="traviz" />
+{
+  isInstallable && (
+    <>
+      <link rel="manifest" href="/manifest.webmanifest" />
+      <meta name="mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-title" content="traviz" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" type="image/png" />
+    </>
+  )
+}
+<link rel="icon" href="/icon.svg" sizes="any" type="image/svg+xml" />

@@ -2,7 +2,6 @@ import {
   changeScope,
   INITIAL_MARKS_SYNC_STATE,
   reduceMarksSync,
-  type CachedMarks,
   type MarkChange,
   type MarkChangeResult,
   type MarksSnapshot,
@@ -19,17 +18,10 @@ export type MarksTransport = {
   readonly readMarks: (expectedOwnerId: string) => Promise<MarksSnapshot>;
 };
 
-export type MarksCache = {
-  readonly read: () => CachedMarks | null;
-  readonly write: (cached: CachedMarks) => void;
-  readonly clear: () => void;
-};
-
 export type MarksDeadline = (onExpired: () => void) => void;
 
 export type MarksOwner = {
   readonly getState: () => MarksSyncState;
-  readonly previewCache: (isSignedInAs: (ownerId: string) => boolean) => void;
   readonly startSession: (ownerId: string) => void;
   readonly endSession: () => void;
   readonly receiveSnapshot: (snapshot: MarksSnapshot) => void;
@@ -42,7 +34,6 @@ const UNAVAILABLE: MarkChangeResult = { ok: false, reason: "unavailable" };
 
 export function createMarksOwner(
   transport: MarksTransport,
-  cache: MarksCache,
   startDeadline: MarksDeadline,
 ): MarksOwner {
   let state = INITIAL_MARKS_SYNC_STATE;
@@ -53,37 +44,12 @@ export function createMarksOwner(
   let serverSnapshotRead = 0;
   const listeners = new Set<() => void>();
 
-  const readCache = (): CachedMarks | null => {
-    try {
-      return cache.read();
-    } catch {
-      return null;
-    }
-  };
-
-  const writeCache = (previous: MarksSyncState) => {
-    const { base, ownerId } = state;
-
-    if (base === previous.base || base.source !== "server" || ownerId === null) return;
-
-    try {
-      cache.write({ ownerId, marks: base.marks });
-    } catch {}
-  };
-
-  const clearCache = () => {
-    try {
-      cache.clear();
-    } catch {}
-  };
-
   const dispatch = (event: MarksSyncEvent) => {
     const previous = state;
     state = reduceMarksSync(state, event);
 
     if (state === previous) return;
 
-    writeCache(previous);
     listeners.forEach((listener) => listener());
   };
 
@@ -183,22 +149,14 @@ export function createMarksOwner(
 
   return {
     getState: () => state,
-    previewCache: (isSignedInAs) => {
-      const cached = readCache();
-
-      if (cached !== null && isSignedInAs(cached.ownerId)) {
-        dispatch({ type: "cache-previewed", cached });
-      }
-    },
     startSession: (ownerId) => {
       if (state.ownerId !== ownerId) beginSession();
 
       serverSnapshotRead = takeSnapshotRead();
-      handle({ type: "session-started", ownerId, cached: readCache() });
+      handle({ type: "session-started", ownerId });
     },
     endSession: () => {
       beginSession();
-      clearCache();
       handle({ type: "session-ended" });
     },
     receiveSnapshot: (snapshot) => {

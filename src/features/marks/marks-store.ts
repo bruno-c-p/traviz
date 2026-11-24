@@ -1,7 +1,6 @@
 import type { CountryState, Marks } from "@/features/marks/colors";
 import {
   createMarksOwner,
-  type MarksCache,
   type MarksOwner,
   type MarksTransport,
 } from "@/features/marks/marks-owner";
@@ -33,12 +32,6 @@ export type MarksStoreState = {
 };
 
 const SAVE_DEADLINE_MS = 8000;
-
-const NO_MARKS_CACHE: MarksCache = {
-  read: () => null,
-  write: () => {},
-  clear: () => {},
-};
 
 function savingScopes(state: MarksSyncState): SavingScopes {
   const unsaved = state.pending.filter((entry) => entry.phase !== "saved");
@@ -108,7 +101,7 @@ export function createBrowserMarksStore(
   startTimer: (callback: () => void, milliseconds: number) => void,
 ) {
   return createMarksStore(
-    createMarksOwner(transport, NO_MARKS_CACHE, (onExpired) => {
+    createMarksOwner(transport, (onExpired) => {
       startTimer(onExpired, SAVE_DEADLINE_MS);
     }),
   );

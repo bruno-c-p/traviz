@@ -44,7 +44,7 @@ const FIELD_SEPARATOR = "\t";
 const ROW_SEPARATOR = "\n";
 const TERRITORY_FLAG = "t";
 
-export function normalizeSearchText(value: string): string {
+function normalizeSearchText(value: string): string {
   return value
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")

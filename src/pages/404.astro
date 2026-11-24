@@ -5,18 +5,13 @@ import "@/features/landing/landing.css";
 import PaintLabel from "@/features/landing/paint-label.astro";
 import { THEME_SCRIPT } from "@/features/theme/core";
 import { homePath } from "@/paths";
+import PageHead from "@/shared/page-head.astro";
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f4f6f1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f110d" media="(prefers-color-scheme: dark)" />
-    <title>Not on the map · Traviz</title>
-    <meta name="application-name" content="traviz" />
-    <link rel="icon" href="/icon.svg" sizes="any" type="image/svg+xml" />
+    <PageHead title="Not on the map · Traviz" isInstallable={false} />
     <script is:inline set:html={THEME_SCRIPT} />
   </head>
   <body class="bg-canvas-soft font-sans text-ink">

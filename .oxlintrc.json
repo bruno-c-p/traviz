@@ -1,18 +1,9 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc", "unicorn", "import"],
+  "plugins": ["typescript", "oxc", "unicorn", "import"],
   "categories": { "correctness": "error" },
   "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": [
-      "error",
-      {
-        "allowConstantExport": true,
-        "allowExportNames": ["metadata", "viewport"]
-      }
-    ],
     "oxc/no-accumulating-spread": "error",
-    "react/no-multi-comp": "error",
     "unicorn/filename-case": ["error", { "case": "kebabCase" }],
     "import/no-relative-parent-imports": "error",
     "import/no-unassigned-import": [
@@ -46,11 +37,11 @@
     "anti-slop/no-unsafe-dictionary-type": "error",
     "anti-slop/no-widen-then-assert": "error",
     "anti-slop/require-readable-spacing": "error",
+    "boundaries/api-route": "error",
     "boundaries/feature-entry": "error",
     "boundaries/no-comments": "error",
     "boundaries/no-empty-import": "error",
     "boundaries/server-only-module": "error",
-    "boundaries/use-server-placement": "error",
     "no-restricted-globals": [
       "error",
       {
@@ -73,7 +64,7 @@
       "rules": { "typescript/consistent-type-assertions": "off" }
     },
     {
-      "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/shared/testing/**", "scripts/**"],
+      "files": ["src/**/*.test.ts", "src/shared/testing/**", "scripts/**"],
       "rules": {
         "no-restricted-globals": "off",
         "no-restricted-properties": "off"

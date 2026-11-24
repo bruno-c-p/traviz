@@ -4,20 +4,13 @@ import "@fontsource-variable/instrument-sans/wght.css";
 import "@/features/app-shell/app.css";
 import { THEME_SCRIPT } from "@/features/theme/core";
 import BrandMark from "@/shared/brand-mark.astro";
+import PageHead from "@/shared/page-head.astro";
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f4f6f1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f110d" media="(prefers-color-scheme: dark)" />
-    <title>traviz</title>
-    <meta name="application-name" content="traviz" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" href="/icon.svg" sizes="any" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" type="image/png" />
+    <PageHead title="traviz" />
     <script is:inline set:html={THEME_SCRIPT} />
   </head>
   <body class="bg-canvas-soft font-sans text-ink">

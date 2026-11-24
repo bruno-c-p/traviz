@@ -19,7 +19,6 @@ const gateFiles = [
   ".oxlintrc.json",
   "lint-exemptions.json",
   ".fallowrc.json",
-  "doctor.config.json",
   "package.json",
   "bundle-budget.json",
 ];
@@ -27,7 +26,6 @@ const gateFiles = [
 const exemptedFiles = [
   "paths.ts",
   "src/example.test.ts",
-  "src/example.test.tsx",
   "src/shared/testing/example.ts",
   "scripts/example.ts",
 ];
@@ -211,8 +209,8 @@ test("check:gates fails on oxlint config that loosens rules from elsewhere", () 
     ".oxlintrc.json.plugins differs from gates.json",
     edit(
       ".oxlintrc.json",
-      '"plugins": ["react", "typescript", "oxc", "unicorn", "import"]',
-      '"plugins": ["react"]',
+      '"plugins": ["typescript", "oxc", "unicorn", "import"]',
+      '"plugins": ["typescript"]',
     ),
   );
 });
@@ -232,7 +230,7 @@ test("check:gates fails on an exemption whose file or override is gone", () => {
   );
 });
 
-test("check:gates fails when fallow or react-doctor is loosened", () => {
+test("check:gates fails when fallow or astro check is loosened", () => {
   expectFailure(
     ".fallowrc.json must set health.maxCrap to 73 or lower",
     edit(".fallowrc.json", '"maxCrap": 73', '"maxCrap": 90'),
@@ -241,13 +239,27 @@ test("check:gates fails when fallow or react-doctor is loosened", () => {
     ".fallowrc.json.ignorePatterns differs from gates.json",
     edit(
       ".fallowrc.json",
-      '"ignorePatterns": ["tools/**"]',
-      '"ignorePatterns": ["tools/**", "src/**"]',
+      '"ignorePatterns": ["tools/**", "legacy-react/**"]',
+      '"ignorePatterns": ["tools/**", "legacy-react/**", "src/**"]',
     ),
   );
   expectFailure(
-    'doctor.config.json must set blocking to "warning"',
-    edit("doctor.config.json", '"blocking": "warning"', '"blocking": "error"'),
+    ".fallowrc.json.entry differs from gates.json",
+    edit(".fallowrc.json", '"entry": ["src/features/*/*-entry.ts"]', '"entry": ["src/**"]'),
+  );
+  expectFailure(
+    "package.json script typecheck differs from gates.json",
+    edit("package.json", " --minimumFailingSeverity warning", ""),
+  );
+
+  const weakerEverywhere = [
+    edit("package.json", " --minimumFailingSeverity warning", ""),
+    edit("gates.json", " --minimumFailingSeverity warning", ""),
+  ];
+
+  expectFailure(
+    "gates.json script typecheck must run astro check --minimumFailingSeverity warning",
+    ...weakerEverywhere,
   );
 });
 
@@ -314,6 +326,10 @@ test("check:gates fails on lint switched off outside .oxlintrc.json", () => {
     "src/probe.ts",
     `/* ${["oxlint", "disable"].join("-")} */\nexport const probe = 1;\n`,
   ]);
+  expectFailure("src/pages/probe.astro disables lint inline; use lint-exemptions.json", [
+    "src/pages/probe.astro",
+    `---\n/* ${["oxlint", "disable"].join("-")} */\nconst probe = 1;\n---\n<p>{probe}</p>\n`,
+  ]);
 });
 
 test("check:gates fails when the format, test or ignore config narrows a gate", () => {
@@ -341,11 +357,11 @@ test("check:gates fails when the format, test or ignore config narrows a gate", 
 
 test("check:gates exempts a rule only for the files its exemption lists", () => {
   expectFailure(
-    "sets react/incompatible-library to off for src/example.test.ts without an entry in lint-exemptions.json",
+    "sets unicorn/filename-case to off for src/example.test.ts without an entry in lint-exemptions.json",
     edit(
       ".oxlintrc.json",
       '"overrides": [',
-      '"overrides": [\n    { "files": ["src/example.test.ts"], "rules": { "react/incompatible-library": "off" } },',
+      '"overrides": [\n    { "files": ["src/example.test.ts"], "rules": { "unicorn/filename-case": "off" } },',
     ),
   );
 });
@@ -382,11 +398,11 @@ test("check:gates fails when an exemption's override covers other files", () => 
 
 test("check:gates fails when a boundaries rule or the bare-import rule is removed", () => {
   for (const rule of [
+    "boundaries/api-route",
     "boundaries/feature-entry",
     "boundaries/no-comments",
     "boundaries/no-empty-import",
     "boundaries/server-only-module",
-    "boundaries/use-server-placement",
   ])
     expectFailure(
       `.oxlintrc.json.rules.${rule} differs from gates.json`,
@@ -426,16 +442,20 @@ test("check:gates fails when a bundle budget or its tolerance rises, or a route 
     budgetEdit("/stats", "firstLoadGzipBytes", 10_000_000),
   );
   expectFailure(
+    "bundle-budget.json /welcome htmlGzipBytes is 5000000, above",
+    budgetEdit("/welcome", "htmlGzipBytes", 5_000_000),
+  );
+  expectFailure(
     "bundle-budget.json tolerance.minBytes is 100000, above",
     edit("bundle-budget.json", '"minBytes": 1024', '"minBytes": 100000'),
   );
   expectFailure(
-    "bundle-budget.json drops /_not-found, which gates.json budgets",
-    edit("bundle-budget.json", '"/_not-found"', '"/elsewhere"'),
+    "bundle-budget.json drops /404, which gates.json budgets",
+    edit("bundle-budget.json", '"/404"', '"/elsewhere"'),
   );
   expectFailure(
     "bundle-budget.json budgets /elsewhere, which gates.json does not",
-    edit("bundle-budget.json", '"/_not-found"', '"/elsewhere"'),
+    edit("bundle-budget.json", '"/404"', '"/elsewhere"'),
   );
 });
 
@@ -443,6 +463,7 @@ test("check:gates passes when a bundle budget is lowered", () => {
   for (const lowered of [
     budgetEdit("/", "lazyGzipBytes", 0),
     budgetEdit("/list", "firstLoadGzipBytes", 0),
+    budgetEdit("/stats", "htmlGzipBytes", 0),
   ]) {
     const { exitCode, output } = runCheckGates(lowered);
 

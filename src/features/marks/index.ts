@@ -8,10 +8,6 @@ export {
 
 export type { CountryState, Marks, StateColorKey } from "@/features/marks/colors";
 
-export { tallyMarks, tallyShare, tallyTotal } from "@/features/marks/tally";
-
-export type { Tally } from "@/features/marks/tally";
-
 export { endMarksSession, marksStore } from "@/features/marks/marks-store";
 
 export type { MarksStore, MarksStoreState, SavingScopes } from "@/features/marks/marks-store";

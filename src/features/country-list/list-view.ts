@@ -244,30 +244,36 @@ export function mountListView(host: HTMLElement, store: MarksStore) {
     else spacer.remove();
   };
 
+  const buildNextRow = (): { section: SectionView; element: HTMLElement } | null => {
+    const view = views[nextToMaterialize];
+
+    nextToMaterialize += 1;
+
+    if (view === undefined || view.element !== null) return null;
+
+    const section = sectionsByContinent.get(view.row.continent);
+    const element = section === undefined ? null : createRow(view);
+
+    return section === undefined || element === null ? null : { section, element };
+  };
+
   const materialize = (limit: number) => {
     const batches = new Map<SectionView, { fragment: DocumentFragment; added: number }>();
     let created = 0;
 
     while (nextToMaterialize < views.length && created < limit) {
-      const view = views[nextToMaterialize];
-      const section = view === undefined ? undefined : sectionsByContinent.get(view.row.continent);
+      const built = buildNextRow();
 
-      nextToMaterialize += 1;
+      if (built === null) continue;
 
-      if (view === undefined || section === undefined || view.element !== null) continue;
-
-      const element = createRow(view);
-
-      const batch = batches.get(section) ?? {
+      const batch = batches.get(built.section) ?? {
         fragment: document.createDocumentFragment(),
         added: 0,
       };
 
-      if (element === null) continue;
-
-      batch.fragment.append(element);
+      batch.fragment.append(built.element);
       batch.added += 1;
-      batches.set(section, batch);
+      batches.set(built.section, batch);
       created += 1;
     }
 
@@ -329,9 +335,12 @@ export function mountListView(host: HTMLElement, store: MarksStore) {
     });
   };
 
-  const renderSelection = () => {
+  const isSelectedContinent = (button: HTMLElement) =>
+    (button.dataset.continent ?? "") === (selection.continent ?? "");
+
+  const renderContinentButtons = () => {
     for (const chip of chipButtons) {
-      const isActive = (chip.dataset.continent ?? "") === (selection.continent ?? "");
+      const isActive = isSelectedContinent(chip);
 
       setPressed(chip, isActive);
       setClass(chip, chipClass(isActive));
@@ -339,12 +348,16 @@ export function mountListView(host: HTMLElement, store: MarksStore) {
     }
 
     for (const item of sidebarButtons) {
-      const isActive = (item.dataset.continent ?? "") === (selection.continent ?? "");
+      const isActive = isSelectedContinent(item);
 
       setPressed(item, isActive);
       setClass(item, sidebarItemClass(isActive));
       setClass(item.querySelector("[data-label]"), sidebarLabelClass(isActive));
     }
+  };
+
+  const renderSelection = () => {
+    renderContinentButtons();
 
     for (const button of filterButtons) {
       const filter = parseListFilter(button.dataset.filter);
@@ -392,18 +405,22 @@ export function mountListView(host: HTMLElement, store: MarksStore) {
     else mark(code, state);
   };
 
-  host.addEventListener("click", (event) => {
-    const button = event.target instanceof Element ? event.target.closest("button") : null;
-
-    if (button === null) return;
-
+  const toggleTappedMark = (button: HTMLButtonElement): boolean => {
     const state = parseCountryState(button.dataset.state);
     const code = button.parentElement?.dataset.code;
+
+    if (state === undefined || code === undefined) return false;
+
+    toggleMark(code, state);
+
+    return true;
+  };
+
+  const useControl = (button: HTMLButtonElement) => {
     const filter = parseListFilter(button.dataset.filter);
     const { continent, dismiss } = button.dataset;
 
-    if (state !== undefined && code !== undefined) toggleMark(code, state);
-    else if (filter !== null) select({ filters: toggledFilters(selection.filters, filter) });
+    if (filter !== null) select({ filters: toggledFilters(selection.filters, filter) });
     else if (continent !== undefined) select({ continent: continent === "" ? null : continent });
     else if (dismiss !== undefined) store.getState().dismissProblem(dismiss);
     else if (button === clearButton) {
@@ -411,6 +428,12 @@ export function mountListView(host: HTMLElement, store: MarksStore) {
       searchInput.focus();
       select({ query: "" });
     }
+  };
+
+  host.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest("button") : null;
+
+    if (button !== null && !toggleTappedMark(button)) useControl(button);
   });
 
   searchInput.addEventListener("input", () => select({ query: searchInput.value }));

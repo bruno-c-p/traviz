@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { CONTINENT_ORDER, countries, searchCountries } from "@/features/countries";
-import { buildListSections } from "@/features/country-list/country-list-items";
 import {
   continentOptions,
   decodeListRows,
@@ -25,7 +24,9 @@ describe("the list rows", () => {
     expect(rows[0]?.name).toBe("Algeria");
     expect(rows.at(-1)?.name).toBe("South Georgia");
     expect(names(rows)).toEqual(
-      buildListSections(countries, null).flatMap((section) => names(section.countries)),
+      CONTINENT_ORDER.flatMap((continent) =>
+        names(countries.filter((country) => country.continent === continent)),
+      ),
     );
   });
 

@@ -5,7 +5,8 @@
   "type": "module",
   "sideEffects": [
     "*.css",
-    "./src/features/app-shell/app-entry.ts"
+    "./src/features/app-shell/app-entry.ts",
+    "./src/features/landing/landing-entry.ts"
   ],
   "scripts": {
     "gen:countries": "bun scripts/build-countries.ts",
@@ -21,18 +22,18 @@
     "db:migrate": "bun --conditions=react-server --env-file=.env.local scripts/migrate.ts",
     "dev": "astro dev",
     "build": "astro build",
+    "build:node": "TRAVIZ_ADAPTER=node astro build",
     "start": "node dist/server/entry.mjs",
     "lint": "oxlint --type-aware --deny-warnings",
     "format": "oxfmt .",
     "fallow": "fallow",
-    "react-doctor": "react-doctor",
-    "typecheck": "astro sync && astro check && tsc --noEmit && tsc --noEmit -p tsconfig.pure.json",
+    "typecheck": "astro sync && astro check --minimumFailingSeverity warning && tsc --noEmit && tsc --noEmit -p tsconfig.pure.json",
     "check:docs": "bun scripts/check-docs.ts",
     "check:bundle": "bun scripts/check-bundle.ts",
     "check:gates": "bun scripts/check-gates.ts",
     "test": "bun test",
     "test:rules": "node --import ./tools/oxlint/node-test-setup.ts --test 'tools/oxlint/**/*.test.ts'",
-    "check": "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run gen:countries --check && bun run test && bun run test:rules && NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && bun run check:bundle"
+    "check": "bun run check:gates && bun run format --check && bun run lint && bun run typecheck && bun run check:docs && bun run gen:countries --check && bun run test && bun run test:rules && PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build && PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsuZXhhbXBsZS5jb20k TURSO_DATABASE_URL=libsql://ci-placeholder.turso.io TURSO_AUTH_TOKEN=ci bun run build:node && bun run check:bundle --production-static .vercel/output/static"
   },
   "dependencies": {
     "@astrojs/node": "11.1.14",
@@ -65,11 +66,11 @@
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "7.0.2004",
     "playwright-core": "^1.64.1",
-    "react-doctor": "^0.9.18",
     "tailwindcss": "^4.3.3",
     "topojson-server": "^3.0.1",
     "topojson-simplify": "^3.0.3",
     "typescript": "~6.0.2",
+    "vite": "^8.3.8",
     "world-atlas": "^2.0.2",
     "world-countries": "^5.1.0"
   },
