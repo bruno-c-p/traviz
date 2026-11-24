@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { countries } from "@/features/countries";
 import { progressModel, progressTotalText } from "@/features/stats/progress-model";
-import { visitedProgress } from "@/features/stats/visited-progress";
 
 const POOL = [{ code: "FRA" }, { code: "JPN" }, { code: "BRA" }, { code: "KEN" }];
 
@@ -46,18 +45,12 @@ describe("progress card numbers", () => {
     expect(progressModel(POOL, { XXX: "visited" }).visited).toBe(0);
   });
 
-  test("agrees with the dataset-wide progress the stats page is checked against", () => {
+  test("counts the whole dataset, 250 places, for the progress card", () => {
     const marks = { FRA: "visited", JPN: "visited", BRA: "want", ATA: "not_interested" } as const;
     const model = progressModel(countries, marks);
-    const expected = visitedProgress(marks);
 
-    expect([model.visited, model.want, model.total, model.excluded]).toEqual([
-      expected.visited,
-      expected.want,
-      expected.total,
-      expected.excluded,
-    ]);
-    expect(model.percentText).toBe(`${expected.percent.toFixed(1)}%`);
+    expect([model.visited, model.want, model.total, model.excluded]).toEqual([2, 1, 249, 1]);
+    expect(model.percentText).toBe("0.8%");
   });
 
   test("the panel and the peek word the total differently", () => {
