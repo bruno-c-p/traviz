@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "./src/features/app-shell/app-entry.ts"
   ],
   "scripts": {
     "gen:countries": "bun scripts/build-countries.ts",

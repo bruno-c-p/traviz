@@ -9,6 +9,7 @@ import { EARLY_TAPS_SCRIPT } from "@/features/marks/core";
 import MarksSnapshotScript from "@/features/marks/marks-snapshot.astro";
 import type { MarksSnapshot } from "@/features/marks";
 import { THEME_SCRIPT } from "@/features/theme/core";
+import appScript from "virtual:traviz-app-script";
 
 type Props = { view: ViewName; marks: Promise<MarksSnapshot | null> };
 
@@ -49,10 +50,6 @@ const { view, marks } = Astro.props;
       </div>
     </div>
     <MarksSnapshotScript marks={marks} />
-    <script>
-      import { startApp } from "@/features/app-shell";
-
-      startApp();
-    </script>
+    <script is:inline type="module" set:html={appScript} />
   </body>
 </html>
