@@ -33,3 +33,14 @@ const ICON_CLASSES: Record<IconName, string> = {
 export function iconClass(name: IconName, sizeClass: string): string {
   return `icon ${ICON_CLASSES[name]} ${sizeClass}`;
 }
+
+export const INLINE_ICON_NAMES = [
+  "envelope-closed",
+  "exit",
+  "desktop",
+  "sun",
+  "moon",
+  "exclamation-triangle",
+] as const;
+
+export type InlineIconName = (typeof INLINE_ICON_NAMES)[number];

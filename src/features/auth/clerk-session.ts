@@ -158,6 +158,10 @@ export function createClerkSession({
       if (currentClerk()?.loaded) start();
       else afterPageLoad(start);
     },
+    loadNow: start,
+    ready: async () => {
+      await load();
+    },
     signOut: async (redirectUrl: string, onSignedOut: () => void) => {
       const clerk = await withinTimeout(load);
       await clerk.signOut({ redirectUrl });

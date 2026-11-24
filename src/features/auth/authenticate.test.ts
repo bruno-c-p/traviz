@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { authenticateWith, fixedUserSession } from "@/features/auth/authenticate";
-import { missingClerkKeys } from "@/features/auth/clerk-session-reader";
+import { missingClerkKeys, parseAuthorizedParties } from "@/features/auth/clerk-session-reader";
 
 const request = new Request("https://traviz.test/list");
 
@@ -39,4 +39,22 @@ test("the Clerk reader names each key that is missing", () => {
     "PUBLIC_CLERK_PUBLISHABLE_KEY",
   ]);
   expect(missingClerkKeys({ secretKey: "sk_test_x", publishableKey: "pk_test_x" })).toEqual([]);
+});
+
+test("no authorized parties setting leaves the check to Clerk's default", () => {
+  expect(parseAuthorizedParties(undefined)).toBeUndefined();
+  expect(parseAuthorizedParties(" , ")).toBeUndefined();
+});
+
+test("authorized parties are the listed origins, trimmed", () => {
+  expect(parseAuthorizedParties("https://traviz.example, http://localhost:4321")).toEqual([
+    "https://traviz.example",
+    "http://localhost:4321",
+  ]);
+});
+
+test("an authorized party that is not a bare origin is refused by name", () => {
+  expect(() => parseAuthorizedParties("https://traviz.example/, traviz.example")).toThrow(
+    "not https://traviz.example/, traviz.example",
+  );
 });

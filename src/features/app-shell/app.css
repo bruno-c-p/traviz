@@ -5,6 +5,10 @@
 
 @source "../";
 @source not "../landing";
+@source not "../auth/sign-in";
+@source not "../auth/account-menu";
+@source not "../marks/danger-zone.astro";
+@source not "../theme/theme-picker.astro";
 @source "../../shared";
 @source "../../pages";
 @source not "../../pages/welcome.astro";

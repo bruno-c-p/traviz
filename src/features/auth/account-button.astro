@@ -17,5 +17,6 @@ const { class: className } = Astro.props;
     className,
   ]}
 >
-  <Icon name="person" size="size-5" />
+  <Icon name="person" size="size-5" class="in-data-account-initial:hidden" />
+  <span aria-hidden="true" class="after:content-(--account-initial)"></span>
 </button>

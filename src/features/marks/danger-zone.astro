@@ -1,0 +1,53 @@
+---
+import InlineIcon from "@/shared/icons/inline-icon.astro";
+
+type Props = { class?: string };
+
+const { class: className } = Astro.props;
+
+const DANGER_BUTTON_CLASS =
+  "pressable min-h-11 rounded-full bg-negative px-5 text-sm font-semibold text-white hover:bg-negative-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2";
+---
+
+<section
+  data-danger-zone
+  aria-labelledby="danger-zone-heading"
+  class:list={["flex flex-col gap-3", className]}
+>
+  <h2
+    id="danger-zone-heading"
+    class="flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-negative-text"
+  >
+    <InlineIcon name="exclamation-triangle" class="size-3.5" />
+    Danger zone
+  </h2>
+  <p class="text-sm leading-relaxed text-body">
+    Permanently erase every mark. This cannot be undone.
+  </p>
+  <div
+    data-reset-confirmation
+    hidden
+    class="flex origin-top flex-col gap-3 rounded-2xl bg-negative-pale p-4 transition-[opacity,scale] duration-200 ease-out starting:opacity-0 motion-safe:starting:scale-[0.98]"
+  >
+    <p class="text-sm font-medium text-negative-darkest">
+      Are you sure? All marks will be permanently deleted.
+    </p>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" data-reset-confirm class={DANGER_BUTTON_CLASS}>
+        Yes, erase everything
+      </button>
+      <button
+        type="button"
+        data-reset-cancel
+        class="pressable min-h-11 rounded-full bg-canvas px-5 text-sm font-semibold text-ink hover:bg-land focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+  <button type="button" data-reset-ask class:list={[DANGER_BUTTON_CLASS, "self-start"]}>
+    Reset all data
+  </button>
+  <div data-reset-status class="contents"></div>
+  <p data-reset-done role="status" hidden class="text-sm text-body">All data has been reset.</p>
+</section>

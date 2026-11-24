@@ -2,14 +2,14 @@ import { expect, test } from "bun:test";
 import { Glob } from "bun";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ICON_NAMES, iconClass } from "@/shared/icons/icons";
+import { ICON_NAMES, INLINE_ICON_NAMES, iconClass } from "@/shared/icons/icons";
 
 const iconsDirectory = import.meta.dir;
 const stylesheet = readFileSync(join(iconsDirectory, "icons.css"), "utf8");
 
 test("every icon name has its Radix SVG and a mask utility that points at it", () => {
   expect([...new Glob("*.svg").scanSync(iconsDirectory)].sort()).toEqual(
-    ICON_NAMES.map((name) => `${name}.svg`).sort(),
+    [...ICON_NAMES, ...INLINE_ICON_NAMES].map((name) => `${name}.svg`).sort(),
   );
 
   for (const name of ICON_NAMES) {
@@ -17,8 +17,14 @@ test("every icon name has its Radix SVG and a mask utility that points at it", (
   }
 });
 
+test("an inline icon has no mask utility, so a page that never draws it does not carry it", () => {
+  for (const name of INLINE_ICON_NAMES) {
+    expect(stylesheet).not.toContain(`icon-${name}`);
+  }
+});
+
 test("every SVG is a 15 by 15 Radix icon drawn in the current colour", () => {
-  for (const name of ICON_NAMES) {
+  for (const name of [...ICON_NAMES, ...INLINE_ICON_NAMES]) {
     const svg = readFileSync(join(iconsDirectory, `${name}.svg`), "utf8");
 
     expect(svg).toContain('viewBox="0 0 15 15"');

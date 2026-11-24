@@ -10,6 +10,7 @@ export const notFoundPath = (): Route => "/404";
 export const globeFragmentPath = (): Route => "/fragments/globe";
 export const listFragmentPath = (): Route => "/fragments/list";
 export const statsFragmentPath = (): Route => "/fragments/stats";
+export const accountMenuFragmentPath = (): Route => "/fragments/account-menu";
 export const applyMarkChangePath = (): Route => "/api/marks/apply";
 export const readMarksPath = (): Route => "/api/marks/read";
 
@@ -25,6 +26,7 @@ export const ROUTES: readonly { path: Route; access: RouteAccess }[] = [
   { path: globeFragmentPath(), access: "signedIn" },
   { path: listFragmentPath(), access: "signedIn" },
   { path: statsFragmentPath(), access: "signedIn" },
+  { path: accountMenuFragmentPath(), access: "anyone" },
   { path: welcomePath(), access: "signedOut" },
   { path: signInPath(), access: "signedOut" },
   { path: signInVerifyPath(), access: "anyone" },
