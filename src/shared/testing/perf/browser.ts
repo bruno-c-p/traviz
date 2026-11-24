@@ -152,6 +152,12 @@ const readSampleSource = `(() => {
   return { ttfb: navigation.responseStart, fcp: paint?.startTime, lcp: marks.lcp, marksReady: marks.marksReady, globeFrame: marks.globeFrame };
 })()`;
 
+const whereItEndedSource = `(() => {
+  const snapshot = document.getElementById("marks-snapshot")?.textContent ?? "";
+  const status = new URLSearchParams(snapshot).get("status");
+  return location.href + " (" + document.readyState + (status ? ", marks snapshot " + status : "") + ")";
+})()`;
+
 const webGlRendererSource = `(() => {
   const context = document.createElement("canvas").getContext("webgl2");
   const info = context?.getExtension("WEBGL_debug_renderer_info");
@@ -340,7 +346,7 @@ export class BrowserPage {
 
     if (!(await this.evaluate(readySource(expectGlobe, timeoutMs), z.boolean())))
       throw new Error(
-        `${url} never showed the seeded marks${expectGlobe ? " and a globe frame" : ""} within ${timeoutMs} ms.`,
+        `${url} never showed the seeded marks${expectGlobe ? " and a globe frame" : ""} within ${timeoutMs} ms. It ended on ${await this.evaluate(whereItEndedSource, z.string())}.`,
       );
 
     const { globeFrame, ...timings } = await this.evaluate(readSampleSource, sampleSchema);
