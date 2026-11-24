@@ -6,5 +6,4 @@ export type { SelectionStore };
 export type GlobeStores = {
   readonly marks: Pick<MarksStore, "getState" | "subscribe">;
   readonly selection: SelectionStore;
-  readonly subscribeTheme: (listener: () => void) => () => void;
 };

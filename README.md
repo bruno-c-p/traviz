@@ -161,7 +161,7 @@ The globe draws the country outlines in `src/features/globe/country-topology.gen
 
 ```text
 .
-├── astro.config.ts  Adapter choice, inlined CSS, and the plugin that inlines the app script
+├── astro.config.ts  Adapter choice, inlined CSS, and the plugin that inlines the app, sign-in and account menu scripts
 ├── paths.ts         One function per route, and the ROUTES table the request gate reads
 ├── docs/            Screenshots for this README
 ├── scripts/         Local setup, sign-in tokens, database migration, country generation, and the docs, gate and bundle checks

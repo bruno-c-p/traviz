@@ -98,7 +98,7 @@ function startFakeGlobe({
 
   const globe = startGlobe(map, {
     frames: frames.scheduler,
-    stores: { marks: marksStore, selection, subscribeTheme: () => () => {} },
+    stores: { marks: marksStore, selection },
     prefersReducedMotion,
   });
 

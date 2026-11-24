@@ -14,7 +14,6 @@ const selectedCountryStore = createSelectionStore();
 const stores: GlobeStores = {
   marks: marksStore,
   selection: selectedCountryStore,
-  subscribeTheme: () => () => {},
 };
 
 function recordingMap() {

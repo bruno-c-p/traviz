@@ -19,7 +19,6 @@ async function start(container: HTMLElement, stores: GlobeStores): Promise<Runni
   const map = createGlobe(container, COUNTRY_TOPOLOGY, {
     camera: DEFAULT_CAMERA,
     prefersReducedMotion,
-    watchTheme: stores.subscribeTheme,
   });
 
   const globe = startGlobe(map, { frames: window, stores, prefersReducedMotion });

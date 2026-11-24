@@ -268,23 +268,23 @@
     },
     "routes": {
       "/": {
-        "firstLoadGzipBytes": 89396,
+        "firstLoadGzipBytes": 89209,
         "lazyGzipBytes": 0,
-        "htmlGzipBytes": 31031
+        "htmlGzipBytes": 30883
       },
       "/list": {
-        "firstLoadGzipBytes": 13437,
+        "firstLoadGzipBytes": 13283,
         "lazyGzipBytes": 0,
-        "htmlGzipBytes": 31011
+        "htmlGzipBytes": 30863
       },
       "/stats": {
-        "firstLoadGzipBytes": 13437,
+        "firstLoadGzipBytes": 13283,
         "lazyGzipBytes": 0,
-        "htmlGzipBytes": 27889
+        "htmlGzipBytes": 27742
       },
       "/fragments/globe": {
         "firstLoadGzipBytes": 0,
-        "lazyGzipBytes": 75959,
+        "lazyGzipBytes": 75926,
         "htmlGzipBytes": 5639
       },
       "/fragments/list": {
@@ -304,7 +304,7 @@
       },
       "/welcome": {
         "firstLoadGzipBytes": 4161,
-        "lazyGzipBytes": 75588,
+        "lazyGzipBytes": 75567,
         "htmlGzipBytes": 16557
       },
       "/sign-in": {

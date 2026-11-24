@@ -15,11 +15,6 @@ import type { MountedView } from "@/shared/view";
 
 const ENGINE_SCRIPT_NAME = "globe-engine";
 
-export type GlobeViewOptions = {
-  readonly marks: MarksStore;
-  readonly subscribeTheme: GlobeStores["subscribeTheme"];
-};
-
 type CountryPanel = {
   readonly name: HTMLElement | null;
   readonly meta: HTMLElement | null;
@@ -60,18 +55,14 @@ function moveSearchToTopBar(host: HTMLElement) {
   tools.remove();
 }
 
-export function mountGlobeView(host: HTMLElement, options: GlobeViewOptions): MountedView {
+export function mountGlobeView(host: HTMLElement, marksStore: MarksStore): MountedView {
   const container = host.querySelector<HTMLElement>("[data-globe-host]");
   const card = host.querySelector<HTMLElement>("[data-country-card]");
   const hint = host.querySelector<HTMLElement>("[data-globe-hint]");
   const sheetWrapper = host.querySelector<HTMLElement>("[data-country-sheet]");
   const selection = createSelectionStore();
 
-  const stores: GlobeStores = {
-    marks: options.marks,
-    selection,
-    subscribeTheme: options.subscribeTheme,
-  };
+  const stores: GlobeStores = { marks: marksStore, selection };
 
   const countries = decodeCountryRows(
     host.querySelector("[data-globe-countries]")?.textContent ?? "",
@@ -80,8 +71,8 @@ export function mountGlobeView(host: HTMLElement, options: GlobeViewOptions): Mo
   const countriesByCode = new Map(countries.map((country) => [country.code, country]));
   const clearSelection = () => selection.getState().clearSelection();
   const sheet = sheetWrapper === null ? null : mountCountrySheet(sheetWrapper, clearSelection);
-  const cardPanel = card === null ? null : countryPanel(card, options.marks);
-  const sheetPanel = sheetWrapper === null ? null : countryPanel(sheetWrapper, options.marks);
+  const cardPanel = card === null ? null : countryPanel(card, marksStore);
+  const sheetPanel = sheetWrapper === null ? null : countryPanel(sheetWrapper, marksStore);
 
   const panels = [cardPanel, sheetPanel].flatMap((panel) => (panel === null ? [] : [panel]));
 
@@ -91,7 +82,7 @@ export function mountGlobeView(host: HTMLElement, options: GlobeViewOptions): Mo
   let shownMarks: Marks | null = null;
 
   const renderProgress = () => {
-    const { marks } = options.marks.getState();
+    const { marks } = marksStore.getState();
 
     if (marks === shownMarks) return;
 
@@ -176,7 +167,7 @@ export function mountGlobeView(host: HTMLElement, options: GlobeViewOptions): Mo
     if (state.selectedCode !== previousState.selectedCode) renderSelection();
   });
 
-  options.marks.subscribe(() => {
+  marksStore.subscribe(() => {
     if (isShown) renderProgress();
   });
 
