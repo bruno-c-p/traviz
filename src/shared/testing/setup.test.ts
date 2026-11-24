@@ -19,7 +19,7 @@ const fixtureRoots: string[] = [];
 
 const fakeClerk = `#!/bin/sh
 printf '%s\\n' "clerk $*" >> "$FAKE_LOG"
-printf 'clerk-env [%s]\\n' "$(env | grep -E '^(CLERK_|NEXT_PUBLIC_CLERK_)' | cut -d= -f1 | sort | tr '\\n' ' ')" >> "$FAKE_LOG"
+printf 'clerk-env [%s]\\n' "$(env | grep -E '^(CLERK_|PUBLIC_CLERK_|NEXT_PUBLIC_CLERK_|TRAVIZ_CLERK_)' | cut -d= -f1 | sort | tr '\\n' ' ')" >> "$FAKE_LOG"
 if [ -n "$FAKE_CLERK_FAILS" ]; then echo "not logged in" >&2; exit 1; fi
 if [ "$1 $2" = "env pull" ]; then
   while [ $# -gt 0 ]; do
@@ -27,7 +27,7 @@ if [ "$1 $2" = "env pull" ]; then
     shift
   done
   if [ -n "$FAKE_CLERK_PULL_EMPTY" ]; then : > "$pulled_file"; exit 0; fi
-  printf 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=%s\\nCLERK_SECRET_KEY=%s\\n' "$FAKE_PUBLISHABLE_KEY" "$FAKE_SECRET_KEY" > "$pulled_file"
+  printf '%s=%s\\nCLERK_SECRET_KEY=%s\\n' "\${FAKE_PULLED_NAME:-PUBLIC_CLERK_PUBLISHABLE_KEY}" "$FAKE_PUBLISHABLE_KEY" "$FAKE_SECRET_KEY" > "$pulled_file"
   exit 0
 fi
 case "$2" in
@@ -38,7 +38,7 @@ esac
 `;
 
 const completeEnvLocal = [
-  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_existing",
+  "PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_existing",
   "CLERK_SECRET_KEY=sk_test_existing",
   "TURSO_DATABASE_URL=file:.data/dev.db",
   "",
@@ -51,6 +51,7 @@ type FakeBehaviour = {
   clerkFails?: boolean;
   clerkMissing?: boolean;
   clerkPullEmpty?: boolean;
+  pulledName?: string;
   migrationFails?: boolean;
   envLocal?: string;
   environment?: Record<string, string>;
@@ -73,33 +74,42 @@ function createFixture({ envLocal, clerkMissing, migrationFails }: FakeBehaviour
   return fixtureRoot;
 }
 
+const unreachableApiUrl = "http://127.0.0.1:9";
+
+function scriptEnvironment(behaviour: FakeBehaviour, fixtureRoot: string) {
+  const binDirectory = join(fixtureRoot, "bin");
+
+  return {
+    NODE_ENV: "development",
+    PATH: behaviour.clerkMissing
+      ? `${binDirectory}:/usr/bin:/bin`
+      : `${binDirectory}:${process.env.PATH ?? ""}`,
+    HOME: process.env.HOME,
+    FAKE_LOG: join(fixtureRoot, "calls.log"),
+    FAKE_PUBLISHABLE_KEY: behaviour.publishableKey ?? "pk_test_pulled",
+    FAKE_SECRET_KEY: behaviour.secretKey ?? "sk_test_pulled",
+    FAKE_USERS: behaviour.users ?? "[]",
+    FAKE_CLERK_FAILS: behaviour.clerkFails ? "1" : "",
+    FAKE_CLERK_PULL_EMPTY: behaviour.clerkPullEmpty ? "1" : "",
+    FAKE_PULLED_NAME: behaviour.pulledName ?? "",
+    TRAVIZ_CLERK_API_URL: unreachableApiUrl,
+    ...behaviour.environment,
+  };
+}
+
 function runScript(
   script: string,
   behaviour: FakeBehaviour,
   fixtureRoot = createFixture(behaviour),
 ) {
   const logPath = join(fixtureRoot, "calls.log");
-  const binDirectory = join(fixtureRoot, "bin");
 
   rmSync(logPath, { force: true });
 
   const result = spawnSync(process.execPath, [script, "--root", fixtureRoot], {
     cwd: fixtureRoot,
     encoding: "utf8",
-    env: {
-      NODE_ENV: "development",
-      PATH: behaviour.clerkMissing
-        ? `${binDirectory}:/usr/bin:/bin`
-        : `${binDirectory}:${process.env.PATH ?? ""}`,
-      HOME: process.env.HOME,
-      FAKE_LOG: logPath,
-      FAKE_PUBLISHABLE_KEY: behaviour.publishableKey ?? "pk_test_pulled",
-      FAKE_SECRET_KEY: behaviour.secretKey ?? "sk_test_pulled",
-      FAKE_USERS: behaviour.users ?? "[]",
-      FAKE_CLERK_FAILS: behaviour.clerkFails ? "1" : "",
-      FAKE_CLERK_PULL_EMPTY: behaviour.clerkPullEmpty ? "1" : "",
-      ...behaviour.environment,
-    },
+    env: scriptEnvironment(behaviour, fixtureRoot),
   });
 
   const envLocalPath = join(fixtureRoot, ".env.local");
@@ -131,7 +141,7 @@ test("a fresh root gets development keys and a local database", () => {
   expect(run.exitCode).toBe(0);
   expect(run.envLocal).toBe(
     [
-      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_pulled",
+      "PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_pulled",
       "CLERK_SECRET_KEY=sk_test_pulled",
       "TURSO_DATABASE_URL=file:.data/dev.db",
       "",
@@ -156,7 +166,7 @@ test("refuses a pulled live publishable key and writes nothing", () => {
 
   expect(run.exitCode).not.toBe(0);
   expect(run.output).toContain(
-    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY in the clerk env pull output is not a Clerk development key",
+    "PUBLIC_CLERK_PUBLISHABLE_KEY in the clerk env pull output is not a Clerk development key",
   );
   expect(run.output).not.toContain("pk_live_pulled");
   expect(run.envLocal).toBeNull();
@@ -226,6 +236,7 @@ test("an existing dev test user is not created again", () => {
 
 for (const [name, value] of [
   ["CLERK_SECRET_KEY", "sk_live_shell"],
+  ["PUBLIC_CLERK_PUBLISHABLE_KEY", "pk_live_shell"],
   ["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "pk_live_shell"],
 ] as const)
   test(`refuses a live ${name} in the process environment before any Clerk call`, () => {
@@ -248,7 +259,9 @@ test("clerk never receives a CLERK_ variable or the Clerk publishable key", () =
       CLERK_SECRET_KEY: "sk_test_shell",
       CLERK_PUBLISHABLE_KEY: "pk_test_shell",
       CLERK_API_URL: "https://api.clerk.example",
+      PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_shell",
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_shell",
+      TRAVIZ_CLERK_API_URL: "http://127.0.0.1:9",
     },
   });
 
@@ -273,12 +286,12 @@ test("a second run leaves .env.local byte-identical and pulls nothing", () => {
 });
 
 test("appends the pulled secret key on a new line after a publishable key with no newline", () => {
-  const run = runSetup({ envLocal: "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_x" });
+  const run = runSetup({ envLocal: "PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_x" });
 
   expect(run.exitCode).toBe(0);
   expect(run.envLocal).toBe(
     [
-      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_x",
+      "PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_x",
       "CLERK_SECRET_KEY=sk_test_pulled",
       "TURSO_DATABASE_URL=file:.data/dev.db",
       "",
@@ -317,7 +330,7 @@ test("sign-in-token exits 1 and points to setup when the dev test user does not 
 
 test("reads single-quoted, exported and commented values in .env.local", () => {
   const envLocal = [
-    "export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_existing # development",
+    "export PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_existing # development",
     "CLERK_SECRET_KEY='sk_test_existing'",
     "TURSO_DATABASE_URL='file:.data/dev.db'",
     "",
@@ -414,8 +427,8 @@ test("setup exits 1 with a login hint when clerk fails", () => {
   expect(existsSync(join(run.fixtureRoot, ".data", "clerk-dev.env"))).toBe(false);
 });
 
-test("sign-in-token exits 1 with a login hint when clerk is not on PATH", () => {
-  const run = runScript(signInTokenScript, { envLocal: completeEnvLocal, clerkMissing: true });
+test("sign-in-token exits 1 with a login hint when clerk is not on PATH and there is no secret key", () => {
+  const run = runScript(signInTokenScript, { clerkMissing: true });
 
   expect(run.exitCode).toBe(1);
   expect(run.stdout).toBe("");
@@ -436,7 +449,7 @@ test("exits 1 when clerk env pull returns no keys", () => {
   const run = runSetup({ clerkPullEmpty: true });
 
   expect(run.exitCode).toBe(1);
-  expect(run.output).toContain("clerk env pull returned no NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.");
+  expect(run.output).toContain("clerk env pull returned no PUBLIC_CLERK_PUBLISHABLE_KEY.");
   expect(run.envLocal).toBeNull();
   expect(run.migrated).toBe(false);
 });
@@ -447,4 +460,216 @@ test("exits 1 when bun run db:migrate fails", () => {
   expect(run.exitCode).toBe(1);
   expect(run.output).toContain("bun run db:migrate failed.");
   expect(run.calls.some((call) => call.startsWith("clerk api /users"))).toBe(false);
+});
+
+test("writes a pulled publishable key under the name Astro reads, whatever the CLI called it", () => {
+  const run = runSetup({ pulledName: "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" });
+
+  expect(run.exitCode).toBe(0);
+  expect(run.envLocal).toContain("PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_pulled\n");
+  expect(run.envLocal).not.toContain("NEXT_PUBLIC_");
+});
+
+test("copies a Next-era publishable key to the new name and pulls nothing", () => {
+  const envLocal = [
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_existing",
+    "CLERK_SECRET_KEY=sk_test_existing",
+    "TURSO_DATABASE_URL=file:.data/dev.db",
+    "",
+  ].join("\n");
+
+  const run = runSetup({ envLocal, users: '[{"id":"user_existing"}]' });
+
+  expect(run.exitCode).toBe(0);
+  expect(run.envLocal).toBe(`${envLocal}PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_existing\n`);
+  expect(run.calls.some((call) => call.includes("env pull"))).toBe(false);
+});
+
+test("refuses a live Next-era publishable key in .env.local", () => {
+  const envLocal = "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_existing\n";
+  const run = runSetup({ envLocal });
+
+  expect(run.exitCode).not.toBe(0);
+  expect(run.output).toContain(
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY in .env.local is not a Clerk development key",
+  );
+  expect(run.envLocal).toBe(envLocal);
+  expect(run.calls).toEqual([]);
+});
+
+type ApiRequest = { method: string; path: string; authorization: string | null; body: string };
+
+function startFakeBackendApi(users: string, status = 200) {
+  const requests: ApiRequest[] = [];
+
+  const server = Bun.serve({
+    port: 0,
+    hostname: "127.0.0.1",
+    fetch: async (request) => {
+      const url = new URL(request.url);
+
+      requests.push({
+        method: request.method,
+        path: url.pathname + url.search,
+        authorization: request.headers.get("authorization"),
+        body: await request.text(),
+      });
+
+      if (status !== 200) return new Response('{"errors":[]}', { status });
+
+      if (url.pathname === "/v1/users" && request.method === "GET") return new Response(users);
+
+      if (url.pathname === "/v1/users") return new Response('{"id":"user_created"}');
+
+      if (url.pathname === "/v1/sign_in_tokens") return new Response('{"token":"token_from_api"}');
+
+      return new Response("{}", { status: 404 });
+    },
+  });
+
+  return {
+    requests,
+    url: `http://127.0.0.1:${server.port}`,
+    stop: () => server.stop(true),
+  };
+}
+
+async function runWithoutClerkCli(script: string, behaviour: FakeBehaviour) {
+  const fixtureRoot = createFixture({ ...behaviour, clerkMissing: true });
+
+  const child = Bun.spawn([process.execPath, script, "--root", fixtureRoot], {
+    cwd: fixtureRoot,
+    env: scriptEnvironment({ ...behaviour, clerkMissing: true }, fixtureRoot),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+
+  return {
+    exitCode,
+    stdout,
+    output: stdout + stderr,
+    migrated: existsSync(join(fixtureRoot, "migrated")),
+    envLocal: readFileSync(join(fixtureRoot, ".env.local"), "utf8"),
+  };
+}
+
+test("without the clerk CLI, setup creates the dev test user through the Backend API", async () => {
+  const api = startFakeBackendApi("[]");
+
+  try {
+    const run = await runWithoutClerkCli(setupScript, {
+      envLocal: completeEnvLocal,
+      environment: { TRAVIZ_CLERK_API_URL: api.url },
+    });
+
+    expect(run.output).toContain("Dev test user agent+clerk_test@example.com is ready.");
+    expect(run.exitCode).toBe(0);
+    expect(run.envLocal).toBe(completeEnvLocal);
+    expect(run.migrated).toBe(true);
+    expect(api.requests.map((request) => `${request.method} ${request.path}`)).toEqual([
+      "GET /v1/users?email_address=agent%2Bclerk_test%40example.com",
+      "POST /v1/users",
+    ]);
+    expect(
+      api.requests.every((request) => request.authorization === "Bearer sk_test_existing"),
+    ).toBe(true);
+    expect(api.requests[1]?.body).toContain('"email_address":["agent+clerk_test@example.com"]');
+    expect(run.output).not.toContain("sk_test_existing");
+  } finally {
+    await api.stop();
+  }
+});
+
+test("without the clerk CLI, setup keeps an existing dev test user", async () => {
+  const api = startFakeBackendApi('[{"id":"user_existing"}]');
+
+  try {
+    const run = await runWithoutClerkCli(setupScript, {
+      envLocal: completeEnvLocal,
+      environment: { TRAVIZ_CLERK_API_URL: api.url },
+    });
+
+    expect(run.exitCode).toBe(0);
+    expect(api.requests.map((request) => request.method)).toEqual(["GET"]);
+  } finally {
+    await api.stop();
+  }
+});
+
+test("without the clerk CLI, sign-in-token prints a ten-minute token from the Backend API", async () => {
+  const api = startFakeBackendApi('[{"id":"user_existing"}]');
+
+  try {
+    const run = await runWithoutClerkCli(signInTokenScript, {
+      envLocal: completeEnvLocal,
+      environment: { TRAVIZ_CLERK_API_URL: api.url },
+    });
+
+    expect(run.exitCode).toBe(0);
+    expect(run.stdout).toBe("token_from_api\n");
+    expect(api.requests.at(-1)).toMatchObject({
+      method: "POST",
+      path: "/v1/sign_in_tokens",
+      authorization: "Bearer sk_test_existing",
+    });
+    expect(api.requests.at(-1)?.body).toContain('"user_id":"user_existing"');
+    expect(api.requests.at(-1)?.body).toContain('"expires_in_seconds":600');
+  } finally {
+    await api.stop();
+  }
+});
+
+test("without the clerk CLI, a Backend API failure exits 1 and names the status, not the key", async () => {
+  const api = startFakeBackendApi("[]", 401);
+
+  try {
+    const run = await runWithoutClerkCli(signInTokenScript, {
+      envLocal: completeEnvLocal,
+      environment: { TRAVIZ_CLERK_API_URL: api.url },
+    });
+
+    expect(run.exitCode).toBe(1);
+    expect(run.stdout).toBe("");
+    expect(run.output).toContain("Clerk Backend API answered 401 for GET /users");
+    expect(run.output).not.toContain("sk_test_existing");
+    expect(run.output).not.toContain("    at ");
+  } finally {
+    await api.stop();
+  }
+});
+
+test("without the clerk CLI, sign-in-token refuses a live secret key and calls nothing", async () => {
+  const api = startFakeBackendApi('[{"id":"user_existing"}]');
+
+  try {
+    const run = await runWithoutClerkCli(signInTokenScript, {
+      envLocal: completeEnvLocal.replace("sk_test_existing", "sk_live_existing"),
+      environment: { TRAVIZ_CLERK_API_URL: api.url },
+    });
+
+    expect(run.exitCode).toBe(1);
+    expect(run.stdout).toBe("");
+    expect(run.output).toContain("CLERK_SECRET_KEY is not a Clerk development key (sk_test_)");
+    expect(run.output).not.toContain("sk_live_existing");
+    expect(api.requests).toEqual([]);
+  } finally {
+    await api.stop();
+  }
+});
+
+test("the Backend API address can only be moved to this machine", async () => {
+  const run = await runWithoutClerkCli(signInTokenScript, {
+    envLocal: completeEnvLocal,
+    environment: { TRAVIZ_CLERK_API_URL: "https://clerk.example" },
+  });
+
+  expect(run.exitCode).toBe(1);
+  expect(run.stdout).toBe("");
+  expect(run.output).toContain("TRAVIZ_CLERK_API_URL may only name a server on this machine");
 });
