@@ -55,9 +55,9 @@ bun run dev
 
 `bun run setup` fills in `.env.local` for this worktree and keeps any value already there. It does the following:
 
-- Writes the Clerk development keys as `PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`. It refuses to write a `pk_live_` or `sk_live_` key.
+- Writes the Clerk development keys as `PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`, pulled with the `clerk` CLI unless `.env.local` already has them. It refuses to write a `pk_live_` or `sk_live_` key.
 - Sets `TURSO_DATABASE_URL=file:.data/dev.db` and runs `bun run db:migrate`. Marks live in `.data/dev.db` inside each worktree, so no worktree writes a shared database. Setup refuses to run when `.env.local` or the process environment (shell or `.env`) names a remote database, a database file outside this worktree's `.data/` or a live Clerk key.
-- Creates the Clerk development user `agent+clerk_test@example.com` if it does not exist yet.
+- Creates the Clerk development user `agent+clerk_test@example.com` if it does not exist yet, with the `clerk` CLI, or with Clerk's Backend API and the development secret key when the CLI is not installed.
 
 `.env.example` lists the same variables.
 
@@ -100,6 +100,7 @@ TURSO_AUTH_TOKEN=your_turso_auth_token
 | `CLERK_SECRET_KEY`             | Secret Clerk key used on the server to verify sessions. Never expose it to the client.                          |
 | `TURSO_DATABASE_URL`           | libSQL URL of the database that stores marks.                                                                   |
 | `TURSO_AUTH_TOKEN`             | Auth token for that database. Not needed for a `file:` URL.                                                     |
+| `CLERK_AUTHORIZED_PARTIES`     | Optional. Comma-separated origins, such as `https://traviz.example`, whose session tokens the server accepts.   |
 | `TRAVIZ_FIXED_USER_ID`         | Local runs only: signs every request in as this user without Clerk. Refused unless the database URL is `file:`. |
 | `TRAVIZ_ADAPTER`               | Build time only: `node` builds a standalone Node server into `dist` instead of the Vercel output.               |
 
@@ -185,7 +186,7 @@ The project is deployed on Vercel with the `@astrojs/vercel` adapter. `vercel.js
 
 - **Framework preset:** Astro. **Build command:** `bun run build`. **Install command:** `bun install --frozen-lockfile`. **Output directory:** leave empty. The adapter writes `.vercel/output` itself.
 - **Node.js version:** 24.x. `engines.node` in `package.json` asks for it, and the server function runs on the Node version of the build.
-- **Environment variables**, for Production and Preview: `PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. `PUBLIC_CLERK_PUBLISHABLE_KEY` must be available to the build. Never set `TRAVIZ_FIXED_USER_ID` or `TRAVIZ_ADAPTER` there.
+- **Environment variables**, for Production and Preview: `PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. `PUBLIC_CLERK_PUBLISHABLE_KEY` must be available to the build. Never set `TRAVIZ_FIXED_USER_ID` or `TRAVIZ_ADAPTER` there. `CLERK_AUTHORIZED_PARTIES` is optional and unset by default: set it to the site's origins to make the server refuse a Clerk session token that was issued for another origin.
 - Add your production domain to the Clerk instance in the Clerk dashboard.
 
 One Node function renders every page, fragment and API route, and streams its response. `/welcome`, the files in `public/` and the hashed files under `/_astro` are static and never reach the function.
