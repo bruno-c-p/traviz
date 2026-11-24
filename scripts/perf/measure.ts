@@ -259,14 +259,15 @@ const SIGN_IN_NOTES: Record<SignInMode, string> = {
   "fixed-user": `sign-in: --fixed-user. Both servers sign every request in as ${FIXED_USER_ID} and the builds leave clerk-js out, so the numbers exclude Clerk's cost.`,
 };
 
-function printHeader(
+async function printHeader(
   shas: Record<Side, string>,
   kinds: Record<Side, TreeKind>,
   baselineLabel: string,
-  chromeVersion: string,
-  webGlRenderer: string,
-): void {
+  page: BrowserPage,
+): Promise<void> {
   const cpu = cpus();
+  const chromeVersion = await page.browserVersion();
+  const webGlRenderer = await page.webGlRenderer();
 
   console.log(
     `machine: ${type()} ${release()}, ${cpu[0]?.model ?? "unknown CPU"} x${cpu.length}, ${Math.round(totalmem() / 1024 ** 3)} GB, load ${formatLoad()}`,
@@ -281,7 +282,7 @@ function printHeader(
     `bun ${Bun.version}, baseline ${baselineLabel} ${shas.baseline} (${kinds.baseline}), candidate HEAD ${shas.candidate} (${kinds.candidate})`,
   );
   console.log(
-    "servers: an astro side is built with TRAVIZ_ADAPTER=node and served by node dist/server/entry.mjs, a next side by next build and next start.",
+    "servers: an astro side is built with TRAVIZ_ADAPTER=node and served by this checkout's scripts/serve-node.ts, which gzips the static files as a CDN would, a next side by next build and next start.",
   );
   console.log(SIGN_IN_NOTES[signInMode]);
   console.log(
@@ -306,7 +307,7 @@ function emptySamples(): Record<Side, Sample[]> {
   return { baseline: [], candidate: [] };
 }
 
-async function prepare() {
+function checkArguments(): void {
   if (!Number.isInteger(runs) || runs < minimumRuns)
     fail(
       `--runs must be an integer of at least ${minimumRuns}, or no timing can pass the significance test.`,
@@ -316,7 +317,9 @@ async function prepare() {
     fail(
       `--route matched nothing. The routes are ${allRoutes.map(({ path }) => path).join(", ")}.`,
     );
+}
 
+function resolveSides() {
   const resolution = resolveBaseline(root, options.baseline);
 
   if (resolution.kind === "refused") fail(resolution.reason);
@@ -331,21 +334,18 @@ async function prepare() {
 
   console.log(LOCKFILE_NOTES[lockfilePolicy](baseline.label));
 
-  const localEnvironment = readPerfEnvironment(root, process.env);
-
-  if (localEnvironment.kind === "refused") fail(localEnvironment.reason);
-
-  const shas: Record<Side, string> = {
-    baseline: baseline.sha,
-    candidate: revParse("HEAD"),
-  };
+  const shas: Record<Side, string> = { baseline: baseline.sha, candidate: revParse("HEAD") };
 
   const kinds: Record<Side, TreeKind> = {
     baseline: commitKind(root, shas.baseline),
     candidate: commitKind(root, shas.candidate),
   };
 
-  if (signInMode === "clerk" && !localEnvironment.hasClerkKeys)
+  return { shas, kinds, baselineLabel: baseline.label };
+}
+
+function checkSignInMode(hasClerkKeys: boolean, kinds: Record<Side, TreeKind>): void {
+  if (signInMode === "clerk" && !hasClerkKeys)
     fail(
       ".env.local has no Clerk development keys, so no real session can be measured. Run bun run setup, or pass --fixed-user to compare two Astro commits without Clerk.",
     );
@@ -354,19 +354,34 @@ async function prepare() {
     fail(
       "--fixed-user needs TRAVIZ_FIXED_USER_ID, which a Next commit does not read. Measure a Next baseline with Clerk development keys.",
     );
+}
 
-  const { databaseUrl } = localEnvironment;
+async function measuredUserId(): Promise<string> {
+  if (signInMode === "fixed-user") return FIXED_USER_ID;
+
+  return (
+    (await Promise.resolve(findSeededUserId())) ??
+    fail("the dev test user does not exist. Run bun run setup first.")
+  );
+}
+
+async function prepare() {
+  checkArguments();
+
+  const { shas, kinds, baselineLabel } = resolveSides();
+  const localEnvironment = readPerfEnvironment(root, process.env);
+
+  if (localEnvironment.kind === "refused") fail(localEnvironment.reason);
+
+  checkSignInMode(localEnvironment.hasClerkKeys, kinds);
+
   const environment = withSignInMode(localEnvironment.environment, signInMode);
+  const userId = await measuredUserId();
 
-  const userId =
-    signInMode === "fixed-user" ? FIXED_USER_ID : await Promise.resolve(findSeededUserId());
-
-  if (!userId) fail("the dev test user does not exist. Run bun run setup first.");
-
-  await seedMarks(databaseUrl, userId, marks);
+  await seedMarks(localEnvironment.databaseUrl, userId, marks);
   console.log(`Seeded ${marks.length} marks for ${userId} in the local database.`);
 
-  return { environment, userId, shas, kinds, baselineLabel: baseline.label };
+  return { environment, userId, shas, kinds, baselineLabel };
 }
 
 function treeDirectory(sha: string): string {
@@ -543,15 +558,17 @@ async function main(): Promise<void> {
       candidate: await serve("candidate"),
     };
 
+    const signedInPage = await launch("signed in");
+
     const pages: Record<Session, BrowserPage> = {
-      "signed in": await launch("signed in"),
+      "signed in": signedInPage,
       "signed out": await launch("signed out"),
     };
 
     if (signInMode === "clerk")
       for (const side of sides)
         await signIn(
-          pages["signed in"],
+          signedInPage,
           origins[side],
           userId,
           environment.PUBLIC_CLERK_PUBLISHABLE_KEY ?? "",
@@ -559,13 +576,7 @@ async function main(): Promise<void> {
 
     await preflight(pages, origins, shas);
 
-    printHeader(
-      shas,
-      kinds,
-      baselineLabel,
-      await pages["signed in"].browserVersion(),
-      await pages["signed in"].webGlRenderer(),
-    );
+    await printHeader(shas, kinds, baselineLabel, signedInPage);
 
     const resultsFile = `${new Date().toISOString().replaceAll(":", "-")}.json`;
     const resultsPath = join(workDirectory, "results", resultsFile);

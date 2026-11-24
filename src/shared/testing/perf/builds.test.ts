@@ -6,6 +6,7 @@ import {
   buildEnvironment,
   commitKind,
   exportTree,
+  nodeServerScript,
   serverCommand,
   treeKind,
 } from "@/shared/testing/perf/builds";
@@ -63,7 +64,7 @@ test("HEAD is an Astro commit", () => {
   expect(commitKind(repoRoot, git(["rev-parse", "HEAD"]))).toBe("astro");
 });
 
-test("an Astro tree builds with the Node adapter and runs its own server entry", () => {
+test("an Astro tree builds with the Node adapter and is served by this repo's Node server", () => {
   const environment = { TURSO_DATABASE_URL: "file:/tmp/perf.db" };
 
   expect(buildEnvironment("astro", environment)).toEqual({
@@ -72,9 +73,13 @@ test("an Astro tree builds with the Node adapter and runs its own server entry",
   });
   expect(serverCommand("astro", "/trees/abc", 4100, environment)).toEqual({
     command: "node",
-    args: ["/trees/abc/dist/server/entry.mjs"],
+    args: [join(repoRoot, "scripts", "serve-node.ts")],
     environment: { ...environment, HOST: "127.0.0.1", PORT: "4100" },
   });
+});
+
+test("the Node server script exists", () => {
+  expect(readFileSync(nodeServerScript, "utf8")).toContain("ASTRO_NODE_AUTOSTART");
 });
 
 test("a Next tree builds as it is and runs next start on the port", () => {

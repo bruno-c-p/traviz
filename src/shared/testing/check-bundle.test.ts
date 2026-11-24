@@ -442,7 +442,7 @@ test("check:bundle fails when the client build is missing", () => {
 
   rmSync(join(fixtureRoot, "dist"), { recursive: true });
 
-  expectFailure(fixtureRoot, "Run TRAVIZ_ADAPTER=node bun run build first.");
+  expectFailure(fixtureRoot, "Run bun run build:node first.");
 });
 
 test("check:bundle fails when no page was rendered", () => {

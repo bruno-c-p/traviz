@@ -23,7 +23,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "build:node": "TRAVIZ_ADAPTER=node astro build",
-    "start": "node dist/server/entry.mjs",
+    "start": "node scripts/serve-node.ts",
     "lint": "oxlint --type-aware --deny-warnings",
     "format": "oxfmt .",
     "fallow": "fallow",
@@ -80,5 +80,8 @@
       "version": "1.4.3",
       "onFail": "download"
     }
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

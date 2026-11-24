@@ -15,7 +15,7 @@ import {
 
 export type PageRoute = { readonly path: Route; readonly access: RouteAccess };
 
-export const BUNDLE_USER_ID = "user_bundle_check";
+const BUNDLE_USER_ID = "user_bundle_check";
 
 const PLACEHOLDER_CLERK_KEYS = {
   PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_live_Y2xlcmsuZXhhbXBsZS5jb20k",
@@ -50,7 +50,7 @@ export async function renderRoutes(
 ): Promise<Map<Route, string>> {
   if (!existsSync(join(buildRoot, "dist", "server", "entry.mjs")))
     throw new Error(
-      `${join(buildRoot, "dist", "server", "entry.mjs")} not found. Run TRAVIZ_ADAPTER=node bun run build first.`,
+      `${join(buildRoot, "dist", "server", "entry.mjs")} not found. Run bun run build:node first.`,
     );
 
   const workDirectory = mkdtempSync(join(tmpdir(), "traviz-bundle-"));

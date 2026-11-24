@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { z } from "zod";
-import type { Environment } from "@/shared/testing/perf/builds";
+import { nodeServerScript, type Environment } from "@/shared/testing/perf/builds";
 import { readPerfEnvironment } from "@/shared/testing/perf/environment";
 
 export const repoRoot = resolve(import.meta.dirname, "../../../..");
@@ -90,7 +90,7 @@ export function isAlive(pid: number): boolean {
   try {
     return execFileSync("ps", ["-o", "command=", "-p", String(pid)], {
       encoding: "utf8",
-    }).includes(serverEntry);
+    }).includes(nodeServerScript);
   } catch {
     return false;
   }

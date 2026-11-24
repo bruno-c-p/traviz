@@ -1,12 +1,22 @@
 import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { closeSync, existsSync, mkdirSync, openSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { z } from "zod";
 
 export type Environment = NodeJS.ProcessEnv;
 
 export type TreeKind = "astro" | "next";
+
+export const nodeServerScript = resolve(
+  import.meta.dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "scripts",
+  "serve-node.ts",
+);
 
 export type ServerCommand = {
   readonly command: string;
@@ -43,7 +53,7 @@ export function serverCommand(
 
   return {
     command: "node",
-    args: [join(treeDirectory, "dist", "server", "entry.mjs")],
+    args: [nodeServerScript],
     environment: { ...environment, HOST: "127.0.0.1", PORT: String(port) },
   };
 }

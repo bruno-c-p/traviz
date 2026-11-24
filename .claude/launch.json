@@ -5,7 +5,7 @@
       "name": "traviz-dev",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "dev"],
-      "port": 3000,
+      "port": 4321,
       "autoPort": true
     }
   ]

@@ -17,7 +17,7 @@ export type RouteBundle = {
 
 const INLINE_SCRIPT_PATH = "_astro/inline.js";
 
-export function gzipBytesOf(content: string): number {
+function gzipBytesOf(content: string): number {
   return gzipSync(content, { level: 9 }).length;
 }
 

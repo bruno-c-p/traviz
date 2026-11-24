@@ -20,7 +20,7 @@ const repoRoot = join(import.meta.dirname, "..");
 const buildRoot = resolve(options.root ?? repoRoot);
 const clientRoot = join(buildRoot, "dist", "client");
 const budgetPath = resolve(options.budget ?? join(repoRoot, "bundle-budget.json"));
-const buildHint = "Run TRAVIZ_ADAPTER=node bun run build first.";
+const buildHint = "Run bun run build:node first.";
 const defaultTolerance = { percent: 1, minBytes: 1024 };
 
 const routesWithModuleScript: string[] = [homePath(), listPath(), statsPath(), welcomePath()];
