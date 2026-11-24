@@ -1,9 +1,12 @@
 ---
 import "@fontsource-variable/geist-mono/wght.css";
 import "@fontsource-variable/instrument-sans/wght.css";
-import "@/features/app-shell/app.css";
+import "@/features/auth/sign-in.css";
+import { clerkScriptUrl } from "@/features/auth/clerk-session";
 import { THEME_SCRIPT } from "@/features/theme/core";
 import BrandMark from "@/shared/brand-mark.astro";
+
+const publishableKey = import.meta.env.PUBLIC_CLERK_PUBLISHABLE_KEY;
 ---
 
 <!doctype html>
@@ -18,6 +21,16 @@ import BrandMark from "@/shared/brand-mark.astro";
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icon.svg" sizes="any" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" type="image/png" />
+    {
+      publishableKey && (
+        <link
+          rel="preload"
+          as="script"
+          href={clerkScriptUrl(publishableKey)}
+          crossorigin="anonymous"
+        />
+      )
+    }
     <script is:inline set:html={THEME_SCRIPT} />
   </head>
   <body class="bg-canvas-soft font-sans text-ink">

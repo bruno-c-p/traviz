@@ -1,6 +1,6 @@
 import { reloadWhenStale } from "@/features/app-shell/resume-reload";
 import { startViewRouter } from "@/features/app-shell/view-router";
-import { keepClerkSession } from "@/features/auth";
+import { keepClerkSession, startAccountButton } from "@/features/auth";
 import { mountListView } from "@/features/country-list";
 import { mountGlobeView } from "@/features/globe";
 import {
@@ -41,5 +41,6 @@ export function startApp() {
   });
 
   reloadInstalledAppWhenStale();
+  startAccountButton();
   keepClerkSession();
 }

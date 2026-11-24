@@ -1,16 +1,5 @@
 ---
-import AuthLayout from "@/features/auth/auth-layout.astro";
+import SignInDocument from "@/features/auth/sign-in-document.astro";
 ---
 
-<AuthLayout>
-  <div class="mb-7 flex flex-col items-start gap-3">
-    <h1 class="text-3xl font-bold tracking-tight text-ink">Traviz</h1>
-    <p class="text-[15px] leading-relaxed text-body">
-      Mark the countries you've visited, want to visit, or don't care about — synced to your
-      account.
-    </p>
-  </div>
-  <p data-placeholder="wave-2b" role="status" class="text-[15px] leading-relaxed text-body">
-    Sign-in by email link returns in the next step of the migration.
-  </p>
-</AuthLayout>
+<SignInDocument />

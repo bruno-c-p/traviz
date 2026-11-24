@@ -1,0 +1,58 @@
+---
+import {
+  PRIMARY_ACTION_CLASS,
+  SUBMIT_LABEL,
+  emailInputClass,
+} from "@/features/auth/sign-in/sign-in-classes";
+import InlineIcon from "@/shared/icons/inline-icon.astro";
+---
+
+<form data-email-link-form class="flex flex-col gap-3">
+  <label for="email" class="text-sm font-medium text-ink">Email</label>
+  <input
+    id="email"
+    name="email"
+    type="email"
+    inputmode="email"
+    autocomplete="email"
+    required
+    placeholder="you@example.com"
+    class={emailInputClass(false)}
+  />
+  <p
+    id="email-link-error"
+    data-email-link-error
+    role="alert"
+    hidden
+    class="px-1 text-sm text-negative-text"
+  >
+  </p>
+  <button type="submit" class:list={["mt-2 disabled:opacity-60", PRIMARY_ACTION_CLASS]}>
+    {SUBMIT_LABEL}
+  </button>
+  <p class="px-1 text-center text-xs leading-relaxed text-mute">
+    New here? The same link creates your account.
+  </p>
+</form>
+<div data-email-link-sent hidden class="flex flex-col gap-5">
+  <div class="flex items-start gap-3 rounded-2xl bg-primary-pale p-4">
+    <InlineIcon name="envelope-closed" class="mt-0.5 size-5 text-on-primary-pale" />
+    <p class="min-w-0 text-[15px] leading-relaxed text-on-primary-pale">
+      We sent a sign-in link to{" "}<span data-sent-email class="font-semibold wrap-anywhere"
+      ></span>. Open it on any device and this page will continue on its own.
+    </p>
+  </div>
+  <button
+    type="button"
+    data-use-different-email
+    class="min-h-12 w-full rounded-full border border-line bg-canvas px-5 text-[15px] font-semibold text-ink pressable hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+  >
+    Use a different email
+  </button>
+</div>
+
+<script>
+  import { startSignInPage } from "@/features/auth/sign-in-page";
+
+  startSignInPage();
+</script>

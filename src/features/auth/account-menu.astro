@@ -1,0 +1,18 @@
+---
+import AccountMenuDialog from "@/features/auth/account-menu/account-menu-dialog.astro";
+import accountMenuStyles from "@/features/auth/account-menu.css?inline";
+import { scopeUtilities } from "@/features/auth/scope-utilities";
+
+const SCOPE = "[data-account-menu-scope]";
+---
+
+<div data-account-menu-scope style="display:contents">
+  <style is:inline set:html={scopeUtilities(accountMenuStyles, SCOPE)}></style>
+  <AccountMenuDialog />
+</div>
+
+<script>
+  import { startAccountMenu } from "@/features/auth/account-menu";
+
+  startAccountMenu();
+</script>
