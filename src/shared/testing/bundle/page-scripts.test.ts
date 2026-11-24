@@ -48,3 +48,21 @@ test("keeps the origin of a script from another site", () => {
   expect(preloadedUrls.map((url) => url.origin)).toEqual(["https://cdn.example.com"]);
   expect(loadedUrls.map((url) => url.host)).toEqual(["cdn.example.com"]);
 });
+
+test("reads the scripts a template defers and tells when a page names a lazy script file", () => {
+  const deferred = readPageScripts(
+    '<template data-lazy-script="globe-engine" data-src="/_astro/engine.js"></template><template data-src="/_astro/other.js"></template>',
+  );
+
+  const loaded = readPageScripts(
+    '<script type="module" async src="/_astro/engine.js" data-lazy-script="globe-engine"></script>',
+  );
+
+  const inlined = readPageScripts('<script type="module">engine()</script>');
+
+  expect(deferred.deferredUrls.map((url) => url.pathname)).toEqual(["/_astro/engine.js"]);
+  expect(deferred.hasLazyScript).toBe(true);
+  expect(loaded.deferredUrls).toEqual([]);
+  expect(loaded.hasLazyScript).toBe(true);
+  expect(inlined.hasLazyScript).toBe(false);
+});

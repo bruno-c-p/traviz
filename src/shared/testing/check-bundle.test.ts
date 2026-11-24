@@ -26,6 +26,14 @@ function moduleTag(chunk: string): string {
   return `<script type="module" src="/_astro/${chunk}.js"></script>`;
 }
 
+function lazyModuleTag(chunk: string): string {
+  return `<script type="module" async src="/_astro/${chunk}.js" data-lazy-script="globe-engine"></script>`;
+}
+
+function lazyScriptTemplate(chunk: string): string {
+  return `<template data-lazy-script="globe-engine" data-src="/_astro/${chunk}.js"></template>`;
+}
+
 function preloadTag(href: string): string {
   return `<link rel="preload" as="script" fetchpriority="low" href="${href}">`;
 }
@@ -57,7 +65,7 @@ function createBuildFixture(): string {
 
   for (const chunk of ["home", "list", "lazy"]) writeChunk(fixtureRoot, chunk);
 
-  writePage(fixtureRoot, "index.html", page(moduleTag("home")));
+  writePage(fixtureRoot, "index.html", page(lazyModuleTag("home")));
   writePage(fixtureRoot, "list.html", page(moduleTag("list")));
 
   return fixtureRoot;
@@ -219,7 +227,7 @@ test("check:bundle counts an inline script, and not an inline data block, as fir
 
   writePage(
     fixtureRoot,
-    "sign-in.html",
+    "404.html",
     page(
       `<script type="text/plain" id="marks-snapshot">${noise()}</script>`,
       `<script type="application/json">${noise()}</script>`,
@@ -227,7 +235,7 @@ test("check:bundle counts an inline script, and not an inline data block, as fir
     ),
   );
 
-  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/sign-in").firstLoad).toBe(
+  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/404").firstLoad).toBe(
     gzipBytesOf(inlineSource),
   );
 });
@@ -289,11 +297,49 @@ test("check:bundle counts a lazy chunk a first-load chunk references", () => {
 test("check:bundle counts a lazy chunk an inline script names", () => {
   const fixtureRoot = createBuildFixture();
 
-  writePage(fixtureRoot, "sign-in.html", page('<script>import("/_astro/lazy.js")</script>'));
+  writePage(fixtureRoot, "404.html", page('<script>import("/_astro/lazy.js")</script>'));
 
-  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/sign-in").lazy).toBe(
+  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/404").lazy).toBe(
     gzipBytesOfChunk(fixtureRoot, "lazy"),
   );
+});
+
+test("check:bundle counts a script a template defers, and what it imports, as lazy JS", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeChunk(fixtureRoot, "engine", `import"./lazy.js";${noise()}`);
+  writePage(fixtureRoot, "fragments/globe.html", page(lazyScriptTemplate("engine")));
+
+  const sizes = sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/fragments/globe");
+
+  expect(sizes.firstLoad).toBe(0);
+  expect(sizes.lazy).toBe(
+    gzipBytesOfChunk(fixtureRoot, "engine") + gzipBytesOfChunk(fixtureRoot, "lazy"),
+  );
+});
+
+test("check:bundle fails when a template defers a script that is not in the build output", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writePage(fixtureRoot, "fragments/globe.html", page(lazyScriptTemplate("gone")));
+
+  expectFailure(
+    fixtureRoot,
+    "/fragments/globe loads _astro/gone.js, which is not in the build",
+    "--write",
+  );
+});
+
+test("check:bundle fails when the globe engine is inlined into the page or dropped", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  writePage(fixtureRoot, "index.html", page(moduleTag("home")));
+  expectFailure(fixtureRoot, "/ names no lazy script file");
+
+  writePage(fixtureRoot, "index.html", page(lazyModuleTag("home")));
+  writePage(fixtureRoot, "fragments/globe.html", page('<script type="module">engine()</script>'));
+  expectFailure(fixtureRoot, "/fragments/globe names no lazy script file", "--write");
 });
 
 test("check:bundle counts a lazy chunk reached through another lazy chunk", () => {

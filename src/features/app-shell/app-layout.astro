@@ -10,7 +10,7 @@ import MarksSnapshotScript from "@/features/marks/marks-snapshot.astro";
 import type { MarksSnapshot } from "@/features/marks";
 import { THEME_SCRIPT } from "@/features/theme/core";
 import PageHead from "@/shared/page-head.astro";
-import appScript from "virtual:traviz-app-script";
+import appScript from "virtual:traviz-inline-script/app";
 
 type Props = { view: ViewName; marks: Promise<MarksSnapshot | null> };
 

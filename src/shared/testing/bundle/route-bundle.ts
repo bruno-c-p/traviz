@@ -12,6 +12,7 @@ export type RouteBundle = {
   readonly htmlGzipBytes: number;
   readonly lazyChunks: readonly SizedChunk[];
   readonly hasModuleScript: boolean;
+  readonly hasLazyScript: boolean;
   readonly problems: readonly string[];
 };
 
@@ -85,17 +86,21 @@ export function measureRoute(html: string, readChunk: ChunkReader): RouteBundle 
 
   const onDisk = (chunkPath: string) => readChunk(chunkPath) !== null;
 
-  const loadedPaths = scripts.loadedUrls.flatMap((url) => {
-    const chunkPath = chunkPathOf(url);
+  const builtPathsOf = (urls: readonly URL[]) =>
+    urls.flatMap((url) => {
+      const chunkPath = chunkPathOf(url);
 
-    if (chunkPath === null) return [];
+      if (chunkPath === null) return [];
 
-    if (onDisk(chunkPath)) return [chunkPath];
+      if (onDisk(chunkPath)) return [chunkPath];
 
-    problems.push(`loads ${chunkPath}, which is not in the build output`);
+      problems.push(`loads ${chunkPath}, which is not in the build output`);
 
-    return [];
-  });
+      return [];
+    });
+
+  const loadedPaths = builtPathsOf(scripts.loadedUrls);
+  const deferredPaths = builtPathsOf(scripts.deferredUrls);
 
   const firstLoadPaths = reachedFrom([INLINE_SCRIPT_PATH, ...loadedPaths], (chunkPath) =>
     staticImportPaths(chunkPath, sourceOf(chunkPath)).filter((importedPath) => {
@@ -109,8 +114,9 @@ export function measureRoute(html: string, readChunk: ChunkReader): RouteBundle 
 
   const firstLoad = new Set(firstLoadPaths);
 
-  const lazyChunks = reachedFrom([INLINE_SCRIPT_PATH, ...firstLoadPaths], (chunkPath) =>
-    mentionedPaths(chunkPath, sourceOf(chunkPath)).filter(onDisk),
+  const lazyChunks = reachedFrom(
+    [INLINE_SCRIPT_PATH, ...firstLoadPaths, ...deferredPaths],
+    (chunkPath) => mentionedPaths(chunkPath, sourceOf(chunkPath)).filter(onDisk),
   )
     .filter((chunkPath) => chunkPath !== INLINE_SCRIPT_PATH && !firstLoad.has(chunkPath))
     .map((chunkPath) => ({ chunkPath, gzipBytes: sizeOf(chunkPath) }))
@@ -139,6 +145,7 @@ export function measureRoute(html: string, readChunk: ChunkReader): RouteBundle 
     htmlGzipBytes: gzipBytesOf(html),
     lazyChunks,
     hasModuleScript: scripts.hasModuleScript,
+    hasLazyScript: scripts.hasLazyScript,
     problems,
   };
 }

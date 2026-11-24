@@ -2,28 +2,15 @@
 import "@fontsource-variable/geist-mono/wght.css";
 import "@fontsource-variable/instrument-sans/wght.css";
 import "@/features/auth/sign-in.css";
-import { clerkScriptUrl } from "@/features/auth/clerk-session";
 import { THEME_SCRIPT } from "@/features/theme/core";
 import BrandMark from "@/shared/brand-mark.astro";
 import PageHead from "@/shared/page-head.astro";
-
-const publishableKey = import.meta.env.PUBLIC_CLERK_PUBLISHABLE_KEY;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <PageHead title="traviz" />
-    {
-      publishableKey && (
-        <link
-          rel="preload"
-          as="script"
-          href={clerkScriptUrl(publishableKey)}
-          crossorigin="anonymous"
-        />
-      )
-    }
     <script is:inline set:html={THEME_SCRIPT} />
   </head>
   <body class="bg-canvas-soft font-sans text-ink">

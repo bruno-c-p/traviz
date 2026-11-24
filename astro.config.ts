@@ -7,9 +7,15 @@ import { build } from "vite";
 import type { Plugin } from "vite";
 
 const SERVER_ONLY_ID = "\0traviz-server-only";
-const APP_SCRIPT_ID = "virtual:traviz-app-script";
-const RESOLVED_APP_SCRIPT_ID = `\0${APP_SCRIPT_ID}`;
-const APP_ENTRY = fileURLToPath(new URL("./src/features/app-shell/app-entry.ts", import.meta.url));
+const INLINE_SCRIPT_PREFIX = "virtual:traviz-inline-script/";
+const RESOLVED_INLINE_SCRIPT_PREFIX = `\0${INLINE_SCRIPT_PREFIX}`;
+
+const INLINE_SCRIPT_ENTRIES = new Map([
+  ["app", "./src/features/app-shell/app-entry.ts"],
+  ["sign-in", "./src/features/auth/sign-in-entry.ts"],
+  ["verify", "./src/features/auth/verify-entry.ts"],
+  ["account-menu", "./src/features/auth/account-menu-entry.ts"],
+]);
 
 function serverOnlyGuard(): Plugin {
   return {
@@ -30,7 +36,7 @@ function serverOnlyGuard(): Plugin {
   };
 }
 
-async function bundleAppScript(): Promise<string> {
+async function bundleInlineScript(entryPath: string): Promise<string> {
   const output = await build({
     configFile: false,
     root: fileURLToPath(new URL(".", import.meta.url)),
@@ -42,7 +48,10 @@ async function bundleAppScript(): Promise<string> {
       write: false,
       minify: true,
       modulePreload: false,
-      rolldownOptions: { input: APP_ENTRY, output: { format: "es" } },
+      rolldownOptions: {
+        input: fileURLToPath(new URL(entryPath, import.meta.url)),
+        output: { format: "es" },
+      },
     },
   });
 
@@ -51,28 +60,37 @@ async function bundleAppScript(): Promise<string> {
 
   if (entry?.type !== "chunk" || chunks.length !== 1 || entry.dynamicImports.length > 0) {
     throw new Error(
-      "The app script must build to one chunk with no import(), because it is inlined into the HTML.",
+      `${entryPath} must build to one chunk with no import(), because it is inlined into the HTML.`,
     );
   }
 
   return entry.code.replaceAll("</script", "<\\/script");
 }
 
-function inlineAppScript(): Plugin {
+function inlineScripts(): Plugin {
   return {
-    name: "traviz-inline-app-script",
+    name: "traviz-inline-scripts",
     resolveId(source) {
-      return source === APP_SCRIPT_ID ? RESOLVED_APP_SCRIPT_ID : null;
+      return source.startsWith(INLINE_SCRIPT_PREFIX) ? `\0${source}` : null;
     },
     async load(id) {
-      if (id !== RESOLVED_APP_SCRIPT_ID) return null;
+      if (!id.startsWith(RESOLVED_INLINE_SCRIPT_PREFIX)) return null;
 
-      return `export default ${JSON.stringify(await bundleAppScript())};`;
+      const name = id.slice(RESOLVED_INLINE_SCRIPT_PREFIX.length);
+      const entryPath = INLINE_SCRIPT_ENTRIES.get(name);
+
+      if (entryPath === undefined) this.error(`No inline script is named ${name}.`);
+
+      return `export default ${JSON.stringify(await bundleInlineScript(entryPath))};`;
     },
     hotUpdate() {
-      const appScript = this.environment.moduleGraph.getModuleById(RESOLVED_APP_SCRIPT_ID);
+      for (const name of INLINE_SCRIPT_ENTRIES.keys()) {
+        const inlineScript = this.environment.moduleGraph.getModuleById(
+          `${RESOLVED_INLINE_SCRIPT_PREFIX}${name}`,
+        );
 
-      if (appScript !== undefined) this.environment.moduleGraph.invalidateModule(appScript);
+        if (inlineScript !== undefined) this.environment.moduleGraph.invalidateModule(inlineScript);
+      }
     },
   };
 }
@@ -88,7 +106,7 @@ export default defineConfig({
   security: { checkOrigin: false },
   build: { inlineStylesheets: "always" },
   vite: {
-    plugins: [tailwindcss(), serverOnlyGuard(), inlineAppScript()],
+    plugins: [tailwindcss(), serverOnlyGuard(), inlineScripts()],
     define: { "import.meta.env.TRAVIZ_NODE_SERVER": JSON.stringify(usesNode) },
     ssr: { noExternal: ["server-only"] },
     build: {

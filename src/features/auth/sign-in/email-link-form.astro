@@ -5,6 +5,7 @@ import {
   emailInputClass,
 } from "@/features/auth/sign-in/sign-in-classes";
 import InlineIcon from "@/shared/icons/inline-icon.astro";
+import signInScript from "virtual:traviz-inline-script/sign-in";
 ---
 
 <form data-email-link-form class="flex flex-col gap-3">
@@ -51,4 +52,4 @@ import InlineIcon from "@/shared/icons/inline-icon.astro";
   </button>
 </div>
 
-<script src="@/features/auth/sign-in-entry.ts"></script>
+<script is:inline type="module" set:html={signInScript} />

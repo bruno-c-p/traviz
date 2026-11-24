@@ -2,7 +2,9 @@ export type PageScripts = {
   readonly inlineSources: readonly string[];
   readonly loadedUrls: readonly URL[];
   readonly preloadedUrls: readonly URL[];
+  readonly deferredUrls: readonly URL[];
   readonly hasModuleScript: boolean;
+  readonly hasLazyScript: boolean;
 };
 
 export const PAGE_ORIGIN = "http://localhost";
@@ -38,10 +40,22 @@ function preloadedScriptUrls(html: string): URL[] {
   });
 }
 
+function deferredScriptUrls(html: string): URL[] {
+  return tagsIn(html, "template").flatMap((tag) => {
+    const source = attributeOf(tag, "data-src");
+
+    return hasAttribute(tag, "data-lazy-script") && source !== undefined
+      ? [new URL(source, PAGE_ORIGIN)]
+      : [];
+  });
+}
+
 export function readPageScripts(html: string): PageScripts {
   const inlineSources: string[] = [];
   const loadedUrls: URL[] = [];
+  const deferredUrls = deferredScriptUrls(html);
   let hasModuleScript = false;
+  let hasLazyScript = deferredUrls.length > 0;
 
   for (const [, tag = "", body = ""] of html.matchAll(
     /(<script(?=[\s>])[^>]*>)([\s\S]*?)<\/script\s*>/gi,
@@ -56,7 +70,16 @@ export function readPageScripts(html: string): PageScripts {
 
     if (src === undefined) inlineSources.push(body);
     else loadedUrls.push(new URL(src, PAGE_ORIGIN));
+
+    if (src !== undefined && hasAttribute(tag, "data-lazy-script")) hasLazyScript = true;
   }
 
-  return { inlineSources, loadedUrls, preloadedUrls: preloadedScriptUrls(html), hasModuleScript };
+  return {
+    inlineSources,
+    loadedUrls,
+    preloadedUrls: preloadedScriptUrls(html),
+    deferredUrls,
+    hasModuleScript,
+    hasLazyScript,
+  };
 }

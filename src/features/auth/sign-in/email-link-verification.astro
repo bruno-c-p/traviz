@@ -2,6 +2,7 @@
 import { VERIFICATION_MESSAGES } from "@/features/auth/email-link-verification";
 import { PRIMARY_ACTION_CLASS } from "@/features/auth/sign-in/sign-in-classes";
 import { signInPath } from "@/paths";
+import verifyScript from "virtual:traviz-inline-script/verify";
 
 const { title, body } = VERIFICATION_MESSAGES.checking;
 ---
@@ -21,4 +22,4 @@ const { title, body } = VERIFICATION_MESSAGES.checking;
   </a>
 </div>
 
-<script src="@/features/auth/verify-entry.ts"></script>
+<script is:inline type="module" set:html={verifyScript} />

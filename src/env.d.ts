@@ -15,8 +15,8 @@ interface ImportMeta {
 
 declare module "server-only" {}
 
-declare module "virtual:traviz-app-script" {
-  const appScript: string;
+declare module "virtual:traviz-inline-script/*" {
+  const inlineScript: string;
 
-  export default appScript;
+  export default inlineScript;
 }

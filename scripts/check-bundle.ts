@@ -2,7 +2,16 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 import { z } from "zod";
-import { homePath, listPath, statsPath, welcomePath } from "@/paths";
+import {
+  accountMenuFragmentPath,
+  globeFragmentPath,
+  homePath,
+  listPath,
+  signInPath,
+  signInVerifyPath,
+  statsPath,
+  welcomePath,
+} from "@/paths";
 import { pageRoutes, renderRoutes } from "@/shared/testing/bundle/render-routes";
 import { measureRoute, type RouteBundle } from "@/shared/testing/bundle/route-bundle";
 
@@ -23,7 +32,17 @@ const budgetPath = resolve(options.budget ?? join(repoRoot, "bundle-budget.json"
 const buildHint = "Run bun run build:node first.";
 const defaultTolerance = { percent: 1, minBytes: 1024 };
 
-const routesWithModuleScript: string[] = [homePath(), listPath(), statsPath(), welcomePath()];
+const routesWithModuleScript: string[] = [
+  homePath(),
+  listPath(),
+  statsPath(),
+  welcomePath(),
+  signInPath(),
+  signInVerifyPath(),
+  accountMenuFragmentPath(),
+];
+
+const routesWithLazyScript: string[] = [homePath(), globeFragmentPath()];
 
 const sizeFields = ["firstLoadGzipBytes", "lazyGzipBytes", "htmlGzipBytes"] as const;
 
@@ -158,6 +177,11 @@ for (const [route, bundle] of bundles) {
   if (routesWithModuleScript.includes(route) && !bundle.hasModuleScript)
     failures.push(
       `${route} runs no module script. A script that only imports for side effects is dropped unless package.json lists its entry in sideEffects.`,
+    );
+
+  if (routesWithLazyScript.includes(route) && !bundle.hasLazyScript)
+    failures.push(
+      `${route} names no lazy script file. The globe engine must stay a file of its own, which a view fetched as a fragment can load, and not be inlined into the page or dropped.`,
     );
 }
 
