@@ -19,11 +19,24 @@ export const serverLogFile = join(verifyDirectory, "server.log");
 
 export const buildLogFile = join(verifyDirectory, "build.log");
 
-const instanceSchema = z.object({ pid: z.number(), port: z.number(), startedAt: z.string() });
+const serverEntry = join("dist", "server", "entry.mjs");
+
+const signInModeSchema = z.enum(["clerk", "fixed-user"]);
+
+const instanceSchema = z.object({
+  pid: z.number(),
+  port: z.number(),
+  startedAt: z.string(),
+  signIn: signInModeSchema,
+});
 
 export type Instance = z.infer<typeof instanceSchema>;
 
-const buildStampSchema = z.object({ tree: z.string(), builtAt: z.string() });
+const buildStampSchema = z.object({
+  tree: z.string(),
+  builtAt: z.string(),
+  signIn: signInModeSchema,
+});
 
 export type BuildStamp = z.infer<typeof buildStampSchema>;
 
@@ -58,7 +71,7 @@ export function readBuildStamp(): BuildStamp | undefined {
   return buildStampSchema.parse(JSON.parse(readFileSync(buildStampFile, "utf8")));
 }
 
-export function requireBaseUrl(): string {
+export function requireInstance(): Instance {
   const instance = readInstance();
 
   if (!instance || !isAlive(instance.pid))
@@ -66,14 +79,18 @@ export function requireBaseUrl(): string {
       "No verify server is running in this worktree. Run bun run verify:server start first.",
     );
 
-  return `http://localhost:${instance.port}`;
+  return instance;
+}
+
+export function requireBaseUrl(): string {
+  return `http://localhost:${requireInstance().port}`;
 }
 
 export function isAlive(pid: number): boolean {
   try {
     return execFileSync("ps", ["-o", "command=", "-p", String(pid)], {
       encoding: "utf8",
-    }).startsWith("next-server");
+    }).includes(serverEntry);
   } catch {
     return false;
   }
@@ -100,16 +117,28 @@ export function databasePath(): string {
   return perfEnvironment.databaseUrl.slice("file:".length);
 }
 
-export function buildHasPublicValues(environment: Environment): boolean {
-  const chunks = join(repoRoot, ".next", "static", "chunks");
+const publishableKeyPattern = /pk_(?:test|live)_[A-Za-z0-9]+/;
 
-  const publishableKey = environment.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+export function buildMatchesEnvironment(environment: Environment): boolean {
+  if (!existsSync(join(repoRoot, serverEntry))) return false;
 
-  if (!existsSync(chunks) || !publishableKey) return false;
+  const publishableKey = environment.PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
 
-  return readdirSync(chunks, { recursive: true, encoding: "utf8" })
-    .filter((file) => file.endsWith(".js"))
-    .some((file) => readFileSync(join(chunks, file), "utf8").includes(publishableKey));
+  const builtKeys = ["client", "server"].flatMap((side) => {
+    const directory = join(repoRoot, "dist", side);
+
+    if (!existsSync(directory)) return [];
+
+    return readdirSync(directory, { recursive: true, encoding: "utf8" })
+      .filter((file) => /\.m?js$/.test(file))
+      .flatMap(
+        (file) => publishableKeyPattern.exec(readFileSync(join(directory, file), "utf8")) ?? [],
+      );
+  });
+
+  return publishableKey === ""
+    ? builtKeys.length === 0
+    : builtKeys.length > 0 && builtKeys.every((builtKey) => builtKey === publishableKey);
 }
 
 export function evidenceDirectory(label: string): string {

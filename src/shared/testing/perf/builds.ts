@@ -1,4 +1,4 @@
-import { execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { closeSync, existsSync, mkdirSync, openSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
@@ -16,6 +16,12 @@ export type ServerCommand = {
 
 export function treeKind(treeDirectory: string): TreeKind {
   return existsSync(join(treeDirectory, "next.config.ts")) ? "next" : "astro";
+}
+
+export function commitKind(root: string, sha: string): TreeKind {
+  const lookup = spawnSync("git", ["-C", root, "cat-file", "-e", `${sha}:next.config.ts`]);
+
+  return lookup.status === 0 ? "next" : "astro";
 }
 
 export function buildEnvironment(kind: TreeKind, environment: Environment): Environment {
