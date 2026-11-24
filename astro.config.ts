@@ -90,6 +90,7 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss(), serverOnlyGuard(), inlineAppScript()],
     define: { "import.meta.env.TRAVIZ_NODE_SERVER": JSON.stringify(usesNode) },
+    ssr: { noExternal: ["server-only"] },
     build: {
       assetsInlineLimit: (filePath) => /\.(?:m?js|svg)$/.test(filePath),
     },
