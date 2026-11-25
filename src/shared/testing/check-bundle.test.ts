@@ -2,96 +2,90 @@ import { afterAll, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import {
-  appendFileSync,
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { gzipSync } from "node:zlib";
+import { z } from "zod";
 
 const checkBundleScript = join(import.meta.dir, "..", "..", "..", "scripts", "check-bundle.ts");
 const fixtureRoots: string[] = [];
 
-const firstLoadChunks = {
-  "/": [".next/static/chunks/shared.js", ".next/static/chunks/home.js"],
-  "/list": [".next/static/chunks/shared.js", ".next/static/chunks/list.js"],
-};
-
-function preloadTag(href: string): string {
-  return `<link rel="preload" as="script" fetchPriority="low" href="${href}"/>`;
+function noise(): string {
+  return randomBytes(4000).toString("base64");
 }
 
-function writeRouteStats(fixtureRoot: string, routes: string[]) {
-  const routeStats = Object.entries(firstLoadChunks)
-    .filter(([route]) => routes.includes(route))
-    .map(([route, firstLoadChunkPaths]) => ({
-      route,
-      firstLoadUncompressedJsBytes: 0,
-      firstLoadChunkPaths,
-    }));
+function moduleTag(chunk: string): string {
+  return `<script type="module" src="/_astro/${chunk}.js"></script>`;
+}
 
-  writeFileSync(
-    join(fixtureRoot, ".next", "diagnostics", "route-bundle-stats.json"),
-    JSON.stringify(routeStats),
-  );
+function lazyModuleTag(chunk: string): string {
+  return `<script type="module" async src="/_astro/${chunk}.js" data-lazy-script="globe-engine"></script>`;
+}
+
+function lazyScriptTemplate(chunk: string): string {
+  return `<template data-lazy-script="globe-engine" data-src="/_astro/${chunk}.js"></template>`;
+}
+
+function preloadTag(href: string): string {
+  return `<link rel="preload" as="script" fetchpriority="low" href="${href}">`;
+}
+
+function page(...parts: string[]): string {
+  return `<!DOCTYPE html><html><head><title>traviz</title></head><body>${parts.join("")}</body></html>`;
+}
+
+function chunkPath(fixtureRoot: string, chunk: string): string {
+  return join(fixtureRoot, "dist", "client", "_astro", `${chunk}.js`);
+}
+
+function writeChunk(fixtureRoot: string, chunk: string, source: string = noise()) {
+  writeFileSync(chunkPath(fixtureRoot, chunk), source);
+}
+
+function writePage(fixtureRoot: string, pageFile: string, html: string) {
+  const pagePath = join(fixtureRoot, "pages", pageFile);
+
+  mkdirSync(dirname(pagePath), { recursive: true });
+  writeFileSync(pagePath, html);
 }
 
 function createBuildFixture(): string {
   const fixtureRoot = mkdtempSync(join(tmpdir(), "check-bundle-"));
+
   fixtureRoots.push(fixtureRoot);
+  mkdirSync(join(fixtureRoot, "dist", "client", "_astro"), { recursive: true });
 
-  for (const directory of ["diagnostics", "static/chunks", "server/app"]) {
-    mkdirSync(join(fixtureRoot, ".next", directory), { recursive: true });
-  }
+  for (const chunk of ["home", "list", "lazy"]) writeChunk(fixtureRoot, chunk);
 
-  for (const chunk of ["shared", "home", "list", "lazy"]) {
-    writeFileSync(join(fixtureRoot, ".next", "static", "chunks", `${chunk}.js`), randomBytes(4000));
-  }
-
-  writeRouteStats(fixtureRoot, ["/", "/list"]);
-  writeFileSync(
-    join(fixtureRoot, ".next", "server", "app", "index.html"),
-    [
-      preloadTag("/_next/static/chunks/home.js"),
-      '<script src="/_next/static/chunks/shared.js" async="">',
-      '<script src="/_next/static/chunks/lazy.js" noModule="">',
-      '<script src="https://clerk.example.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js" async="">',
-    ].join(""),
-  );
-  writeFileSync(join(fixtureRoot, ".next", "server", "app", "list.html"), "<html></html>");
+  writePage(fixtureRoot, "index.html", page(lazyModuleTag("home")));
+  writePage(fixtureRoot, "list.html", page(moduleTag("list")));
 
   return fixtureRoot;
 }
 
-function writeListHtml(fixtureRoot: string, html: string) {
-  writeFileSync(join(fixtureRoot, ".next", "server", "app", "list.html"), html);
-}
-
-function chunkPath(fixtureRoot: string, chunk: string): string {
-  return join(fixtureRoot, ".next", "static", "chunks", `${chunk}.js`);
-}
-
-function writeChunk(fixtureRoot: string, chunk: string, references: string[]) {
-  const referenceSource = references.map((reference) => `"static/chunks/${reference}.js"`);
-
-  writeFileSync(
-    chunkPath(fixtureRoot, chunk),
-    `${randomBytes(4000).toString("base64")};${referenceSource.join(",")}`,
-  );
+function gzipBytesOf(content: string | Buffer): number {
+  return gzipSync(content, { level: 9 }).length;
 }
 
 function gzipBytesOfChunk(fixtureRoot: string, chunk: string): number {
-  return gzipSync(readFileSync(chunkPath(fixtureRoot, chunk)), { level: 9 }).length;
+  return gzipBytesOf(readFileSync(chunkPath(fixtureRoot, chunk)));
 }
 
-function lazyGzipBytesIn(output: string, route: string): number {
-  const row = output.split("\n").find((line) => line.startsWith(`${route}\t`));
+function sizesIn(output: string, route: string) {
+  const cells = output
+    .split("\n")
+    .find((line) => line.startsWith(`${route}\t`))
+    ?.split("\t");
 
-  return Number(row?.split("\t")[4]);
+  return { firstLoad: Number(cells?.[1]), lazy: Number(cells?.[4]), html: Number(cells?.[7]) };
 }
 
 function runCheckBundle(fixtureRoot: string, ...extraArguments: string[]) {
@@ -101,6 +95,8 @@ function runCheckBundle(fixtureRoot: string, ...extraArguments: string[]) {
       checkBundleScript,
       "--root",
       fixtureRoot,
+      "--pages",
+      join(fixtureRoot, "pages"),
       "--budget",
       join(fixtureRoot, "bundle-budget.json"),
       ...extraArguments,
@@ -109,6 +105,30 @@ function runCheckBundle(fixtureRoot: string, ...extraArguments: string[]) {
   );
 
   return { exitCode: result.status, output: result.stdout + result.stderr };
+}
+
+function readBudget(fixtureRoot: string): string {
+  return readFileSync(join(fixtureRoot, "bundle-budget.json"), "utf8");
+}
+
+const writtenBudgetSchema = z.object({
+  tolerance: z.unknown(),
+  routes: z.record(z.string(), z.unknown()),
+});
+
+function parsedBudget(fixtureRoot: string) {
+  return writtenBudgetSchema.parse(JSON.parse(readBudget(fixtureRoot)));
+}
+
+function writeBudget(fixtureRoot: string, contents: string) {
+  writeFileSync(join(fixtureRoot, "bundle-budget.json"), contents);
+}
+
+function expectFailure(fixtureRoot: string, expectedText: string, ...extraArguments: string[]) {
+  const { exitCode, output } = runCheckBundle(fixtureRoot, ...extraArguments);
+
+  expect(output).toContain(expectedText);
+  expect(exitCode).toBe(1);
 }
 
 afterAll(() => {
@@ -126,424 +146,505 @@ test("check:bundle --write records the budget, then the check passes", () => {
   expect(exitCode).toBe(0);
 });
 
+test("check:bundle --write records the first-load, lazy and HTML bytes of each route", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeChunk(fixtureRoot, "home", `${noise()};import("./lazy.js")`);
+  runCheckBundle(fixtureRoot, "--write");
+
+  const homeHtml = readFileSync(join(fixtureRoot, "pages", "index.html"));
+  const listHtml = readFileSync(join(fixtureRoot, "pages", "list.html"));
+
+  expect(JSON.parse(readBudget(fixtureRoot))).toEqual({
+    tolerance: { percent: 1, minBytes: 1024 },
+    routes: {
+      "/": {
+        firstLoadGzipBytes: gzipBytesOfChunk(fixtureRoot, "home"),
+        lazyGzipBytes: gzipBytesOfChunk(fixtureRoot, "lazy"),
+        htmlGzipBytes: gzipBytesOf(homeHtml),
+      },
+      "/list": {
+        firstLoadGzipBytes: gzipBytesOfChunk(fixtureRoot, "list"),
+        lazyGzipBytes: 0,
+        htmlGzipBytes: gzipBytesOf(listHtml),
+      },
+    },
+  });
+});
+
+test("check:bundle names a nested page by its path", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writePage(fixtureRoot, "sign-in/verify.html", page(moduleTag("list")));
+  runCheckBundle(fixtureRoot, "--write");
+
+  expect(Object.keys(parsedBudget(fixtureRoot).routes)).toEqual(["/", "/list", "/sign-in/verify"]);
+});
+
 test("check:bundle allows growth within the 1 KB floor", () => {
   const fixtureRoot = createBuildFixture();
+
   runCheckBundle(fixtureRoot, "--write");
-  appendFileSync(join(fixtureRoot, ".next", "static", "chunks", "home.js"), randomBytes(500));
+  writeChunk(
+    fixtureRoot,
+    "home",
+    `${readFileSync(chunkPath(fixtureRoot, "home"), "utf8")}//${randomBytes(300).toString("base64")}`,
+  );
 
   expect(runCheckBundle(fixtureRoot).exitCode).toBe(0);
 });
 
 test("check:bundle fails when a route's first-load JS grows past the tolerance", () => {
   const fixtureRoot = createBuildFixture();
+
   runCheckBundle(fixtureRoot, "--write");
-  appendFileSync(join(fixtureRoot, ".next", "static", "chunks", "home.js"), randomBytes(2000));
+  writeChunk(fixtureRoot, "home", noise() + noise());
+
+  expectFailure(fixtureRoot, "/ first-load JS is");
+
+  const { output } = runCheckBundle(fixtureRoot);
+
+  expect(output).toContain("over its limit of");
+  expect(output).not.toContain("/list first-load JS is");
+});
+
+test("check:bundle uses 1% as the tolerance once it is larger than the 1 KB floor", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeChunk(fixtureRoot, "home", randomBytes(200_000).toString("base64"));
+  runCheckBundle(fixtureRoot, "--write");
+
+  const budgeted = gzipBytesOfChunk(fixtureRoot, "home");
+
+  expect(runCheckBundle(fixtureRoot).output).toContain(
+    `/\t${budgeted}\t${budgeted}\t${budgeted + Math.ceil(budgeted / 100)}`,
+  );
+});
+
+test("check:bundle counts an inline script, and not an inline data block, as first-load JS", () => {
+  const fixtureRoot = createBuildFixture();
+  const inlineSource = noise();
+
+  writePage(
+    fixtureRoot,
+    "404.html",
+    page(
+      `<script type="text/plain" id="marks-snapshot">${noise()}</script>`,
+      `<script type="application/json">${noise()}</script>`,
+      `<script>${inlineSource}</script>`,
+    ),
+  );
+
+  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/404").firstLoad).toBe(
+    gzipBytesOf(inlineSource),
+  );
+});
+
+test("check:bundle gzips the inline scripts of a page together and adds its chunks", () => {
+  const fixtureRoot = createBuildFixture();
+  const [first, second] = [noise(), noise()];
+
+  writePage(
+    fixtureRoot,
+    "list.html",
+    page(
+      `<script>${first}</script>`,
+      `<script type="module">${second}</script>`,
+      moduleTag("list"),
+    ),
+  );
+
+  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/list").firstLoad).toBe(
+    gzipBytesOf(`${first}\n${second}`) + gzipBytesOfChunk(fixtureRoot, "list"),
+  );
+});
+
+test("check:bundle counts a chunk that a loaded chunk imports statically as first-load JS", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeChunk(fixtureRoot, "shared");
+  writeChunk(fixtureRoot, "list", `import{a}from"./shared.js";${noise()}`);
+
+  const sizes = sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/list");
+
+  expect(sizes.firstLoad).toBe(
+    gzipBytesOfChunk(fixtureRoot, "list") + gzipBytesOfChunk(fixtureRoot, "shared"),
+  );
+  expect(sizes.lazy).toBe(0);
+});
+
+test("check:bundle counts a chunk that an inline module imports statically as first-load JS", () => {
+  const fixtureRoot = createBuildFixture();
+  const inlineSource = 'import"/_astro/list.js";start()';
+
+  writePage(fixtureRoot, "list.html", page(`<script type="module">${inlineSource}</script>`));
+
+  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/list").firstLoad).toBe(
+    gzipBytesOf(inlineSource) + gzipBytesOfChunk(fixtureRoot, "list"),
+  );
+});
+
+test("check:bundle counts a lazy chunk a first-load chunk references", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeChunk(fixtureRoot, "list", `${noise()};import("./lazy.js")`);
+
+  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/list").lazy).toBe(
+    gzipBytesOfChunk(fixtureRoot, "lazy"),
+  );
+});
+
+test("check:bundle counts a lazy chunk an inline script names", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writePage(fixtureRoot, "404.html", page('<script>import("/_astro/lazy.js")</script>'));
+
+  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/404").lazy).toBe(
+    gzipBytesOfChunk(fixtureRoot, "lazy"),
+  );
+});
+
+test("check:bundle counts a script a template defers, and what it imports, as lazy JS", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeChunk(fixtureRoot, "engine", `import"./lazy.js";${noise()}`);
+  writePage(fixtureRoot, "fragments/globe.html", page(lazyScriptTemplate("engine")));
+
+  const sizes = sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/fragments/globe");
+
+  expect(sizes.firstLoad).toBe(0);
+  expect(sizes.lazy).toBe(
+    gzipBytesOfChunk(fixtureRoot, "engine") + gzipBytesOfChunk(fixtureRoot, "lazy"),
+  );
+});
+
+test("check:bundle fails when a template defers a script that is not in the build output", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writePage(fixtureRoot, "fragments/globe.html", page(lazyScriptTemplate("gone")));
+
+  expectFailure(
+    fixtureRoot,
+    "/fragments/globe loads _astro/gone.js, which is not in the build",
+    "--write",
+  );
+});
+
+test("check:bundle fails when the globe engine is inlined into the page or dropped", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  writePage(fixtureRoot, "index.html", page(moduleTag("home")));
+  expectFailure(fixtureRoot, "/ names no lazy script file");
+
+  writePage(fixtureRoot, "index.html", page(lazyModuleTag("home")));
+  writePage(fixtureRoot, "fragments/globe.html", page('<script type="module">engine()</script>'));
+  expectFailure(fixtureRoot, "/fragments/globe names no lazy script file", "--write");
+});
+
+test("check:bundle counts a lazy chunk reached through another lazy chunk", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeChunk(fixtureRoot, "deep");
+  writeChunk(fixtureRoot, "lazy", `${noise()};import("./deep.js")`);
+  writeChunk(fixtureRoot, "list", `${noise()};import("./lazy.js")`);
+
+  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/list").lazy).toBe(
+    gzipBytesOfChunk(fixtureRoot, "lazy") + gzipBytesOfChunk(fixtureRoot, "deep"),
+  );
+});
+
+test("check:bundle does not count a first-load chunk as lazy when another chunk references it", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeChunk(fixtureRoot, "shared", `${noise()};import("./list.js")`);
+  writeChunk(fixtureRoot, "list", `import{a}from"./shared.js";${noise()}`);
+
+  expect(sizesIn(runCheckBundle(fixtureRoot, "--write").output, "/list").lazy).toBe(0);
+});
+
+test("check:bundle fails when a route's lazy JS grows past the tolerance and lists the chunks largest first", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeChunk(fixtureRoot, "small", randomBytes(100).toString("base64"));
+  writeChunk(fixtureRoot, "list", `${noise()};import("./small.js");import("./lazy.js")`);
+  runCheckBundle(fixtureRoot, "--write");
+  writeChunk(fixtureRoot, "lazy", noise() + noise());
 
   const { exitCode, output } = runCheckBundle(fixtureRoot);
 
-  expect(output).toMatch(/^\/ first-load JS is \d+ B gzipped, over its limit/m);
-  expect(output).not.toMatch(/^\/list first-load JS/m);
+  expect(output).toMatch(/\/list lazy JS is \d+ B gzipped, over its limit of \d+ B/);
+  expect(output).toMatch(/_astro\/lazy\.js \(\d+ B\), _astro\/small\.js \(\d+ B\)/);
   expect(exitCode).toBe(1);
+});
+
+test("check:bundle fails when a route's HTML grows past the tolerance", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  writePage(fixtureRoot, "list.html", page(`<style>${noise()}</style>`, moduleTag("list")));
+
+  expectFailure(fixtureRoot, "/list HTML is");
 });
 
 test("check:bundle fails when the HTML preloads JS outside the route's first load", () => {
   const fixtureRoot = createBuildFixture();
+
   runCheckBundle(fixtureRoot, "--write");
-  writeListHtml(fixtureRoot, preloadTag("/_next/static/chunks/lazy.js?dpl=abc"));
+  writePage(fixtureRoot, "list.html", page(preloadTag("/_astro/lazy.js"), moduleTag("list")));
 
   const { exitCode, output } = runCheckBundle(fixtureRoot);
 
   expect(output).toMatch(
-    /^\/list preloads \.next\/static\/chunks\/lazy\.js \(\d+ B gzipped\), which is not in its first-load JS$/m,
+    /\/list preloads _astro\/lazy\.js \(\d+ B gzipped\), which is not in its first-load JS/,
   );
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails when the HTML preloads a script from another origin", () => {
-  const fixtureRoot = createBuildFixture();
-  runCheckBundle(fixtureRoot, "--write");
-  writeListHtml(
-    fixtureRoot,
-    preloadTag("https://clerk.example.com/npm/@clerk/ui@1/dist/ui.browser.js"),
-  );
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain(
-    "/list preloads https://clerk.example.com/npm/@clerk/ui@1/dist/ui.browser.js, a script from another origin",
-  );
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails when the stats file is missing", () => {
-  const fixtureRoot = createBuildFixture();
-  rmSync(join(fixtureRoot, ".next", "diagnostics"), { recursive: true });
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("route-bundle-stats.json not found");
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails when a budgeted route is missing from the build", () => {
-  const fixtureRoot = createBuildFixture();
-  runCheckBundle(fixtureRoot, "--write");
-  writeRouteStats(fixtureRoot, ["/"]);
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("/list is in the budget but not in route-bundle-stats.json");
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails when a built route has no budget", () => {
-  const fixtureRoot = createBuildFixture();
-  writeRouteStats(fixtureRoot, ["/"]);
-  runCheckBundle(fixtureRoot, "--write");
-  writeRouteStats(fixtureRoot, ["/", "/list"]);
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("/list has no budget");
   expect(exitCode).toBe(1);
 });
 
 test("check:bundle fails on a modulepreload outside the route's first load", () => {
   const fixtureRoot = createBuildFixture();
+
   runCheckBundle(fixtureRoot, "--write");
-  writeListHtml(fixtureRoot, '<link rel="modulepreload" href="/_next/static/chunks/lazy.js"/>');
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("/list preloads .next/static/chunks/lazy.js");
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails when the HTML loads a chunk the stats file leaves out", () => {
-  const fixtureRoot = createBuildFixture();
-  runCheckBundle(fixtureRoot, "--write");
-  writeListHtml(fixtureRoot, '<script src="/_next/static/chunks/lazy.js" async="">');
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain(
-    "/list HTML loads .next/static/chunks/lazy.js, which route-bundle-stats.json leaves out of its first-load JS",
-  );
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails when a route has no prerendered HTML", () => {
-  const fixtureRoot = createBuildFixture();
-  runCheckBundle(fixtureRoot, "--write");
-  rmSync(join(fixtureRoot, ".next", "server", "app", "list.html"));
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("/list has no prerendered HTML");
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails when the stats file lists no routes", () => {
-  const fixtureRoot = createBuildFixture();
-  runCheckBundle(fixtureRoot, "--write");
-  writeRouteStats(fixtureRoot, []);
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("route-bundle-stats.json is invalid. It should be a list of routes");
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails on a budget key it does not know", () => {
-  const fixtureRoot = createBuildFixture();
-  writeFileSync(
-    join(fixtureRoot, "bundle-budget.json"),
-    JSON.stringify({
-      tolerance: { percent: 1, minBytes: 1024 },
-      routes: { "/": { firstLoadGzipBytes: 1, scriptOrigin: [] } },
-    }),
+  writePage(
+    fixtureRoot,
+    "list.html",
+    page('<link rel="modulepreload" href="/_astro/lazy.js">', moduleTag("list")),
   );
 
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("bundle-budget.json is invalid");
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails on a script preload whose URL has no .js extension", () => {
-  const fixtureRoot = createBuildFixture();
-  runCheckBundle(fixtureRoot, "--write");
-  writeListHtml(fixtureRoot, preloadTag("https://www.googletagmanager.com/gtag/js?id=G-1"));
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("/list preloads https://www.googletagmanager.com/gtag/js?id=G-1");
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails with a hint when the stats file is not JSON", () => {
-  const fixtureRoot = createBuildFixture();
-  writeFileSync(join(fixtureRoot, ".next", "diagnostics", "route-bundle-stats.json"), "");
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("route-bundle-stats.json is not valid JSON");
-  expect(output).toContain("update scripts/check-bundle.ts");
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails when a chunk in the stats file is missing on disk", () => {
-  const fixtureRoot = createBuildFixture();
-  rmSync(join(fixtureRoot, ".next", "static", "chunks", "home.js"));
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain(
-    ".next/static/chunks/home.js is in route-bundle-stats.json but not on disk",
-  );
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle --write keeps a hand-tuned tolerance", () => {
-  const fixtureRoot = createBuildFixture();
-  const budgetPath = join(fixtureRoot, "bundle-budget.json");
-  writeFileSync(
-    budgetPath,
-    JSON.stringify({ tolerance: { percent: 5, minBytes: 2048 }, routes: {} }),
-  );
-
-  expect(runCheckBundle(fixtureRoot, "--write").exitCode).toBe(0);
-  expect(readFileSync(budgetPath, "utf8")).toContain('"percent": 5');
-});
-
-test("check:bundle points to a working recovery when the budget is invalid", () => {
-  const fixtureRoot = createBuildFixture();
-  writeFileSync(join(fixtureRoot, "bundle-budget.json"), "");
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot, "--write");
-
-  expect(output).toContain(
-    "is not valid JSON. Fix it, or delete it and run bun run check:bundle --write.",
-  );
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle uses 1% as the tolerance once it is larger than the 1 KB floor", () => {
-  const fixtureRoot = createBuildFixture();
-  const homeChunk = join(fixtureRoot, ".next", "static", "chunks", "home.js");
-  writeFileSync(homeChunk, randomBytes(200_000));
-  runCheckBundle(fixtureRoot, "--write");
-
-  appendFileSync(homeChunk, randomBytes(1500));
-  expect(runCheckBundle(fixtureRoot).exitCode).toBe(0);
-
-  appendFileSync(homeChunk, randomBytes(1500));
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toMatch(/^\/ first-load JS is \d+ B gzipped, over its limit/m);
-  expect(exitCode).toBe(1);
+  expectFailure(fixtureRoot, "/list preloads _astro/lazy.js");
 });
 
 test("check:bundle fails when a route preloads a chunk only another route loads at first", () => {
   const fixtureRoot = createBuildFixture();
+
   runCheckBundle(fixtureRoot, "--write");
-  writeFileSync(
-    join(fixtureRoot, ".next", "server", "app", "index.html"),
-    preloadTag("/_next/static/chunks/list.js"),
-  );
+  writePage(fixtureRoot, "list.html", page(preloadTag("/_astro/home.js"), moduleTag("list")));
 
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("/ preloads .next/static/chunks/list.js");
-  expect(exitCode).toBe(1);
+  expectFailure(fixtureRoot, "/list preloads _astro/home.js");
 });
 
-test("check:bundle counts a lazy chunk a first-load chunk references", () => {
+test("check:bundle allows a preload of a chunk the route loads at first", () => {
   const fixtureRoot = createBuildFixture();
-  writeChunk(fixtureRoot, "home", ["lazy"]);
-  runCheckBundle(fixtureRoot, "--write");
 
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(lazyGzipBytesIn(output, "/")).toBe(gzipBytesOfChunk(fixtureRoot, "lazy"));
-  expect(lazyGzipBytesIn(output, "/list")).toBe(0);
-  expect(exitCode).toBe(0);
-});
-
-test("check:bundle counts a lazy chunk reached through another lazy chunk", () => {
-  const fixtureRoot = createBuildFixture();
-  writeChunk(fixtureRoot, "home", ["lazy"]);
-  writeChunk(fixtureRoot, "lazy", ["deep"]);
-  writeChunk(fixtureRoot, "deep", ["home"]);
-  runCheckBundle(fixtureRoot, "--write");
-
-  const { output } = runCheckBundle(fixtureRoot);
-
-  expect(lazyGzipBytesIn(output, "/")).toBe(
-    gzipBytesOfChunk(fixtureRoot, "lazy") + gzipBytesOfChunk(fixtureRoot, "deep"),
-  );
-});
-
-test("check:bundle fails when a chunk references a chunk that is not on disk", () => {
-  const fixtureRoot = createBuildFixture();
-  writeChunk(fixtureRoot, "home", ["missing"]);
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain(
-    ".next/static/chunks/home.js references .next/static/chunks/missing.js, which is not on disk",
-  );
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle does not count a first-load chunk as lazy when another chunk references it", () => {
-  const fixtureRoot = createBuildFixture();
-  writeChunk(fixtureRoot, "home", ["shared"]);
-  runCheckBundle(fixtureRoot, "--write");
-
-  expect(lazyGzipBytesIn(runCheckBundle(fixtureRoot).output, "/")).toBe(0);
-});
-
-test("check:bundle fails when a route's lazy JS grows past the tolerance", () => {
-  const fixtureRoot = createBuildFixture();
-  writeChunk(fixtureRoot, "home", ["lazy"]);
-  runCheckBundle(fixtureRoot, "--write");
-  appendFileSync(chunkPath(fixtureRoot, "lazy"), randomBytes(2000));
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-  const lazyGzipBytes = gzipBytesOfChunk(fixtureRoot, "lazy");
-
-  expect(output).toMatch(
-    new RegExp(
-      `^/ lazy JS is ${lazyGzipBytes} B gzipped, over its limit of \\d+ B \\(budget \\d+ B \\+ 1024 B tolerance\\): \\.next/static/chunks/lazy\\.js \\(${lazyGzipBytes} B\\)$`,
-      "m",
-    ),
-  );
-  expect(output).not.toMatch(/^\/list lazy JS/m);
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle lists the lazy chunks largest first when it fails", () => {
-  const fixtureRoot = createBuildFixture();
-  writeChunk(fixtureRoot, "home", ["lazy", "deep"]);
-  writeFileSync(chunkPath(fixtureRoot, "deep"), randomBytes(8000));
-  runCheckBundle(fixtureRoot, "--write");
-  appendFileSync(chunkPath(fixtureRoot, "lazy"), randomBytes(6000));
-
-  const { output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toMatch(
-    /\): \.next\/static\/chunks\/lazy\.js \(\d+ B\), \.next\/static\/chunks\/deep\.js \(\d+ B\)$/m,
-  );
-});
-
-test("check:bundle --write records the first-load and lazy bytes of each route", () => {
-  const fixtureRoot = createBuildFixture();
-  writeChunk(fixtureRoot, "list", ["lazy"]);
-  runCheckBundle(fixtureRoot, "--write");
-
-  const budget: unknown = JSON.parse(readFileSync(join(fixtureRoot, "bundle-budget.json"), "utf8"));
-
-  expect(budget).toMatchObject({
-    routes: {
-      "/": { lazyGzipBytes: 0 },
-      "/list": { lazyGzipBytes: gzipBytesOfChunk(fixtureRoot, "lazy") },
-    },
-  });
-  expect(runCheckBundle(fixtureRoot).exitCode).toBe(0);
-});
-
-function landingAsset(fixtureRoot: string, fileName: string): string {
-  return join(fixtureRoot, "public", "welcome", "_astro", fileName);
-}
-
-function createLandingFixture(extraHead = ""): string {
-  const fixtureRoot = createBuildFixture();
-  const noise = () => randomBytes(3000).toString("base64");
-
-  mkdirSync(join(fixtureRoot, "public", "welcome", "_astro"), { recursive: true });
-  writeFileSync(
-    landingAsset(fixtureRoot, "entry.js"),
-    `import{a}from"./shared.js";${noise()};import(\`./globe.js\`)`,
-  );
-  writeFileSync(landingAsset(fixtureRoot, "shared.js"), noise());
-  writeFileSync(landingAsset(fixtureRoot, "globe.js"), `import{b}from"./data.js";${noise()}`);
-  writeFileSync(landingAsset(fixtureRoot, "data.js"), noise());
-  writeFileSync(
-    join(fixtureRoot, "public", "welcome", "index.html"),
-    `<html><head>${extraHead}</head><body><script type="module" src="/welcome/_astro/entry.js"></script></body></html>`,
-  );
-
-  return fixtureRoot;
-}
-
-function landingGzipBytes(fixtureRoot: string, ...fileNames: string[]): number {
-  return fileNames.reduce(
-    (total, fileName) =>
-      total + gzipSync(readFileSync(landingAsset(fixtureRoot, fileName)), { level: 9 }).length,
-    0,
-  );
-}
-
-test("check:bundle budgets the landing page that Astro builds into public/welcome", () => {
-  const fixtureRoot = createLandingFixture();
+  writePage(fixtureRoot, "list.html", page(preloadTag("/_astro/list.js"), moduleTag("list")));
 
   expect(runCheckBundle(fixtureRoot, "--write").exitCode).toBe(0);
-
-  const budget: unknown = JSON.parse(readFileSync(join(fixtureRoot, "bundle-budget.json"), "utf8"));
-
-  expect(budget).toMatchObject({
-    routes: {
-      "/welcome": {
-        firstLoadGzipBytes: landingGzipBytes(fixtureRoot, "entry.js", "shared.js"),
-        lazyGzipBytes: landingGzipBytes(fixtureRoot, "globe.js", "data.js"),
-      },
-    },
-  });
-  expect(runCheckBundle(fixtureRoot).output).toContain("3 routes within budget");
 });
 
-test("check:bundle fails when the landing page's first-load JS grows past the tolerance", () => {
-  const fixtureRoot = createLandingFixture();
+test("check:bundle fails when the HTML preloads a script from another origin", () => {
+  const fixtureRoot = createBuildFixture();
+
   runCheckBundle(fixtureRoot, "--write");
-  appendFileSync(landingAsset(fixtureRoot, "shared.js"), randomBytes(2000));
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toMatch(/^\/welcome first-load JS is \d+ B gzipped, over its limit/m);
-  expect(exitCode).toBe(1);
-});
-
-test("check:bundle fails when the landing page preloads one of its lazy chunks", () => {
-  const fixtureRoot = createLandingFixture(
-    '<link rel="modulepreload" href="/welcome/_astro/globe.js">',
+  writePage(
+    fixtureRoot,
+    "list.html",
+    page(preloadTag("https://clerk.example.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js")),
   );
 
-  runCheckBundle(fixtureRoot, "--write");
-
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
-
-  expect(output).toContain("/welcome preloads public/welcome/_astro/globe.js");
-  expect(exitCode).toBe(1);
+  expectFailure(
+    fixtureRoot,
+    "/list preloads https://clerk.example.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js, a script from another origin",
+  );
 });
 
-test("check:bundle fails when the landing page is budgeted but was not built", () => {
-  const fixtureRoot = createLandingFixture();
+test("check:bundle fails on a script preload whose URL has no .js extension", () => {
+  const fixtureRoot = createBuildFixture();
+
   runCheckBundle(fixtureRoot, "--write");
-  rmSync(join(fixtureRoot, "public"), { recursive: true });
+  writePage(fixtureRoot, "list.html", page(preloadTag("/api/script"), moduleTag("list")));
 
-  const { exitCode, output } = runCheckBundle(fixtureRoot);
+  expectFailure(fixtureRoot, "/list preloads api/script (not in the build output)");
+});
 
-  expect(output).toContain("/welcome is in the budget but not in route-bundle-stats.json");
-  expect(exitCode).toBe(1);
+test("check:bundle fails when the HTML loads a chunk that is not in the build output", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  unlinkSync(chunkPath(fixtureRoot, "list"));
+
+  expectFailure(fixtureRoot, "/list loads _astro/list.js, which is not in the build output");
+});
+
+test("check:bundle fails when a chunk imports a chunk that is not in the build output", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  writeChunk(fixtureRoot, "list", 'import"./gone.js";');
+
+  expectFailure(fixtureRoot, "_astro/list.js imports _astro/gone.js, which is not in the build");
+});
+
+test("check:bundle never reads a chunk outside the client build", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeFileSync(join(fixtureRoot, "secret.js"), noise());
+  writePage(fixtureRoot, "list.html", page('<script src="/../../secret.js"></script>'));
+
+  expectFailure(fixtureRoot, "which is not in the build output", "--write");
+});
+
+test("check:bundle fails when the client build is missing", () => {
+  const fixtureRoot = createBuildFixture();
+
+  rmSync(join(fixtureRoot, "dist"), { recursive: true });
+
+  expectFailure(fixtureRoot, "Run bun run build:node first.");
+});
+
+test("check:bundle fails when no page was rendered", () => {
+  const fixtureRoot = createBuildFixture();
+
+  rmSync(join(fixtureRoot, "pages"), { recursive: true });
+
+  expectFailure(fixtureRoot, "No page was rendered");
+});
+
+test("check:bundle fails when a budgeted route is missing from the build", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  unlinkSync(join(fixtureRoot, "pages", "list.html"));
+
+  expectFailure(fixtureRoot, "/list is in the budget but was not rendered");
+});
+
+test("check:bundle fails when a built route has no budget", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  writePage(fixtureRoot, "stats.html", page(moduleTag("list")));
+
+  expectFailure(fixtureRoot, "/stats has no budget. Add it with bun run check:bundle --write.");
+});
+
+test("check:bundle fails when a page that needs its script runs no module script", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  writePage(fixtureRoot, "list.html", page("<script>theme()</script>"));
+
+  expectFailure(fixtureRoot, "/list runs no module script");
+  expectFailure(fixtureRoot, "Not writing a budget for a broken build", "--write");
 });
 
 test("check:bundle fails when the landing page's script was dropped from the build", () => {
-  const fixtureRoot = createLandingFixture();
-  writeFileSync(join(fixtureRoot, "public", "welcome", "index.html"), "<html></html>");
+  const fixtureRoot = createBuildFixture();
 
-  const { exitCode, output } = runCheckBundle(fixtureRoot, "--write");
+  writePage(fixtureRoot, "welcome.html", page("<script>theme()</script>"));
 
-  expect(output).toContain("public/welcome/index.html loads no script");
-  expect(exitCode).toBe(1);
+  expectFailure(fixtureRoot, "/welcome runs no module script", "--write");
+});
+
+test("check:bundle lets a page with no behaviour ship no module script", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writePage(fixtureRoot, "404.html", page("<script>theme()</script>"));
+
+  expect(runCheckBundle(fixtureRoot, "--write").exitCode).toBe(0);
+});
+
+test("check:bundle fails on a budget key it does not know", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  writeBudget(
+    fixtureRoot,
+    readBudget(fixtureRoot).replace('"minBytes": 1024', '"minBytes": 1024, "maxBytes": 1'),
+  );
+
+  expectFailure(fixtureRoot, "is invalid");
+});
+
+test("check:bundle fails on a budget from before HTML was budgeted", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  writeBudget(fixtureRoot, readBudget(fixtureRoot).replaceAll(/,\s*"htmlGzipBytes": \d+/g, ""));
+
+  expectFailure(fixtureRoot, "htmlGzipBytes");
+});
+
+test("check:bundle points to a working recovery when the budget is invalid or not JSON", () => {
+  const fixtureRoot = createBuildFixture();
+
+  writeBudget(fixtureRoot, "{");
+  expectFailure(
+    fixtureRoot,
+    "is not valid JSON. Fix it, or delete it and run bun run check:bundle --write.",
+  );
+
+  writeBudget(fixtureRoot, '{"routes": []}');
+  expectFailure(
+    fixtureRoot,
+    "Fix it, or delete it and run bun run check:bundle --write.",
+    "--write",
+  );
+});
+
+test("check:bundle fails with a hint when there is no budget", () => {
+  expectFailure(createBuildFixture(), "not found. Run bun run check:bundle --write.");
+});
+
+test("check:bundle --write keeps a hand-tuned tolerance", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+  writeBudget(fixtureRoot, readBudget(fixtureRoot).replace('"minBytes": 1024', '"minBytes": 10'));
+  runCheckBundle(fixtureRoot, "--write");
+
+  expect(parsedBudget(fixtureRoot).tolerance).toEqual({ percent: 1, minBytes: 10 });
+});
+
+function productionStatic(fixtureRoot: string): string {
+  const productionRoot = join(fixtureRoot, "production");
+
+  cpSync(join(fixtureRoot, "dist", "client"), productionRoot, { recursive: true });
+
+  return productionRoot;
+}
+
+test("check:bundle passes when the production build serves the same JS and prerendered HTML", () => {
+  const fixtureRoot = createBuildFixture();
+
+  mkdirSync(join(fixtureRoot, "dist", "client", "welcome"));
+  writeFileSync(join(fixtureRoot, "dist", "client", "welcome", "index.html"), page());
+  runCheckBundle(fixtureRoot, "--write");
+
+  const { exitCode, output } = runCheckBundle(
+    fixtureRoot,
+    "--production-static",
+    productionStatic(fixtureRoot),
+  );
+
+  expect(output).toContain("the production build serves the same JS and prerendered HTML");
+  expect(exitCode).toBe(0);
+});
+
+test("check:bundle fails when the production build serves other JS than the measured build", () => {
+  const fixtureRoot = createBuildFixture();
+
+  runCheckBundle(fixtureRoot, "--write");
+
+  const changed = productionStatic(fixtureRoot);
+
+  writeFileSync(join(changed, "_astro", "home.js"), noise());
+  expectFailure(fixtureRoot, "_astro/home.js differs between", "--production-static", changed);
+
+  writeFileSync(join(changed, "_astro", "extra.js"), noise());
+  expectFailure(fixtureRoot, "_astro/extra.js is in", "--production-static", changed);
+
+  unlinkSync(join(changed, "_astro", "list.js"));
+  expectFailure(
+    fixtureRoot,
+    "_astro/list.js is in the Node build but not in",
+    "--production-static",
+    changed,
+  );
+
+  expectFailure(
+    fixtureRoot,
+    "holds no JS or HTML. Run bun run build first.",
+    "--production-static",
+    join(fixtureRoot, "nowhere"),
+  );
 });

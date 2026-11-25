@@ -1,8 +1,13 @@
 import { parseArgs } from "node:util";
 import type { Page } from "playwright-core";
-import { z } from "zod";
 import { COUNTRIES_BY_CODE, type Country } from "@/features/countries";
-import { findMapExpression, openRoute, readCamera, settle } from "@/shared/testing/verify/browser";
+import {
+  globeCanvasSelector,
+  hasGlobe,
+  openRoute,
+  readGlobeSignature,
+  settle,
+} from "@/shared/testing/verify/browser";
 import { runJourney, type Journal } from "@/shared/testing/verify/journal";
 import { homePath } from "@/paths";
 
@@ -21,85 +26,106 @@ if (!searched || !clicked) {
   process.exit(1);
 }
 
-const pointSchema = z.object({ x: z.number(), y: z.number() });
+function cardOf(page: Page, country: Country) {
+  return page.getByRole("group", { name: `Mark ${country.name}`, exact: true });
+}
+
+async function isStill(page: Page): Promise<boolean> {
+  const before = await readGlobeSignature(page);
+
+  await page.waitForTimeout(600);
+
+  return before !== null && before.signature === (await readGlobeSignature(page))?.signature;
+}
 
 async function checkSpin(journal: Journal, page: Page): Promise<void> {
   await page.waitForTimeout(1_000);
 
-  const before = await readCamera(page);
+  const before = await readGlobeSignature(page);
 
   await page.waitForTimeout(2_000);
 
-  const after = await readCamera(page);
-  const moved = before && after ? Math.abs(after.lng - before.lng) : 0;
+  const after = await readGlobeSignature(page);
 
-  journal.record("the globe spins on its own", moved > 0.5, `lng moved ${moved.toFixed(2)} in 2 s`);
+  journal.record(
+    "the globe spins on its own",
+    before !== null && after !== null && before.signature !== after.signature,
+    before === null || after === null
+      ? "the globe canvas could not be read"
+      : `the canvas ${before.signature === after.signature ? "did not change" : "changed"} in 2 s`,
+  );
 }
 
-async function checkSearch(journal: Journal, page: Page, country: Country): Promise<void> {
+async function flyTo(page: Page, country: Country): Promise<void> {
   await page.getByRole("combobox", { name: "Find a country" }).fill(country.name);
   await settle(page);
   await page.locator(`[role="option"][id$="-${country.code}"]`).click();
   await page.waitForTimeout(3_500);
+}
 
-  const camera = await readCamera(page);
-  const [lng, lat] = country.center;
+async function checkSearch(journal: Journal, page: Page, country: Country): Promise<void> {
+  const before = await readGlobeSignature(page);
 
-  const arrived =
-    camera !== null && Math.abs(camera.lng - lng) < 1 && Math.abs(camera.lat - lat) < 1;
+  await flyTo(page, country);
+
+  const after = await readGlobeSignature(page);
 
   journal.record(
-    `search flies to ${country.name}`,
-    arrived && camera?.moving === false,
-    `camera ${JSON.stringify(camera)}, expected ${lng},${lat}`,
+    `search moves the globe for ${country.name} and it comes to rest`,
+    before?.signature !== after?.signature && (await isStill(page)),
+    "compared the canvas before the search, after the fly and 600 ms later",
   );
   journal.record(
     "the country card opens for the picked country",
-    await page.getByRole("group", { name: `Mark ${country.name}`, exact: true }).isVisible(),
+    await cardOf(page, country).isVisible(),
     `group "Mark ${country.name}"`,
   );
   await journal.screenshot(page, "1-search-fly");
 }
 
 async function checkClick(journal: Journal, page: Page, country: Country): Promise<void> {
+  await flyTo(page, country);
   await page.keyboard.press("Escape");
   await settle(page);
 
-  const point = pointSchema.parse(
-    await page.evaluate(`(() => {
-      const map = ${findMapExpression};
-      const center = ${JSON.stringify(country.center)};
-      map.jumpTo({ center, zoom: 4 });
-      const point = map.project(center);
-      const box = map.getContainer().getBoundingClientRect();
-      return { x: point.x + box.left, y: point.y + box.top };
-    })()`),
-  );
+  const isClosed = !(await cardOf(page, country).isVisible());
+  const box = await page.locator(globeCanvasSelector).boundingBox();
 
-  await page.waitForTimeout(1_500);
+  if (box === null) {
+    journal.record(`a click on the globe selects ${country.name}`, false, "no globe canvas");
+
+    return;
+  }
+
+  const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
   await page.mouse.click(point.x, point.y);
   await settle(page);
   journal.record(
     `a click on the globe selects ${country.name}`,
-    await page.getByRole("group", { name: `Mark ${country.name}`, exact: true }).isVisible(),
-    `clicked ${Math.round(point.x)},${Math.round(point.y)} after jumpTo`,
+    isClosed && (await cardOf(page, country).isVisible()),
+    `Escape ${isClosed ? "closed" : "did not close"} the card, then clicked the canvas centre ${Math.round(point.x)},${Math.round(point.y)} after the fly`,
   );
   await journal.screenshot(page, "2-click");
 }
 
 async function checkZoom(journal: Journal, page: Page): Promise<void> {
-  const before = (await readCamera(page))?.zoom ?? 0;
+  const before = await readGlobeSignature(page);
 
   await page.getByRole("button", { name: "Zoom in" }).click();
-  await settle(page);
+  await page.waitForTimeout(1_200);
 
-  const after = (await readCamera(page))?.zoom ?? 0;
+  const after = await readGlobeSignature(page);
 
   journal.record(
-    "Zoom in raises the zoom by one",
-    Math.abs(after - before - 1) < 0.01,
-    `${before} to ${after}`,
+    "Zoom in draws the globe larger",
+    before !== null &&
+      after !== null &&
+      after.opaque >= before.opaque &&
+      after.signature !== before.signature,
+    `drawn sample points ${before?.opaque ?? "none"} to ${after?.opaque ?? "none"} of 2304`,
   );
+  await journal.screenshot(page, "3-zoom");
 }
 
 const searchedCountry = searched;
@@ -110,6 +136,17 @@ await runJourney(
   "no-preference",
   async (journal, page, _browser, baseUrl) => {
     await openRoute(page, baseUrl, homePath());
+
+    if (!(await hasGlobe(page))) {
+      journal.record(
+        "the globe is on the page",
+        false,
+        `no ${globeCanvasSelector}. This tree still renders the globe placeholder.`,
+      );
+
+      return;
+    }
+
     await checkSpin(journal, page);
     await checkSearch(journal, page, searchedCountry);
     await checkClick(journal, page, clickedCountry);

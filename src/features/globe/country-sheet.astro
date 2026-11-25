@@ -1,0 +1,30 @@
+---
+import CountryHeading from "@/features/countries/country-heading.astro";
+import ClearMarkButton from "@/features/marks/clear-mark-button.astro";
+import MarkChoices from "@/features/marks/mark-choices.astro";
+import MarkStatus from "@/features/marks/mark-status.astro";
+
+const headingId = "globe-country-sheet-heading";
+---
+
+<div data-country-sheet hidden class="md:hidden">
+  <div
+    data-sheet-backdrop
+    aria-hidden="true"
+    class="fixed inset-0 z-[55] bg-black/30 transition-opacity duration-300 ease-out starting:opacity-0"
+  >
+  </div>
+  <dialog
+    open
+    data-sheet-panel
+    aria-labelledby={headingId}
+    class="fixed inset-x-0 bottom-0 z-[60] m-0 flex h-auto max-h-none w-full max-w-none touch-none flex-col gap-4 rounded-t-[28px] border-0 bg-canvas px-5 pt-3 text-inherit shadow-card transition-[translate,opacity] duration-[400ms] ease-drawer after:absolute after:inset-x-0 after:top-[calc(100%-1px)] after:h-screen after:bg-canvas motion-safe:starting:translate-y-full motion-reduce:starting:opacity-0"
+    style="padding-bottom:max(1.5rem, env(safe-area-inset-bottom))"
+  >
+    <div aria-hidden="true" class="mx-auto h-1 w-10 rounded-full bg-line"></div>
+    <CountryHeading headingId={headingId} />
+    <MarkChoices layout="rows" />
+    <MarkStatus class="text-xs" />
+    <ClearMarkButton class="self-center px-3" />
+  </dialog>
+</div>

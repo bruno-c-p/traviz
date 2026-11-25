@@ -1,6 +1,7 @@
-import { create } from "zustand";
+import { createStore } from "@/shared/store";
+import type { Store } from "@/shared/store";
 
-interface SelectedCountryState {
+export interface SelectedCountryState {
   selectedCode: string | null;
   pendingFlyCode: string | null;
   select: (code: string) => void;
@@ -9,21 +10,25 @@ interface SelectedCountryState {
   clearSelection: () => void;
 }
 
-export const useSelectedCountryStore = create<SelectedCountryState>()((set, get) => ({
-  selectedCode: null,
-  pendingFlyCode: null,
+export type SelectionStore = Store<SelectedCountryState>;
 
-  select: (code) => set({ selectedCode: code, pendingFlyCode: null }),
+export function createSelectionStore(): SelectionStore {
+  return createStore<SelectedCountryState>((set, get) => ({
+    selectedCode: null,
+    pendingFlyCode: null,
 
-  selectAndFly: (code) => set({ selectedCode: code, pendingFlyCode: code }),
+    select: (code) => set({ selectedCode: code, pendingFlyCode: null }),
 
-  takePendingFly: () => {
-    const code = get().pendingFlyCode;
+    selectAndFly: (code) => set({ selectedCode: code, pendingFlyCode: code }),
 
-    if (code) set({ pendingFlyCode: null });
+    takePendingFly: () => {
+      const code = get().pendingFlyCode;
 
-    return code;
-  },
+      if (code) set({ pendingFlyCode: null });
 
-  clearSelection: () => set({ selectedCode: null, pendingFlyCode: null }),
-}));
+      return code;
+    },
+
+    clearSelection: () => set({ selectedCode: null, pendingFlyCode: null }),
+  }));
+}

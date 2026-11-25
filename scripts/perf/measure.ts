@@ -4,7 +4,8 @@ import { cpus, loadavg, release, totalmem, type } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { z } from "zod";
-import { homePath, listPath, signInPath, statsPath } from "@/paths";
+import { homePath, listPath, signInPath, statsPath, welcomePath } from "@/paths";
+import { ticketSignInExpression } from "@/shared/testing/clerk-browser";
 import { createSignInToken, findSeededUserId } from "@/shared/testing/clerk-dev";
 import {
   BrowserPage,
@@ -14,13 +15,20 @@ import {
 } from "@/shared/testing/perf/browser";
 import {
   buildTree,
+  commitKind,
   findFreePort,
   startServer,
   stopServer,
   waitForServer,
   type Environment,
+  type TreeKind,
 } from "@/shared/testing/perf/builds";
-import { readPerfEnvironment } from "@/shared/testing/perf/environment";
+import {
+  FIXED_USER_ID,
+  readPerfEnvironment,
+  withSignInMode,
+  type SignInMode,
+} from "@/shared/testing/perf/environment";
 import {
   findGuardFailures,
   resolveBaseline,
@@ -33,6 +41,7 @@ import {
   scenarioName,
   type MetricRow,
   type Scenario,
+  type Session,
   type Side,
   type Visit,
 } from "@/shared/testing/perf/report";
@@ -46,6 +55,8 @@ const { values: options } = parseArgs({
   options: {
     baseline: { type: "string", default: "main" },
     "allow-lockfile-diff": { type: "boolean", default: false },
+    "fixed-user": { type: "boolean", default: false },
+    route: { type: "string", multiple: true },
     runs: { type: "string", default: "5" },
     root: { type: "string" },
     chrome: {
@@ -86,11 +97,41 @@ const seedPlan = [
 const visitedCounter = `/(?<!\\d)${visitedCount}\\s*(of|\\/)\\s*\\d/.test(document.body.innerText)`;
 const visitedFilter = `/Visited\\s*${visitedCount}(?!\\d)/.test(document.querySelector('[aria-label="Filter by status"]')?.innerText ?? "")`;
 
-const routes = [
-  { path: homePath(), expectGlobe: true, expression: visitedCounter, hasReturnFromList: true },
-  { path: listPath(), expectGlobe: false, expression: visitedFilter },
-  { path: statsPath(), expectGlobe: false, expression: visitedCounter },
+const landingOnScreen = `document.querySelector('a[href="${signInPath()}"]') !== null && document.body.innerText.trim() !== ""`;
+
+type MeasuredRoute = {
+  readonly path: string;
+  readonly session: Session;
+  readonly expectGlobe: boolean;
+  readonly expression: string;
+  readonly hasReturnFromList: boolean;
+};
+
+const signedInRoute = { session: "signed in", hasReturnFromList: false } as const;
+
+const allRoutes: MeasuredRoute[] = [
+  {
+    ...signedInRoute,
+    path: homePath(),
+    expectGlobe: true,
+    expression: visitedCounter,
+    hasReturnFromList: true,
+  },
+  { ...signedInRoute, path: listPath(), expectGlobe: false, expression: visitedFilter },
+  { ...signedInRoute, path: statsPath(), expectGlobe: false, expression: visitedCounter },
+  {
+    path: welcomePath(),
+    session: "signed out",
+    expectGlobe: false,
+    expression: landingOnScreen,
+    hasReturnFromList: false,
+  },
 ];
+
+const routes = allRoutes.filter((route) => options.route?.includes(route.path) ?? true);
+
+const signInMode: SignInMode = options["fixed-user"] ? "fixed-user" : "clerk";
+const sessions: Session[] = ["signed in", "signed out"];
 
 const minimumRuns = 5;
 
@@ -118,36 +159,40 @@ function revParse(ref: string): string {
   }).trim();
 }
 
-async function signIn(page: BrowserPage, origin: string, userId: string): Promise<void> {
-  await page.navigate(`${origin}${homePath()}`, timeoutMs);
+function landedPath(page: BrowserPage): Promise<string> {
+  return page.evaluate("location.pathname", z.string());
+}
 
-  if ((await page.evaluate("location.pathname", z.string())) !== signInPath()) return;
+async function signIn(
+  page: BrowserPage,
+  origin: string,
+  userId: string,
+  publishableKey: string,
+): Promise<void> {
+  await page.navigate(`${origin}${listPath()}`, timeoutMs);
 
-  await page.evaluate(
-    `new Promise((resolve) => {
-    const check = () => (window.Clerk?.loaded ? resolve(true) : setTimeout(check, 100));
-    check();
-  })`,
-    z.boolean(),
-  );
-  await page.evaluate(
-    `(async () => {
-    const signIn = await window.Clerk.client.signIn.create({ strategy: "ticket", ticket: ${JSON.stringify(createSignInToken(userId))} });
-    await window.Clerk.setActive({ session: signIn.createdSessionId });
-    return true;
-  })()`,
-    z.boolean(),
-  );
-  await page.navigate(`${origin}${homePath()}`, timeoutMs);
+  if ((await landedPath(page)) === listPath()) return;
 
-  if ((await page.evaluate("location.pathname", z.string())) !== homePath())
-    throw new Error(`Sign-in on ${origin} did not reach ${homePath()}.`);
+  const ticket = await Promise.resolve(createSignInToken(userId));
+
+  await page.navigate(`${origin}${signInPath()}`, timeoutMs);
+  await page
+    .evaluate(ticketSignInExpression(ticket, publishableKey), z.boolean())
+    .catch((cause: unknown) => {
+      console.log(
+        `The sign-in script on ${origin} ended early (${cause instanceof Error ? cause.message : String(cause)}). Checking the session by loading ${listPath()}.`,
+      );
+    });
+  await page.navigate(`${origin}${listPath()}`, timeoutMs);
+
+  if ((await landedPath(page)) !== listPath())
+    throw new Error(`Sign-in on ${origin} did not reach ${listPath()}.`);
 }
 
 async function measureScenario(
   page: BrowserPage,
   origin: string,
-  route: (typeof routes)[number],
+  route: MeasuredRoute,
 ): Promise<[Visit, Sample][]> {
   const url = `${origin}${route.path}`;
 
@@ -187,13 +232,13 @@ async function measureScenario(
 }
 
 async function preflight(
-  page: BrowserPage,
+  pages: Record<Session, BrowserPage>,
   origins: Record<Side, string>,
   shas: Record<Side, string>,
 ): Promise<void> {
   for (const side of sides)
     for (const route of routes)
-      await page
+      await pages[route.session]
         .measure(`${origins[side]}${route.path}`, route.expectGlobe, timeoutMs)
         .catch((cause: unknown) => {
           throw new Error(
@@ -208,13 +253,21 @@ function formatLoad(): string {
     .join(" ");
 }
 
-function printHeader(
+const SIGN_IN_NOTES: Record<SignInMode, string> = {
+  clerk:
+    "sign-in: a Clerk sign-in token for the dev test user, so both sides load clerk-js and verify a real session.",
+  "fixed-user": `sign-in: --fixed-user. Both servers sign every request in as ${FIXED_USER_ID} and the builds leave clerk-js out, so the numbers exclude Clerk's cost.`,
+};
+
+async function printHeader(
   shas: Record<Side, string>,
+  kinds: Record<Side, TreeKind>,
   baselineLabel: string,
-  chromeVersion: string,
-  webGlRenderer: string,
-): void {
+  page: BrowserPage,
+): Promise<void> {
   const cpu = cpus();
+  const chromeVersion = await page.browserVersion();
+  const webGlRenderer = await page.webGlRenderer();
 
   console.log(
     `machine: ${type()} ${release()}, ${cpu[0]?.model ?? "unknown CPU"} x${cpu.length}, ${Math.round(totalmem() / 1024 ** 3)} GB, load ${formatLoad()}`,
@@ -226,8 +279,12 @@ function printHeader(
     );
   console.log(`browser: ${chromeVersion}, headless, WebGL ${webGlRenderer}`);
   console.log(
-    `bun ${Bun.version}, baseline ${baselineLabel} ${shas.baseline}, candidate HEAD ${shas.candidate}`,
+    `bun ${Bun.version}, baseline ${baselineLabel} ${shas.baseline} (${kinds.baseline}), candidate HEAD ${shas.candidate} (${kinds.candidate})`,
   );
+  console.log(
+    "servers: an astro side is built with TRAVIZ_ADAPTER=node and served by this checkout's scripts/serve-node.ts, which gzips the static files as a CDN would, a next side by next build and next start.",
+  );
+  console.log(SIGN_IN_NOTES[signInMode]);
   console.log(
     `throttle: ${throttle.latencyMs} ms RTT, ${(throttle.downloadBytesPerSecond * 8) / 1e6} Mbps down, ${(throttle.uploadBytesPerSecond * 8) / 1e3} kbps up, ${throttle.cpuSlowdown}x CPU (CDP devtools throttling, not Lighthouse simulation)`,
   );
@@ -239,7 +296,7 @@ function printHeader(
     `blocked: ${blockedUrlPatterns.join(", ")} through Network.setBlockedURLs, which keeps the HTTP cache on.`,
   );
   console.log(
-    `runs: ${runs} per scenario and side, alternating which side goes first. Scenarios: ${scenarios.map(scenarioName).join(", ")}. Each return from ${listPath()} loads ${listPath()}, warm or after clearing the cache and storage, then clicks the ${homePath()} tab bar link and times from the click, so it has no TTFB, FCP or LCP. Data: ${marks.length} seeded marks, ${visitedCount} visited.`,
+    `runs: ${runs} per scenario and side, alternating which side goes first. Scenarios: ${scenarios.map(scenarioName).join(", ")}. Each return from ${listPath()} loads ${listPath()}, warm or after clearing the cache and storage, then clicks the ${homePath()} tab bar link and times from the click, so it has no TTFB, FCP or LCP. A signed-out scenario runs in a second browser that never signs in. Data: ${marks.length} seeded marks, ${visitedCount} visited.`,
   );
   console.log(
     `noise: spread is the median absolute deviation (MAD). A timing counts as faster or slower only when an exact two-sided Mann-Whitney test gives p < ${significanceLevel}${runs === minimumRuns ? ` (with ${minimumRuns} runs a side, no overlap)` : ""} and the median moves by at least ${timingFloor.ms} ms or ${timingFloor.share * 100}%, whichever is larger. A byte delta counts above ${byteTolerance.bytes / 1024} KB or ${byteTolerance.share * 100}%, whichever is larger. Each load ends when its network is idle for 500 ms, so repeat visits start warm.`,
@@ -250,12 +307,19 @@ function emptySamples(): Record<Side, Sample[]> {
   return { baseline: [], candidate: [] };
 }
 
-async function prepare() {
+function checkArguments(): void {
   if (!Number.isInteger(runs) || runs < minimumRuns)
     fail(
       `--runs must be an integer of at least ${minimumRuns}, or no timing can pass the significance test.`,
     );
 
+  if (routes.length === 0)
+    fail(
+      `--route matched nothing. The routes are ${allRoutes.map(({ path }) => path).join(", ")}.`,
+    );
+}
+
+function resolveSides() {
   const resolution = resolveBaseline(root, options.baseline);
 
   if (resolution.kind === "refused") fail(resolution.reason);
@@ -270,24 +334,54 @@ async function prepare() {
 
   console.log(LOCKFILE_NOTES[lockfilePolicy](baseline.label));
 
+  const shas: Record<Side, string> = { baseline: baseline.sha, candidate: revParse("HEAD") };
+
+  const kinds: Record<Side, TreeKind> = {
+    baseline: commitKind(root, shas.baseline),
+    candidate: commitKind(root, shas.candidate),
+  };
+
+  return { shas, kinds, baselineLabel: baseline.label };
+}
+
+function checkSignInMode(hasClerkKeys: boolean, kinds: Record<Side, TreeKind>): void {
+  if (signInMode === "clerk" && !hasClerkKeys)
+    fail(
+      ".env.local has no Clerk development keys, so no real session can be measured. Run bun run setup, or pass --fixed-user to compare two Astro commits without Clerk.",
+    );
+
+  if (signInMode === "fixed-user" && sides.some((side) => kinds[side] === "next"))
+    fail(
+      "--fixed-user needs TRAVIZ_FIXED_USER_ID, which a Next commit does not read. Measure a Next baseline with Clerk development keys.",
+    );
+}
+
+async function measuredUserId(): Promise<string> {
+  if (signInMode === "fixed-user") return FIXED_USER_ID;
+
+  return (
+    (await Promise.resolve(findSeededUserId())) ??
+    fail("the dev test user does not exist. Run bun run setup first.")
+  );
+}
+
+async function prepare() {
+  checkArguments();
+
+  const { shas, kinds, baselineLabel } = resolveSides();
   const localEnvironment = readPerfEnvironment(root, process.env);
 
   if (localEnvironment.kind === "refused") fail(localEnvironment.reason);
 
-  const { environment, databaseUrl } = localEnvironment;
-  const userId = findSeededUserId();
+  checkSignInMode(localEnvironment.hasClerkKeys, kinds);
 
-  if (!userId) fail("the dev test user does not exist. Run bun run setup first.");
+  const environment = withSignInMode(localEnvironment.environment, signInMode);
+  const userId = await measuredUserId();
 
-  await seedMarks(databaseUrl, userId, marks);
-  console.log(`Seeded ${marks.length} marks for the dev test user in the local database.`);
+  await seedMarks(localEnvironment.databaseUrl, userId, marks);
+  console.log(`Seeded ${marks.length} marks for ${userId} in the local database.`);
 
-  const shas: Record<Side, string> = {
-    baseline: baseline.sha,
-    candidate: revParse("HEAD"),
-  };
-
-  return { environment, userId, shas, baselineLabel: baseline.label };
+  return { environment, userId, shas, kinds, baselineLabel };
 }
 
 function treeDirectory(sha: string): string {
@@ -327,7 +421,7 @@ function writeResults(resultsPath: string, contents: ResultsFile): void {
 }
 
 async function collectSamples(
-  page: BrowserPage,
+  pages: Record<Session, BrowserPage>,
   origins: Record<Side, string>,
   shas: Record<Side, string>,
   resultsPath: string,
@@ -337,12 +431,12 @@ async function collectSamples(
   for (let run = 0; run < runs; run++)
     for (const route of routes)
       for (const side of run % 2 === 0 ? sides : sides.toReversed()) {
-        const visits = await measureScenario(page, origins[side], route);
+        const visits = await measureScenario(pages[route.session], origins[side], route);
 
         for (const [visit, sample] of visits)
           samples.get(scenarioName({ ...route, visit }))?.[side].push(sample);
         console.log(
-          `run ${run + 1}/${runs} ${route.path} ${side}: marks ${visits.map(([visit, sample]) => `${Math.round(sample.marksReady)} ms ${visit}`).join(", ")}`,
+          `run ${run + 1}/${runs} ${route.path} ${side}: ready ${visits.map(([visit, sample]) => `${Math.round(sample.marksReady)} ms ${visit}`).join(", ")}`,
         );
         writeResults(resultsPath, {
           shas,
@@ -360,7 +454,7 @@ async function collectSamples(
 function report(
   samples: Map<string, Record<Side, Sample[]>>,
   shas: Record<Side, string>,
-  page: BrowserPage,
+  pages: Record<Session, BrowserPage>,
   resultsPath: string,
 ): void {
   const rows = buildRows(scenarios, samples);
@@ -374,11 +468,16 @@ function report(
     const redirected = loads.filter((sample) => sample.documentRedirects > 0).length;
 
     console.log(
-      `${side}: ${redirected} of ${loads.length} measured loads took a Clerk handshake redirect.`,
+      `${side}: ${redirected} of ${loads.length} measured loads took a redirect, such as a Clerk handshake.`,
     );
   }
 
-  console.log(`blocked requests: ${page.counters.blockedRequests}. Load at end: ${formatLoad()}.`);
+  const blockedRequests = sessions.reduce(
+    (total, session) => total + pages[session].counters.blockedRequests,
+    0,
+  );
+
+  console.log(`blocked requests: ${blockedRequests}. Load at end: ${formatLoad()}.`);
 
   writeResults(resultsPath, {
     shas,
@@ -402,18 +501,18 @@ function acquireMachineLock(): void {
 async function main(): Promise<void> {
   acquireMachineLock();
 
-  const { environment, userId, shas, baselineLabel } = await prepare();
+  const { environment, userId, shas, kinds, baselineLabel } = await prepare();
 
   buildTrees(shas, environment);
 
   const servers: ChildProcess[] = [];
-  const profileDirectory = join(workDirectory, "chrome-profile");
-  let page: BrowserPage | undefined;
-  let chrome: ChildProcess | undefined;
+  const browsers: BrowserPage[] = [];
+  const chromes: ChildProcess[] = [];
 
   const cleanUp = (): void => {
-    page?.close();
-    chrome?.kill();
+    for (const browser of browsers) browser.close();
+
+    for (const chrome of chromes) chrome.kill();
 
     for (const server of servers) stopServer(server);
   };
@@ -439,28 +538,52 @@ async function main(): Promise<void> {
     return `http://localhost:${port}`;
   };
 
+  const launch = async (session: Session): Promise<BrowserPage> => {
+    const profileDirectory = join(workDirectory, `chrome-profile-${session.replace(" ", "-")}`);
+
+    rmSync(profileDirectory, { recursive: true, force: true });
+
+    const browser = await BrowserPage.launch(options.chrome, profileDirectory, routes, (child) => {
+      chromes.push(child);
+    });
+
+    browsers.push(browser);
+
+    return browser;
+  };
+
   try {
     const origins: Record<Side, string> = {
       baseline: await serve("baseline"),
       candidate: await serve("candidate"),
     };
 
-    rmSync(profileDirectory, { recursive: true, force: true });
-    page = await BrowserPage.launch(options.chrome, profileDirectory, routes, (child) => {
-      chrome = child;
-    });
+    const signedInPage = await launch("signed in");
 
-    for (const side of sides) await signIn(page, origins[side], userId);
+    const pages: Record<Session, BrowserPage> = {
+      "signed in": signedInPage,
+      "signed out": await launch("signed out"),
+    };
 
-    await preflight(page, origins, shas);
+    if (signInMode === "clerk")
+      for (const side of sides)
+        await signIn(
+          signedInPage,
+          origins[side],
+          userId,
+          environment.PUBLIC_CLERK_PUBLISHABLE_KEY ?? "",
+        );
 
-    printHeader(shas, baselineLabel, await page.browserVersion(), await page.webGlRenderer());
+    await preflight(pages, origins, shas);
+
+    await printHeader(shas, kinds, baselineLabel, signedInPage);
+
     const resultsFile = `${new Date().toISOString().replaceAll(":", "-")}.json`;
     const resultsPath = join(workDirectory, "results", resultsFile);
 
     console.log(`results so far: ${resultsPath}`);
 
-    report(await collectSamples(page, origins, shas, resultsPath), shas, page, resultsPath);
+    report(await collectSamples(pages, origins, shas, resultsPath), shas, pages, resultsPath);
   } finally {
     cleanUp();
   }

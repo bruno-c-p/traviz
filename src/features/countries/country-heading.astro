@@ -1,0 +1,22 @@
+---
+import Icon from "@/shared/icons/icon.astro";
+
+type Props = { headingId: string };
+
+const { headingId } = Astro.props;
+---
+
+<div class="flex items-start justify-between gap-3">
+  <div class="flex min-w-0 flex-col gap-1">
+    <span data-country-meta class="font-mono text-xs uppercase tracking-wider text-mute"></span>
+    <h2 id={headingId} data-country-name class="text-3xl font-bold tracking-tight text-ink"></h2>
+  </div>
+  <button
+    type="button"
+    data-country-close
+    aria-label="Close"
+    class="flex size-11 shrink-0 items-center justify-center rounded-full bg-canvas-soft text-body pressable hover:bg-land hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+  >
+    <Icon name="cross-2" size="size-[18px]" />
+  </button>
+</div>

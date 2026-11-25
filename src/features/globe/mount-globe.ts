@@ -1,102 +1,57 @@
-import type { createGlobe } from "@/features/globe/create-globe";
+import type { GlobeStores } from "@/features/globe/globe-stores";
 import { createGlobeSpin } from "@/features/globe/map-spin";
 import type { FrameScheduler, SpinnableMap } from "@/features/globe/map-spin";
-import { bindStoreSync } from "@/features/globe/map-store-sync";
+import { bindCountryClicks, bindStoreSync } from "@/features/globe/map-store-sync";
 import type { SyncedMap } from "@/features/globe/map-store-sync";
-import type { CountryTopology } from "@/features/globe/globe-scene";
-import { useCountriesStore } from "@/features/marks";
-import { useSelectedCountryStore } from "@/features/globe/selected-country";
 
-type GlobeMap = SpinnableMap & SyncedMap & { remove: () => void };
+type GlobeMap = SpinnableMap &
+  SyncedMap & { jumpTo: (options: { center: [number, number]; zoom?: number }) => void };
 
-export type GlobeCamera = { center: [number, number]; zoom: number; isSpinning: boolean };
+type GlobeOptions = {
+  frames: FrameScheduler;
+  stores: GlobeStores;
+  prefersReducedMotion: boolean;
+};
 
-type GlobeOptions = { frames: FrameScheduler; isSpinning: boolean };
+const DEFAULT_CENTER: [number, number] = [0, 20];
+const DEFAULT_ZOOM = 1.4;
 
-export function startGlobe(map: GlobeMap, { frames, isSpinning }: GlobeOptions) {
-  const spin = createGlobeSpin(map, { startsStopped: !isSpinning, frames });
+export const DEFAULT_CAMERA = { center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM };
+
+export function startGlobe(map: GlobeMap, { frames, stores, prefersReducedMotion }: GlobeOptions) {
+  const spin = createGlobeSpin(map, { startsStopped: prefersReducedMotion, frames });
+  let unbindStores: (() => void) | null = null;
 
   spin.stopOnUserInteraction();
-  spin.start();
+  bindCountryClicks(map, stores.selection);
 
-  const unsubscribeStores = bindStoreSync(map, spin.stop);
+  function resume() {
+    if (unbindStores !== null) return;
 
-  return function unmount(): GlobeCamera {
-    const { lng, lat } = map.getCenter();
-
-    const camera: GlobeCamera = {
-      center: [lng, lat],
-      zoom: map.getZoom(),
-      isSpinning: !spin.isStopped(),
-    };
-
-    spin.stop();
-    unsubscribeStores();
-    map.remove();
-
-    return camera;
-  };
-}
-
-type HandoffOptions = Omit<GlobeOptions, "isSpinning"> & { prefersReducedMotion: boolean };
-
-const DEFAULT_CAMERA: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
-
-export function createCameraHandoff() {
-  let lastCamera = DEFAULT_CAMERA;
-  let resetCount = 0;
-
-  function mountFromLastCamera<T extends GlobeMap>(
-    createMap: (camera: GlobeCamera) => T,
-    { prefersReducedMotion, ...options }: HandoffOptions,
-  ) {
-    const resetCountAtMount = resetCount;
-    const map = createMap(lastCamera);
-
-    const unmountGlobe = startGlobe(map, {
-      ...options,
-      isSpinning: lastCamera.isSpinning && !prefersReducedMotion,
-    });
-
-    function unmount() {
-      const camera = unmountGlobe();
-
-      if (resetCount === resetCountAtMount) lastCamera = camera;
-    }
-
-    return { map, unmount };
+    spin.start();
+    unbindStores = bindStoreSync(map, stores, spin.stop);
   }
 
-  return {
-    mountFromLastCamera,
-    reset: () => {
-      lastCamera = DEFAULT_CAMERA;
-      resetCount++;
-    },
-  };
-}
+  function pause() {
+    unbindStores?.();
+    unbindStores = null;
+    spin.pause();
+  }
 
-export function resetGlobeOnAccountChange(handoff: { reset: () => void }) {
-  return useCountriesStore.subscribe((state, previousState) => {
+  stores.marks.subscribe((state, previousState) => {
     if (previousState.ownerId === null || state.ownerId === previousState.ownerId) return;
 
-    useSelectedCountryStore.getState().clearSelection();
-    handoff.reset();
+    stores.selection.getState().clearSelection();
+    map.jumpTo({ center: [DEFAULT_CENTER[0], DEFAULT_CENTER[1]], zoom: DEFAULT_ZOOM });
+
+    if (prefersReducedMotion) return;
+
+    spin.allowSpin();
+
+    if (unbindStores !== null) spin.start();
   });
-}
 
-const cameraHandoff = createCameraHandoff();
+  resume();
 
-resetGlobeOnAccountChange(cameraHandoff);
-
-type GlobeModules = { createGlobe: typeof createGlobe; topology: CountryTopology };
-
-export function mountGlobe({ createGlobe, topology }: GlobeModules, container: HTMLDivElement) {
-  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  return cameraHandoff.mountFromLastCamera(
-    ({ center, zoom }) =>
-      createGlobe(container, topology, { camera: { center, zoom }, prefersReducedMotion }),
-    { frames: window, prefersReducedMotion },
-  );
+  return { pause, resume, isSpinning: () => !spin.isStopped() };
 }

@@ -1,11 +1,11 @@
 ---
 name: verify-traviz
-description: Launch, drive and capture evidence from traviz, the Next.js app where a signed-in user marks countries on a canvas globe. Drives a local production build in real Chrome through playwright-core. Use it to prove a traviz change works in the browser (the globe on /, the country list on /list, stats on /stats, email-link sign-in, saving marks), to take the 375, 768 and 1440 px screenshots that AGENTS.md requires after a UI change, to pixel-diff two builds, or to check that a local traviz server is healthy before you drive it.
+description: Launch, drive and capture evidence from traviz, the Astro app where a signed-in user marks countries on a canvas globe. Drives a local production build in real Chrome through playwright-core. Use it to prove a traviz change works in the browser (the globe on /, the country list on /list, stats on /stats, email-link sign-in, saving marks), to take the 375, 768 and 1440 px screenshots that AGENTS.md requires after a UI change, to pixel-diff two builds, or to check that a local traviz server is healthy before you drive it.
 ---
 
 # Verify traviz
 
-The surface is the web UI. A user signs in by email link, then marks countries on the globe (`/`), in the list (`/list`) and reads totals on `/stats`. There is no CLI or public API surface to verify. Server Actions are reachable only through the UI.
+The surface is the web UI. A user signs in by email link, then marks countries on the globe (`/`), in the list (`/list`) and reads totals on `/stats`. There is no CLI to verify. The two API routes under `/api/marks` take a same-origin `POST` from the page and are verified through the UI.
 
 Run every command from the worktree root. The helpers live in `scripts/verify/` and `src/shared/testing/verify/`, and `bun run check` covers them.
 
@@ -17,9 +17,10 @@ bun run setup
 bun run verify:server start
 ```
 
-- `bun run setup` writes `.env.local` with Clerk development keys. It migrates `.data/dev.db` and creates the dev user `agent+clerk_test@example.com`. It needs the `clerk` CLI, logged in. It is safe to run again. Its closing `Next: run bun run dev, then bun run sign-in-token` hint is for manual work. For verification, continue with `verify:server start`.
-- `verify:server start` refuses a remote database, a database outside `.data/` and a key that is not `pk_test_`. It then runs `bun run build`, starts `next start` on a free port and waits until `/sign-in` answers 200. The build runs silently for about a minute, and its output goes to `.data/verify/build.log`. It is ready when it prints `ready http://localhost:<port> pid <pid>`. The port and PID go to `.data/verify/server.json`. Logs go to `.data/verify/build.log` and `.data/verify/server.log`.
-- `verify:server start --no-build` reuses `.next`, but only when this worktree's `.env.local` built it.
+- `bun run setup` writes `.env.local` with Clerk development keys. It migrates `.data/dev.db` and creates the dev user `agent+clerk_test@example.com`. It is safe to run again. Its closing hint about `bun run dev` is for manual work. For verification, continue with `verify:server start`.
+- `verify:server start` refuses a remote database, a database outside `.data/` and a Clerk key that is not a development key. It then runs `bun run build:node`, starts `scripts/serve-node.ts` on a free port and waits until `/sign-in` answers 200. The build takes a few seconds, and its output goes to `.data/verify/build.log`. It is ready when it prints `ready http://localhost:<port> pid <pid> sign-in clerk`. The port, the PID and the sign-in mode go to `.data/verify/server.json`. Logs go to `.data/verify/build.log` and `.data/verify/server.log`.
+- `verify:server start --fixed-user` is for a machine with no Clerk keys, or no way to reach Clerk. It builds without the publishable key, so the pages never load clerk-js, and starts the server with `TRAVIZ_FIXED_USER_ID=user_local_fixed`, which signs every request in as that user. `signIn` then does nothing, and `/sign-in` redirects to `/`. Everything about marks, the list, stats and the globe can be verified this way. Sign-in, sign-out, the account email and anything else that needs clerk-js cannot, so say so in the report.
+- `verify:server start --no-build` reuses `dist`, but only when it is a Node adapter build made for the same sign-in mode with this worktree's `.env.local`.
 - One server runs per worktree, and a second `start` refuses. Separate worktrees run side by side, each with its own port and `.data/dev.db`. All of them share one Clerk dev user.
 
 ## Doctor
@@ -28,7 +29,7 @@ bun run verify:server start
 bun run verify:doctor
 ```
 
-The doctor is read-only. Each line starts with `ok` or `FAIL`, and the exit code is 1 when any check fails. It checks that `.env.local` is local only, that `sqlite3` and `clerk` are on PATH, that the `clerk` CLI is logged in and the dev user exists, that the database has a `marks` table, that `.next` holds this worktree's Clerk key (`bun run check` leaves a placeholder build), that the build matches HEAD plus your uncommitted changes, that the recorded PID is alive and owns the port, that `/sign-in` answers 200, and that Chrome launches. Run it first, and again whenever anything looks off. A stale build fails the doctor. Fix it with `bun run verify:server stop`, then `bun run verify:server start`.
+The doctor is read-only. Each line starts with `ok` or `FAIL`, and the exit code is 1 when any check fails. It checks that `.env.local` is local only, that Clerk's development instance answers and the dev user exists (skipped for a fixed-user build), that the database has a `marks` table, that `dist` is a Node adapter build with this worktree's Clerk key (`bun run check` leaves a placeholder build), that the build matches HEAD plus your uncommitted changes, that the recorded PID is alive and owns the port, that `/sign-in` answers 200 (`/list` for a fixed-user server), that the server and the build use the same sign-in mode, and that Chrome launches. Run it first, and again whenever anything looks off. A stale build fails the doctor. Fix it with `bun run verify:server stop`, then `bun run verify:server start`.
 
 ## Drive
 
@@ -36,11 +37,11 @@ The driver is `playwright-core` running the installed Google Chrome, which is th
 
 - `launchBrowser()` starts headless Chrome.
 - `openPage(browser, width, motion)` opens a context at that width. `motion` is `"reduce"` or `"no-preference"`. It returns `{ page, problems }`, where `problems` collects console errors, page errors and responses with status 400 or higher.
-- `signIn(page, baseUrl)` gets a sign-in token for the dev user and signs in through `window.Clerk` with a ticket. No email is sent.
-- `openRoute(page, baseUrl, route)` takes a route string from a `paths.ts` function (`homePath()`, `listPath()`, `statsPath()`, imported from `@/paths`). It opens the route, throws when the page lands somewhere else (a lost session lands on `/sign-in`), waits on `/` until the globe has drawn its outlines, then settles.
+- `signIn(page, baseUrl)` gets a sign-in token for the dev user, opens `/sign-in` and signs in through `window.Clerk` with a ticket. It waits 5 s for the page's own clerk-js and loads it itself when the page has none. It then loads `/list` and throws when that lands elsewhere. No email is sent. On a fixed-user server it returns at once.
+- `openRoute(page, baseUrl, route)` takes a route string from a `paths.ts` function (`homePath()`, `listPath()`, `statsPath()`, imported from `@/paths`). It opens the route, throws when the page lands somewhere else (a lost session lands on `/sign-in`), waits on `/` until the globe's canvas has a drawn pixel at its centre, then settles.
 - `settle(page)` waits 700 ms. Call it after every click, keypress or fill before you read state.
-- `readCamera(page)` returns `{ lng, lat, zoom, moving, loaded }` for the globe, or `null` when no globe is mounted. `findMapExpression` is the in-page expression that finds the globe object through the React fiber of the `[data-globe]` container. Use it in `page.evaluate` to call `getCenter`, `getZoom`, `isMoving`, `isLoaded`, `jumpTo({ center, zoom })`, `project([lng, lat])` or `getContainer`.
-- `readMarkRows()` reads the `marks` table of the database `TURSO_DATABASE_URL` names (`.data/dev.db` after setup), read-only, as `{ user_id, code, state }[]`.
+- `readGlobeSignature(page)` samples a 48 by 48 grid of the globe's canvas (`globeCanvasSelector`, the canvas inside `[data-globe-host]`) and returns `{ signature, opaque }`, or `null` when no canvas is mounted. Two equal signatures mean the globe did not move between them. `opaque` counts the drawn sample points, so it rises when the globe is drawn larger. The page exposes no globe object and no camera, so move the globe as a user does: search, drag, the zoom buttons or the keys. `hasGlobe(page)` says whether the canvas exists.
+- `readMarkRows()` reads the `marks` table of the database `TURSO_DATABASE_URL` names (`.data/dev.db` after setup), read-only through `bun:sqlite`, as `{ user_id, code, state }[]`.
 - `runJourney(label, motion, async (journal, page, browser, baseUrl) => { ... })` from `@/shared/testing/verify/journal` is the frame for a new journey. It makes the evidence directory, signs in at 1440 x 900, records a thrown error as a failed step, closes the browser and writes `journal.json`, and sets exit code 1 on any failed step. Inside it, call `journal.record(step, ok, detail)` and `journal.screenshot(page, name)`. Its closing step, `no console errors or failed requests`, covers only the page it opened. A page from another `openPage` call has its own `problems`, so record them with `journal.record`.
 
 Select elements by role and accessible name. The handles that matter are listed per feature in [features/README.md](features/README.md). For a journey without a script, write `.data/verify/<name>.ts` and run it from the worktree root with `bun .data/verify/<name>.ts`. `.data/` is gitignored, and the `@/` alias still resolves there. Top-level `await` works, so call `await runJourney(...)` directly. The helpers read `.env.local` and `.data/verify/server.json` themselves, so the script needs no environment or URL arguments.
@@ -55,7 +56,7 @@ bun run verify:pixel-diff <before dir> <after dir>
 ```
 
 - `verify:mark-from-list [--code JPN]` marks a country Visited from `/list` and checks the database row. It opens a second browser context with empty storage and checks the mark comes back from the server, then clears it and checks the row is gone. It stops before it clicks anything when the country already has a row, and reports any mark it leaves behind.
-- `verify:globe-search [--code JPN --click FRA]` checks that the globe spins, that the search flies to the country's centre from the dataset and opens its card, that a click on the second country selects it, and that Zoom in adds one zoom level. The click step uses `map.jumpTo` as setup to put the country under the pointer. The click itself is a real mouse event.
+- `verify:globe-search [--code JPN --click FRA]` checks that the globe spins, that the search moves the globe, lets it come to rest and opens the country's card, that a click on the canvas centre selects the second country after a search flew to it and `Escape` closed its card, and that Zoom in draws the globe larger. It reads the globe only from canvas pixels and the DOM, and every action is a real input event. Look at its screenshots to confirm that the right country sits at the centre.
 - `verify:shots [--route /list ...] [--motion no-preference]` signs in and screenshots `/`, `/list` and `/stats` (or the routes given) at 375, 768 and 1440 px. Each panel route gets two images. `<route>-<width>.png` is the real viewport, with fixed bars and sheets where a user sees them. `<route>-<width>-full.png` grows the viewport until no scroll container overflows (up to 4000 px, and the script logs a cut), because the app scrolls an inner container and Playwright's `fullPage` sees only the viewport. `/` gets only the viewport image. Motion is reduced by default. It exits 1 when a route lands elsewhere or any problem was collected.
 - `verify:pixel-diff` compares PNGs with the same name in two directories and prints the count of changed pixels and the largest channel delta per file. It exits 1 when any file differs or exists on one side only.
 
@@ -65,9 +66,9 @@ Each helper writes to `~/.local/state/traviz/verify/<UTC time>-<label>/` (under 
 
 A proof follows these rules:
 
-- Drive the real user path: the button, the search box, a click on the globe. Never call store setters, Server Actions or Clerk APIs other than the ticket sign-in.
+- Drive the real user path: the button, the search box, a click on the globe. Never call store setters, the API routes or Clerk APIs other than the ticket sign-in.
 - Capture the action and the state after it, such as a screenshot before and after, plus the attribute or text that changed (`aria-pressed`, the card heading, a total).
-- Check the side effect next to the screen. A mark is proven only when `readMarkRows()` shows the row. It persists only when a new browser context, with empty localStorage, shows it. A plain reload reads the `traviz-marks-v2` cache first and proves nothing about the server.
+- Check the side effect next to the screen. A mark is proven only when `readMarkRows()` shows the row. It persists only when a later page load shows it. Use a new browser context, so the proof does not lean on anything the first page kept in memory.
 - Report the `problems` list. Any entry in it fails the proof unless you can explain it.
 - For a UI change, run `verify:shots` and look at every image for overlap, clipped text and low contrast.
 
@@ -83,13 +84,14 @@ bun run verify:server stop
 
 - Screenshots and pixel diffs of `/` need `prefers-reduced-motion: reduce`, or the spin moves the globe between frames. `verify:shots` reduces motion by default. Use `"no-preference"` only to check the spin.
 - Wait at least 700 ms after a click (`settle`). The card, the sheet and the fill colours update after a transition.
+- Globe, List and Stats share one document. A tab click switches views without a page load, the other views stay mounted and hidden, and views that were not in the first HTML arrive as fragments when the browser is idle. So `page.url()` changes with no navigation event, a locator can match an element in a hidden view (filter with `visible=true`), and `openRoute` is the way to get a fresh server render of one route.
 - Clerk development returns 429 when the same address submits the email-link form twice in a short time. Give each submit a new address, such as `verify-<epoch ms>+clerk_test@example.com`. A `+clerk_test` address never sends a real email.
 - Throttle with CDP `Network.emulateNetworkConditions` and `Emulation.setCPUThrottlingRate` on a `page.context().newCDPSession(page)`. Take the values from `throttle` in `@/shared/testing/perf/browser` (`latencyMs`, `downloadBytesPerSecond`, `uploadBytesPerSecond`, `cpuSlowdown`), the same ones `bun run perf` uses. Never throttle with `context.route`, which turns off the HTTP cache.
-- To test the moment before the globe loads, hold the globe chunks with CDP `Fetch.enable` on `*/_next/static/chunks/*` and continue the paused requests later. The engine chunk is the file in `.next/static/chunks/` that contains the string `The globe needs a 2D canvas.`, and the outline chunk is the one that contains `"GeometryCollection",geometries`.
-- Never point a helper at production. The server refuses a non-`file:` database, and `.env.local` never holds `pk_live_` keys. Never copy `.env*` files from another worktree.
-- `bun run check` rebuilds `.next` with placeholder keys. After it, run `bun run verify:server stop` and `bun run verify:server start` before you drive again. The doctor catches this.
+- To test the moment before the globe loads, hold the globe chunks with CDP `Fetch.enable` on `*/_astro/*.js` and continue the paused requests later. The engine chunk is the file in `dist/client/_astro/` that contains the string `The globe needs a 2D canvas.`, and the outline chunk is the one that contains `"GeometryCollection",geometries`.
+- Never point a helper at production. The helpers refuse a non-`file:` database and a live Clerk key, and the server refuses `TRAVIZ_FIXED_USER_ID` with a remote database. Never copy `.env*` files from another worktree.
+- `bun run check` rebuilds `dist` with placeholder keys. After it, run `bun run verify:server stop` and `bun run verify:server start` before you drive again. The doctor catches this.
 - `bun run perf -- --baseline <ref>` is the only way to measure performance. It holds a machine-wide lock and builds its own trees. Never measure performance with these helpers. Perf seeds 49 marks into `.data/dev.db` for the dev user, so a later journey can find marks it did not make.
 
 ## Feature map
 
-[features/README.md](features/README.md) indexes one file per feature, with sub-features, entry points, driving steps and gotchas. Keep it current when the UI changes. The t3-pstack plugin's `/maintain-verification-skill` does this where it is installed. Otherwise re-read the components under `src/features/<name>` and update the matching feature file in the same PR as the UI change.
+[features/README.md](features/README.md) indexes one file per feature, with sub-features, entry points, driving steps and gotchas. Keep it current when the UI changes. The t3-pstack plugin's `/maintain-verification-skill` does this where it is installed. Otherwise re-read the `.astro` components and view modules under `src/features/<name>` and update the matching feature file in the same PR as the UI change.

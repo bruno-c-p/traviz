@@ -1,25 +1,22 @@
-export { COUNTRY_STATES, STATE_COLORS, STATE_LABELS } from "@/features/marks/colors";
+export {
+  COUNTRY_STATES,
+  STATE_COLORS,
+  STATE_LABELS,
+  STATE_SHORT_LABELS,
+} from "@/features/marks/colors";
 
-export type { Marks, StateColorKey } from "@/features/marks/colors";
+export type { CountryState, Marks, StateColorKey } from "@/features/marks/colors";
 
-export { tallyMarks, tallyShare, tallyTotal } from "@/features/marks/tally";
+export { marksStore } from "@/features/marks/marks-store";
 
-export { endMarksSession, useCountriesStore } from "@/features/marks/marks-store";
+export type { MarksStore, MarksStoreState } from "@/features/marks/marks-store";
 
-export { useHasMarksSeed, useMarks } from "@/features/marks/use-marks";
+export type { MarksSnapshot } from "@/features/marks/marks-sync";
 
-export { MarksSeedProvider } from "@/features/marks/marks-seed-provider";
+export { markStatusText } from "@/features/marks/mark-status";
 
-export { MarksBoundary } from "@/features/marks/marks-boundary";
+export { mountMarkControls } from "@/features/marks/mark-controls";
 
-export { StartMarksSession } from "@/features/marks/start-marks-session";
+export { MARKS_SNAPSHOT_ID, startMarksSession } from "@/features/marks/start-marks-session";
 
-export { MarkStatus } from "@/features/marks/mark-status";
-
-export { ClearMarkButton } from "@/features/marks/clear-mark-button";
-
-export { DangerZone } from "@/features/marks/danger-zone";
-
-export { MarkChoices } from "@/features/marks/mark-choices";
-
-export { StateSwitch } from "@/features/marks/state-switch";
+export { replayEarlyTaps, takeEarlyTaps } from "@/features/marks/early-taps";

@@ -1,0 +1,11 @@
+@import "tailwindcss" source(none);
+@import "../../shared/styles/theme.css";
+@import "../../shared/styles/fonts.css";
+
+@source "./";
+@source "../../pages/welcome.astro";
+@source "../../pages/404.astro";
+
+@utility wall-name {
+  @apply relative inline-block rounded-sm px-[0.28em] text-left font-medium whitespace-nowrap text-mute transition-colors duration-200 ease-out after:pointer-events-none after:absolute after:inset-x-[0.28em] after:bottom-[0.08em] after:h-[3px] after:origin-left after:scale-x-0 after:rounded-full after:transition-transform after:duration-240 after:ease-out hover:text-ink hover:after:scale-x-100 focus-visible:text-ink focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none focus-visible:after:scale-x-100 motion-reduce:after:transition-none data-[next=not_interested]:after:bg-skip data-[next=unmarked]:after:bg-mute data-[next=visited]:after:bg-primary data-[next=want]:after:bg-want;
+}

@@ -15,8 +15,6 @@ export type MarksSnapshot =
   | { readonly ok: true; readonly ownerId: string; readonly marks: Marks }
   | { readonly ok: false; readonly ownerId: string };
 
-export type CachedMarks = { readonly ownerId: string; readonly marks: Marks };
-
 export type PendingChange = {
   readonly id: number;
   readonly change: MarkChange;
@@ -25,7 +23,6 @@ export type PendingChange = {
 
 export type MarkBase =
   | { readonly source: "empty" }
-  | { readonly source: "cache"; readonly marks: Marks }
   | { readonly source: "server"; readonly marks: Marks };
 
 export type SyncProblem = { readonly scope: string; readonly reason: MarkChangeFailure };
@@ -42,12 +39,7 @@ export type MarksSyncState = {
 };
 
 export type MarksSyncEvent =
-  | {
-      readonly type: "session-started";
-      readonly ownerId: string;
-      readonly cached: CachedMarks | null;
-    }
-  | { readonly type: "cache-previewed"; readonly cached: CachedMarks }
+  | { readonly type: "session-started"; readonly ownerId: string }
   | { readonly type: "session-ended" }
   | { readonly type: "snapshot-received"; readonly snapshot: MarksSnapshot }
   | { readonly type: "change-requested"; readonly change: MarkChange }
@@ -92,30 +84,6 @@ export function visibleMarks(state: MarksSyncState): Marks {
   return foldChanges(baseMarks(state.base), state.pending);
 }
 
-export type SeedCover =
-  | { readonly kind: "replaces"; readonly ownerId: string | null }
-  | {
-      readonly kind: "overlays";
-      readonly ownerId: string | null;
-      readonly pending: readonly PendingChange[];
-    };
-
-export function seedCover(state: MarksSyncState): SeedCover {
-  if (state.ended !== null) return { kind: "replaces", ownerId: state.ended.ownerId };
-
-  if (state.base.source === "server") return { kind: "replaces", ownerId: state.ownerId };
-
-  return { kind: "overlays", ownerId: state.ownerId, pending: state.pending };
-}
-
-export function shownMarks(seed: MarksSnapshot | null, cover: SeedCover, stored: Marks): Marks {
-  if (seed === null || !seed.ok) return stored;
-
-  if (cover.ownerId !== null && cover.ownerId !== seed.ownerId) return seed.marks;
-
-  return cover.kind === "replaces" ? stored : foldChanges(seed.marks, cover.pending);
-}
-
 export function changeScope(change: MarkChange): string {
   return change.kind === "reset" ? "all-marks" : change.code;
 }
@@ -149,37 +117,21 @@ function withConfirmedChange(base: MarkBase, change: MarkChange): MarkBase {
     : { source: base.source, marks: applyChange(base.marks, change) };
 }
 
-function startSession(
-  state: MarksSyncState,
-  ownerId: string,
-  cached: CachedMarks | null,
-): MarksSyncState {
+function startSession(state: MarksSyncState, ownerId: string): MarksSyncState {
   if (state.ownerId === ownerId) return state;
 
-  const base: MarkBase =
-    cached?.ownerId === ownerId ? { source: "cache", marks: cached.marks } : { source: "empty" };
+  const pending = state.ownerId === null ? state.pending : [];
 
-  const keepsPending =
-    state.ownerId === null && (state.base.source === "empty" || base.source === "cache");
-
-  const pending = keepsPending ? state.pending : [];
-
-  return { ...state, ownerId, base, pending, problems: [], ended: null };
-}
-
-function previewCache(state: MarksSyncState, cached: CachedMarks): MarksSyncState {
-  if (state.ownerId !== null || state.base.source !== "empty") return state;
-
-  return { ...state, base: { source: "cache", marks: cached.marks } };
+  return { ...state, ownerId, base: { source: "empty" }, pending, problems: [], ended: null };
 }
 
 function endSession(state: MarksSyncState): MarksSyncState {
-  if (state.ended !== null && state.base.source === "empty") return state;
+  if (state.ended !== null) return state;
 
   return {
     ...INITIAL_MARKS_SYNC_STATE,
     lastChangeId: state.lastChangeId,
-    ended: { ownerId: state.ownerId ?? state.ended?.ownerId ?? null },
+    ended: { ownerId: state.ownerId },
   };
 }
 
@@ -258,9 +210,7 @@ function dismissProblem(state: MarksSyncState, scope: string): MarksSyncState {
 export function reduceMarksSync(state: MarksSyncState, event: MarksSyncEvent): MarksSyncState {
   switch (event.type) {
     case "session-started":
-      return startSession(state, event.ownerId, event.cached);
-    case "cache-previewed":
-      return previewCache(state, event.cached);
+      return startSession(state, event.ownerId);
     case "session-ended":
       return endSession(state);
     case "snapshot-received":

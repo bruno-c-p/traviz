@@ -1,0 +1,105 @@
+---
+import { countries } from "@/features/countries";
+import { STATE_COLORS } from "@/features/marks/core";
+import type { MarksSnapshot } from "@/features/marks";
+import { progressModel, progressTotalText } from "@/features/stats/progress-model";
+import { statsPath } from "@/paths";
+
+type Props = { variant: "panel" | "peek"; marks: Promise<MarksSnapshot | null> };
+
+const { variant } = Astro.props;
+const snapshot = await Astro.props.marks;
+const hasMarks = snapshot?.ok === true;
+const model = progressModel(countries, hasMarks ? snapshot.marks : {});
+const isPeek = variant === "peek";
+const Container = isPeek ? "a" : "section";
+
+const containerProps = isPeek
+  ? {
+      href: statsPath(),
+      "data-view-link": "stats",
+      "aria-label": hasMarks ? model.summary : "See all stats",
+      class:
+        "flex flex-col gap-2.5 rounded-3xl bg-ink-deep px-5 py-4 text-white shadow-float pressable focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
+    }
+  : {
+      "aria-label": "Places visited",
+      class: "flex flex-col gap-3.5 rounded-3xl bg-ink-deep p-5 text-white",
+    };
+---
+
+<Container data-progress-card={variant} {...containerProps}>
+  {
+    !isPeek && (
+      <span class="font-mono text-xs uppercase tracking-wider text-primary-neutral">
+        Places visited
+      </span>
+    )
+  }
+  <span class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <span class="flex flex-wrap items-baseline gap-x-2.5 tabular-nums">
+      <span
+        data-progress="visited"
+        class:list={["font-bold tracking-tight text-primary", isPeek ? "text-3xl" : "text-5xl"]}
+        >{model.visited}</span
+      >
+      <span
+        data-progress="total"
+        class:list={["text-primary-neutral", isPeek ? "text-[15px]" : "text-lg"]}
+        >{progressTotalText(model, variant)}</span
+      >
+    </span>
+    {
+      isPeek && (
+        <span data-progress="percent" class="font-mono text-[13px] text-primary-neutral">
+          {model.percentText}
+        </span>
+      )
+    }
+  </span>
+  <span class:list={["flex gap-1", isPeek ? "h-1.5" : "h-2"]}>
+    <span
+      data-progress="reachable"
+      class="block overflow-hidden rounded-full bg-ink-deep-soft transition-[width] duration-300 ease-out"
+      style={`width:${model.reachableWidth}%`}
+    >
+      <span
+        data-progress="bar"
+        class="block h-full rounded-full transition-transform duration-300 ease-out"
+        style={`transform:translateX(${model.visitedOffset}%);background-color:${STATE_COLORS.visited}`}
+      ></span>
+    </span>
+    <span
+      data-progress="excluded-bar"
+      hidden={model.excluded === 0}
+      class="block flex-1 rounded-full bg-[repeating-linear-gradient(135deg,var(--color-ink-deep-soft)_0_4px,transparent_4px_8px)]"
+      aria-hidden="true"></span>
+  </span>
+  {
+    !isPeek && (
+      <>
+        <span class="grid grid-cols-2 gap-3 pt-1">
+          <span class="flex flex-col gap-0.5">
+            <span data-progress="want" class="text-2xl font-bold tabular-nums">
+              {model.want}
+            </span>
+            <span class="text-[13px] text-primary-neutral">want to go</span>
+          </span>
+          <span class="flex flex-col gap-0.5">
+            <span data-progress="excluded" class="text-2xl font-bold tabular-nums">
+              {model.excluded}
+            </span>
+            <span class="text-[13px] text-primary-neutral">not interested</span>
+          </span>
+        </span>
+        <a
+          href={statsPath()}
+          data-view-link="stats"
+          class="self-start rounded-md text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          See all stats
+        </a>
+      </>
+    )
+  }
+</Container>

@@ -9,4 +9,12 @@ export {
 
 export type { Continent, Country } from "@/features/countries/countries";
 
-export { CountryHeading } from "@/features/countries/country-heading";
+export { searchByName } from "@/features/countries/search-by-name";
+
+export {
+  countryRowOf,
+  decodeCountryRows,
+  encodeCountryRows,
+} from "@/features/countries/country-rows";
+
+export type { CountryRow } from "@/features/countries/country-rows";

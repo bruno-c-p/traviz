@@ -1,0 +1,15 @@
+---
+import AccountMenuDialog from "@/features/auth/account-menu/account-menu-dialog.astro";
+import accountMenuStyles from "@/features/auth/account-menu.css?inline";
+import { scopeUtilities } from "@/features/auth/scope-utilities";
+import accountMenuScript from "virtual:traviz-inline-script/account-menu";
+
+const SCOPE = "[data-account-menu-scope]";
+---
+
+<div data-account-menu-scope style="display:contents">
+  <style is:inline set:html={scopeUtilities(accountMenuStyles, SCOPE)}></style>
+  <AccountMenuDialog />
+</div>
+
+<script is:inline type="module" set:html={accountMenuScript} />

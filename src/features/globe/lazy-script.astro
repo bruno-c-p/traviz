@@ -1,0 +1,15 @@
+---
+type Props = { name: string; loadsNow: boolean };
+
+const { name, loadsNow } = Astro.props;
+const html: string = await Astro.slots.render("default");
+const source = /<script\b[^>]*\ssrc="([^"]+)"/.exec(html)?.[1];
+---
+
+{
+  source !== undefined && loadsNow && (
+    <script is:inline type="module" async src={source} data-lazy-script={name} />
+  )
+}
+{source !== undefined && !loadsNow && <template data-lazy-script={name} data-src={source} />}
+{source === undefined && <Fragment set:html={html} />}

@@ -1,0 +1,59 @@
+---
+import ListControls from "@/features/country-list/list-controls.astro";
+import ListRows from "@/features/country-list/list-rows.astro";
+import ListSidebar from "@/features/country-list/list-sidebar.astro";
+import { ALL_COUNTRIES_LABEL } from "@/features/country-list/list-model";
+import type { MarksSnapshot } from "@/features/marks";
+import Icon from "@/shared/icons/icon.astro";
+
+type Props = { marks: Promise<MarksSnapshot | null>; isActive: boolean };
+
+const { marks, isActive } = Astro.props;
+---
+
+<div data-view="list" class:list={[!isActive && "view-inactive"]}>
+  <div
+    class="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 pt-6 md:flex-row md:items-start md:px-6 md:pt-2"
+  >
+    <section aria-labelledby="country-list-heading" class="flex min-w-0 flex-1 flex-col">
+      <div class="flex flex-col gap-4 pb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h1
+            id="country-list-heading"
+            data-list-heading
+            class="text-3xl font-bold tracking-tight text-ink md:text-4xl"
+          >
+            {ALL_COUNTRIES_LABEL}
+          </h1>
+          <div class="relative w-full sm:w-80">
+            <Icon
+              name="magnifying-glass"
+              size="size-[18px]"
+              class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-mute"
+            />
+            <input
+              type="text"
+              data-list-search
+              placeholder="Search countries"
+              aria-label="Search countries"
+              autocomplete="off"
+              class="h-12 w-full rounded-full border border-line bg-canvas pl-11 pr-12 text-[15px] text-ink placeholder:text-mute focus:border-ink focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button
+              type="button"
+              data-list-clear
+              hidden
+              aria-label="Clear search"
+              class="absolute right-1.5 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-mute hover:bg-canvas-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            >
+              <Icon name="cross-2" size="size-4" />
+            </button>
+          </div>
+        </div>
+        <ListControls marks={marks} />
+      </div>
+      <ListRows marks={marks} />
+    </section>
+    <ListSidebar marks={marks} />
+  </div>
+</div>

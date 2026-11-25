@@ -1,0 +1,59 @@
+---
+import PaintLabel from "@/features/landing/paint-label.astro";
+import { SAMPLE_MARKS, WALL_COUNTRIES, clearLabel } from "@/features/landing";
+import { COUNTRY_STATES, STATE_COLORS, STATE_LABELS, tallyMarks } from "@/features/marks/core";
+
+type Props = { size: "large" | "compact" };
+
+const { size } = Astro.props;
+const isLarge = size === "large";
+const tally = tallyMarks(WALL_COUNTRIES, SAMPLE_MARKS);
+---
+
+<div class:list={["flex flex-col", isLarge ? "gap-3" : "gap-1.5"]}>
+  <div class="flex items-end gap-3">
+    <p aria-hidden="true" class="flex items-baseline gap-2 font-mono tabular-nums">
+      <span
+        data-count="visited"
+        class:list={[
+          "font-medium tracking-[-0.04em] text-ink",
+          isLarge
+            ? "text-[clamp(2.75rem,1.5rem+2vw,3.75rem)] leading-none"
+            : "text-[26px] leading-none",
+        ]}>{tally.visited}</span
+      >
+      <span class:list={["text-mute", isLarge ? "text-lg" : "text-sm"]}>
+        / {WALL_COUNTRIES.length} visited
+      </span>
+    </p>
+    <div class="flex min-w-0 flex-1 justify-end" data-last-pick={isLarge ? undefined : ""}></div>
+    <button
+      type="button"
+      data-clear
+      hidden={tally.unmarked === WALL_COUNTRIES.length}
+      class="pressable relative isolate inline-flex h-9 shrink-0 items-center overflow-hidden rounded-full border border-line px-3.5 text-[13px] font-semibold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+    >
+      <PaintLabel
+        label={clearLabel(true)}
+        coverClass="flex items-center justify-center bg-ink text-canvas"
+        labelHook
+      />
+    </button>
+  </div>
+  <ul
+    aria-hidden="true"
+    class:list={["flex flex-wrap gap-x-4 gap-y-1 text-body", isLarge ? "text-[13px]" : "text-xs"]}
+  >
+    {
+      COUNTRY_STATES.map((state) => (
+        <li class="flex items-center gap-1.5">
+          <span class="size-2.5 rounded-[3px]" style={{ backgroundColor: STATE_COLORS[state] }} />
+          {STATE_LABELS[state]}
+          <span data-count={state} class="font-mono text-ink tabular-nums">
+            {tally[state]}
+          </span>
+        </li>
+      ))
+    }
+  </ul>
+</div>

@@ -1,0 +1,19 @@
+---
+import AccountButton from "@/features/auth/account-button.astro";
+import type { MarksSnapshot } from "@/features/marks";
+import StatsSummary from "@/features/stats/stats-summary.astro";
+
+type Props = { marks: Promise<MarksSnapshot | null>; isActive: boolean };
+
+const { marks, isActive } = Astro.props;
+---
+
+<div data-view="stats" class:list={[!isActive && "view-inactive"]}>
+  <div class="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 pt-6 md:px-6 md:pt-2">
+    <div class="flex items-center justify-between gap-3">
+      <h1 class="text-3xl font-bold tracking-tight text-ink md:text-4xl">Your travels</h1>
+      <AccountButton class="md:hidden" />
+    </div>
+    <StatsSummary marks={marks} />
+  </div>
+</div>

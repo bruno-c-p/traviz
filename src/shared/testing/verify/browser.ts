@@ -1,9 +1,11 @@
-import { execFileSync } from "node:child_process";
+import { Database } from "bun:sqlite";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { z } from "zod";
+import { ticketSignInExpression } from "@/shared/testing/clerk-browser";
 import { createSignInToken, findSeededUserId } from "@/shared/testing/clerk-dev";
-import { databasePath } from "@/shared/testing/verify/instance";
-import { homePath, signInPath } from "@/paths";
+import { readPerfEnvironment } from "@/shared/testing/perf/environment";
+import { databasePath, repoRoot, requireInstance } from "@/shared/testing/verify/instance";
+import { homePath, listPath, signInPath } from "@/paths";
 
 export const viewportWidths = [375, 768, 1440] as const;
 
@@ -45,20 +47,34 @@ export async function openPage(
   return { page, problems };
 }
 
+function clerkPublishableKey(): string {
+  const perfEnvironment = readPerfEnvironment(repoRoot, process.env);
+
+  if (perfEnvironment.kind === "refused") throw new Error(perfEnvironment.reason);
+
+  return perfEnvironment.environment.PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+}
+
 export async function signIn(page: Page, baseUrl: string): Promise<void> {
-  const userId = findSeededUserId();
+  if (requireInstance().signIn === "fixed-user") return;
+
+  const userId = await Promise.resolve(findSeededUserId());
 
   if (!userId) throw new Error("The dev test user does not exist. Run bun run setup first.");
 
-  const ticket = createSignInToken(userId);
+  const ticket = await Promise.resolve(createSignInToken(userId));
 
   await page.goto(baseUrl + signInPath());
-  await page.waitForFunction("window.Clerk?.loaded === true", null, { timeout: 30_000 });
-  await page.evaluate(`(async () => {
-    const attempt = await window.Clerk.client.signIn.create({ strategy: "ticket", ticket: ${JSON.stringify(ticket)} });
-    await window.Clerk.setActive({ session: attempt.createdSessionId });
-  })()`);
-  await page.waitForFunction("Boolean(window.Clerk?.session?.id)", null, { timeout: 10_000 });
+  await page
+    .evaluate(ticketSignInExpression(ticket, clerkPublishableKey()))
+    .catch((cause: unknown) => {
+      if (!(cause instanceof Error && /context was destroyed|navigation/i.test(cause.message)))
+        throw cause;
+    });
+  await page.goto(baseUrl + listPath());
+
+  if (new URL(page.url()).pathname !== listPath())
+    throw new Error(`The ticket sign-in did not reach ${listPath()}: landed on ${page.url()}.`);
 }
 
 export async function openRoute(page: Page, baseUrl: string, route: string): Promise<void> {
@@ -70,9 +86,7 @@ export async function openRoute(page: Page, baseUrl: string, route: string): Pro
   if (landed !== expected) throw new Error(`Opened ${route} but landed on ${landed}.`);
 
   if (expected === homePath())
-    await page.waitForFunction(`${findMapExpression}?.isLoaded() === true`, null, {
-      timeout: 30_000,
-    });
+    await page.waitForFunction(globeDrawnExpression, null, { timeout: 30_000 });
 
   await settle(page);
 }
@@ -81,39 +95,49 @@ export function settle(page: Page): Promise<void> {
   return page.waitForTimeout(settleMs);
 }
 
-const cameraSchema = z
-  .object({
-    lng: z.number(),
-    lat: z.number(),
-    zoom: z.number(),
-    moving: z.boolean(),
-    loaded: z.boolean(),
-  })
-  .nullable();
+export const globeCanvasSelector = "[data-globe-host] canvas";
 
-export type Camera = z.infer<typeof cameraSchema>;
+const globePlaceholderSelector = "[data-globe-host][data-placeholder]";
 
-export const findMapExpression = `(() => {
-  const element = document.querySelector("[data-globe]");
-  if (!element) return null;
-  const fiberKey = Object.keys(element).find((key) => key.startsWith("__reactFiber$"));
-  for (let fiber = element[fiberKey]; fiber; fiber = fiber.return)
-    for (let hook = fiber.memoizedState; hook; hook = hook.next) {
-      const ref = hook.memoizedState;
-      if (ref && typeof ref === "object" && ref.current && typeof ref.current.getCenter === "function") return ref.current;
-    }
-  return null;
+const globeDrawnExpression = `(() => {
+  if (document.querySelector(${JSON.stringify(globePlaceholderSelector)})) return true;
+  const canvas = document.querySelector(${JSON.stringify(globeCanvasSelector)});
+  if (!canvas || canvas.width === 0) return false;
+  const pixel = canvas.getContext("2d")?.getImageData(canvas.width >> 1, canvas.height >> 1, 1, 1).data;
+  return Boolean(pixel) && pixel[3] > 0;
 })()`;
 
-export async function readCamera(page: Page): Promise<Camera> {
-  const camera: unknown = await page.evaluate(`(() => {
-    const map = ${findMapExpression};
-    if (!map) return null;
-    const center = map.getCenter();
-    return { lng: center.lng, lat: center.lat, zoom: map.getZoom(), moving: map.isMoving(), loaded: map.isLoaded() };
-  })()`);
+const globeSignatureExpression = `(() => {
+  const canvas = document.querySelector(${JSON.stringify(globeCanvasSelector)});
+  const context = canvas?.getContext("2d");
+  if (!canvas || !context || canvas.width === 0) return null;
+  const columns = 48;
+  const rows = 48;
+  let signature = "";
+  let opaque = 0;
+  for (let row = 0; row < rows; row++)
+    for (let column = 0; column < columns; column++) {
+      const x = Math.floor(((column + 0.5) * canvas.width) / columns);
+      const y = Math.floor(((row + 0.5) * canvas.height) / rows);
+      const [red, green, blue, alpha] = context.getImageData(x, y, 1, 1).data;
+      if (alpha > 0) opaque += 1;
+      signature += ((red >> 4) << 8 | (green >> 4) << 4 | (blue >> 4)).toString(36) + (alpha > 0 ? "" : "!") + ",";
+    }
+  return { signature, opaque };
+})()`;
 
-  return cameraSchema.parse(camera);
+const globeSignatureSchema = z.object({ signature: z.string(), opaque: z.number() }).nullable();
+
+export type GlobeSignature = z.infer<typeof globeSignatureSchema>;
+
+export async function hasGlobe(page: Page): Promise<boolean> {
+  return (await page.locator(globeCanvasSelector).count()) > 0;
+}
+
+export async function readGlobeSignature(page: Page): Promise<GlobeSignature> {
+  const signature: unknown = await page.evaluate(globeSignatureExpression);
+
+  return globeSignatureSchema.parse(signature);
 }
 
 const markRowsSchema = z.array(
@@ -122,26 +146,25 @@ const markRowsSchema = z.array(
 
 export type MarkRow = z.infer<typeof markRowsSchema>[number];
 
+function queryDatabase(sql: string): unknown[] {
+  const database = new Database(databasePath(), { readonly: true });
+
+  try {
+    return database.query(sql).all();
+  } finally {
+    database.close();
+  }
+}
+
 export function markTableExists(): boolean {
   return (
-    execFileSync(
-      "sqlite3",
-      [
-        "-readonly",
-        databasePath(),
-        "select count(*) from sqlite_master where type = 'table' and name = 'marks'",
-      ],
-      { encoding: "utf8" },
-    ).trim() === "1"
+    queryDatabase("select name from sqlite_master where type = 'table' and name = 'marks'")
+      .length === 1
   );
 }
 
 export function readMarkRows(): MarkRow[] {
-  const output = execFileSync(
-    "sqlite3",
-    ["-json", "-readonly", databasePath(), "select user_id, code, state from marks order by code"],
-    { encoding: "utf8" },
-  ).trim();
-
-  return markRowsSchema.parse(output === "" ? [] : JSON.parse(output));
+  return markRowsSchema.parse(
+    queryDatabase("select user_id, code, state from marks order by code"),
+  );
 }

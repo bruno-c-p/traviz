@@ -29,5 +29,3 @@ jobs:
       - run: bun run check
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: bun run fallow
-      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: bun run react-doctor --no-telemetry

@@ -3,16 +3,20 @@ import { at, tester } from "./rule-tester.ts";
 
 tester.run("boundaries/feature-entry", featureEntryRule, {
   valid: [
-    at("src/app/(app)/page.tsx", 'import { GlobeOverlay } from "@/features/globe";'),
-    at("src/app/(app)/layout.tsx", 'import { SessionLayer } from "@/features/app-shell/server";'),
+    at("src/pages/index.astro", 'import { mountGlobeView } from "@/features/globe";'),
+    at("src/pages/list.astro", 'import { loadUserMarks } from "@/features/marks/server";'),
+    at("src/pages/list.astro", 'import ListView from "@/features/country-list/list-view.astro";'),
+    at("src/pages/404.astro", 'import "@/features/landing/landing.css";'),
     at(
-      "src/features/marks/marks-store.ts",
-      'import { setMarkAction } from "@/features/marks/actions/set-mark";',
+      "src/features/app-shell/top-bar.astro",
+      'import AccountButton from "@/features/auth/account-button.astro";',
     ),
     at(
-      "src/features/globe/country-card.tsx",
-      'import { setMarkAction } from "@/features/marks/actions/set-mark";',
+      "src/pages/api/marks/apply.ts",
+      'import { handleMarkChange } from "@/features/marks/server";',
     ),
+    at("src/middleware.ts", 'import { authenticateRequest } from "@/features/auth/server";'),
+    at("src/env.d.ts", "declare namespace App {}"),
     at(
       "src/features/auth/email-link-form.tsx",
       'import { forgetStoredMarks } from "@/features/marks";',
@@ -30,8 +34,7 @@ tester.run("boundaries/feature-entry", featureEntryRule, {
       "src/features/landing/render-landing.ts",
       'import { tallyMarks } from "@/features/marks/core";',
     ),
-    at("landing/pages/index.astro", 'import { THEME_SCRIPT } from "@/features/theme/core";'),
-    at("src/proxy.ts", 'import { signInPath } from "@/paths";'),
+    at("src/pages/welcome.astro", 'import { THEME_SCRIPT } from "@/features/theme/core";'),
     at("src/shared/cn.ts", 'import { clsx } from "clsx";'),
     at("src/shared/testing/check-docs.test.ts", 'import { expect } from "bun:test";'),
     at("scripts/migrate.ts", 'import { createMarksTable } from "@/features/marks/server";'),
@@ -56,14 +59,32 @@ tester.run("boundaries/feature-entry", featureEntryRule, {
       errors: [{ messageId: "strayFile" }],
     },
     {
-      name: "a file in src next to proxy.ts",
-      ...at("src/middleware.ts", "export const config = {};"),
+      name: "a file in src next to middleware.ts",
+      ...at("src/proxy.ts", "export const config = {};"),
       errors: [{ messageId: "strayFile" }],
+    },
+    {
+      name: "a file in the retired src/app",
+      ...at("src/app/layout.tsx", "export const metadata = {};"),
+      errors: [{ messageId: "strayFile" }],
+    },
+    {
+      name: "an action import, which the API routes replaced",
+      ...at(
+        "src/features/globe/globe-view.ts",
+        'import { setMarkAction } from "@/features/marks/actions/set-mark";',
+      ),
+      errors: [{ messageId: "deepImport" }],
+    },
+    {
+      name: "an .astro file in a nested directory of another feature",
+      ...at("src/pages/list.astro", 'import Row from "@/features/country-list/rows/row.astro";'),
+      errors: [{ messageId: "deepImport" }],
     },
     {
       name: "a route imports a store file",
       ...at(
-        "src/app/(app)/list/page.tsx",
+        "src/pages/list.astro",
         'import { useCountriesStore } from "@/features/marks/marks-store";',
       ),
       errors: [{ messageId: "deepImport" }],
@@ -129,7 +150,7 @@ tester.run("boundaries/feature-entry", featureEntryRule, {
     },
     {
       name: "a template literal dynamic import of another feature's file",
-      ...at("src/app/(app)/page.tsx", "const store = import(`@/features/marks/marks-store`);"),
+      ...at("src/pages/index.astro", "const store = import(`@/features/marks/marks-store`);"),
       errors: [{ messageId: "deepImport" }],
     },
     {

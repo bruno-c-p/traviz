@@ -1,0 +1,56 @@
+---
+import AccountButton from "@/features/auth/account-button.astro";
+import { countries, countryRowOf, encodeCountryRows } from "@/features/countries";
+import CountryCard from "@/features/globe/country-card.astro";
+import CountrySearch from "@/features/globe/country-search.astro";
+import CountrySheet from "@/features/globe/country-sheet.astro";
+import GlobeEngineScript from "@/features/globe/globe-engine-script.astro";
+import GlobeHint from "@/features/globe/globe-hint.astro";
+import LazyScript from "@/features/globe/lazy-script.astro";
+import MapLegend from "@/features/globe/map-legend.astro";
+import ZoomControls from "@/features/globe/zoom-controls.astro";
+import type { MarksSnapshot } from "@/features/marks";
+import ProgressCard from "@/features/stats/progress-card.astro";
+
+type Props = { marks: Promise<MarksSnapshot | null>; isActive: boolean };
+
+const { marks, isActive } = Astro.props;
+---
+
+<div data-view="globe" class:list={["absolute inset-0", !isActive && "view-inactive"]}>
+  <div class="absolute inset-0">
+    <div data-globe-host class="h-full w-full bg-land"></div>
+    <ZoomControls class="fixed bottom-24 right-6 z-30 hidden md:flex" />
+  </div>
+  <LazyScript name="globe-engine" loadsNow={isActive}><GlobeEngineScript /></LazyScript>
+
+  <div class="fixed inset-x-4 top-4 z-40 flex items-center gap-2.5 md:hidden">
+    <CountrySearch class="min-w-0 flex-1" listboxId="globe-search-results-mobile" />
+    <AccountButton />
+  </div>
+
+  <div data-globe-top-tools class="fixed right-[82px] top-4 z-40 hidden md:block">
+    <CountrySearch class="w-48 lg:w-64" listboxId="globe-search-results" />
+  </div>
+
+  <MapLegend class="fixed bottom-10 left-6 z-30 hidden md:flex" />
+
+  <aside
+    aria-label="Globe details"
+    class="fixed right-6 top-[88px] z-30 hidden max-h-[calc(100dvh-112px)] w-[340px] flex-col gap-4 overflow-y-auto md:flex lg:w-[380px]"
+  >
+    <CountryCard />
+    <GlobeHint />
+    <ProgressCard variant="panel" marks={marks} />
+  </aside>
+
+  <div
+    class="fixed inset-x-4 z-30 md:hidden"
+    style="bottom:calc(max(1rem, env(safe-area-inset-bottom)) + 84px)"
+  >
+    <ProgressCard variant="peek" marks={marks} />
+  </div>
+
+  <CountrySheet />
+  <script is:inline type="text/plain" data-globe-countries set:html={encodeCountryRows(countries.map(countryRowOf))} />
+</div>

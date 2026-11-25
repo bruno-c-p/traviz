@@ -1,26 +1,17 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import type { Marks } from "@/features/marks/colors";
 import {
   createMarksOwner,
-  type MarksCache,
   type MarksDeadline,
   type MarksTransport,
 } from "@/features/marks/marks-owner";
 import {
   applyChange,
-  shownMarks,
-  type CachedMarks,
   type MarkChange,
   type MarkChangeResult,
   type MarksSnapshot,
 } from "@/features/marks/marks-sync";
-import {
-  createBrowserMarksStore,
-  createMarksStore,
-  endMarksSession,
-  useCountriesStore,
-} from "@/features/marks/marks-store";
-import { createFakeStorage } from "@/shared/testing/fake-storage";
+import { createBrowserMarksStore, createMarksStore } from "@/features/marks/marks-store";
 
 const OWNER = "user_a";
 const OTHER_OWNER = "user_b";
@@ -108,24 +99,6 @@ function fakeTransport(options: { readThrows?: boolean } = {}) {
   };
 }
 
-function fakeCache(stored: CachedMarks | null = null, options: { clearThrows?: boolean } = {}) {
-  let slot = stored;
-
-  const cache: MarksCache = {
-    read: () => slot,
-    write: (cached) => {
-      slot = cached;
-    },
-    clear: () => {
-      if (options.clearThrows === true) throw new Error("storage blocked");
-
-      slot = null;
-    },
-  };
-
-  return { cache, slot: () => slot };
-}
-
 function fakeDeadline() {
   const expiries: (() => void)[] = [];
 
@@ -141,25 +114,17 @@ function fakeDeadline() {
   return { startDeadline, expire };
 }
 
-function setup({
-  stored = null,
-  readThrows = false,
-  clearThrows = false,
-}: { stored?: CachedMarks | null; readThrows?: boolean; clearThrows?: boolean } = {}) {
+function setup({ readThrows = false }: { readThrows?: boolean } = {}) {
   const fake = fakeTransport({ readThrows });
-  const cache = fakeCache(stored, { clearThrows });
   const deadline = fakeDeadline();
-
-  const store = createMarksStore(
-    createMarksOwner(fake.transport, cache.cache, deadline.startDeadline),
-  );
+  const store = createMarksStore(createMarksOwner(fake.transport, deadline.startDeadline));
 
   const signIn = (ownerId: string, marks: Marks = {}) => {
     store.getState().startSession(ownerId);
     store.getState().receiveSnapshot({ ok: true, ownerId, marks });
   };
 
-  return { ...fake, ...deadline, cacheSlot: cache.slot, store, signIn };
+  return { ...fake, ...deadline, store, signIn };
 }
 
 const tapDeu: MarkChange = { kind: "set", code: "DEU", state: "visited" };
@@ -595,50 +560,14 @@ describe("server snapshots after a fresh read", () => {
 });
 
 describe("ending the session", () => {
-  test("ending the session clears the cache", () => {
-    const { store, signIn, cacheSlot } = setup();
-    signIn(OWNER, { FRA: "want" });
-
-    expect(cacheSlot()).toEqual({ ownerId: OWNER, marks: { FRA: "want" } });
-
-    store.getState().endSession();
-
-    expect(cacheSlot()).toBeNull();
-    expect(store.getState().marks).toEqual({});
-    expect(store.getState().ownerId).toBeNull();
-  });
-
-  test("a cache that throws on clear still ends the session", () => {
-    const { store, signIn } = setup({ clearThrows: true });
+  test("ending the session shows no marks and no owner", () => {
+    const { store, signIn } = setup();
     signIn(OWNER, { FRA: "want" });
 
     store.getState().endSession();
 
     expect(store.getState().marks).toEqual({});
     expect(store.getState().ownerId).toBeNull();
-  });
-
-  describe("endMarksSession", () => {
-    afterEach(() => {
-      Reflect.deleteProperty(globalThis, "localStorage");
-    });
-
-    test("endMarksSession clears the browser cache and the retired key", () => {
-      const { storage, items } = createFakeStorage({
-        "traviz-marks-v2": "ownerId=user_a&FRA=want",
-        "traviz-marks": '{"state":{"marks":{}}}',
-      });
-
-      Object.defineProperty(globalThis, "localStorage", { value: storage, configurable: true });
-      useCountriesStore.getState().startSession(OWNER);
-
-      expect(useCountriesStore.getState().marks).toEqual({ FRA: "want" });
-
-      endMarksSession();
-
-      expect(items()).toEqual({});
-      expect(useCountriesStore.getState().marks).toEqual({});
-    });
   });
 });
 
@@ -658,192 +587,27 @@ describe("dismissing a problem", () => {
   });
 });
 
-describe("the cached marks", () => {
-  test("the owner's cached marks show before the snapshot", () => {
-    const { store } = setup({ stored: { ownerId: OWNER, marks: { FRA: "want" } } });
-    store.getState().startSession(OWNER);
-
-    expect(store.getState().marks).toEqual({ FRA: "want" });
-    expect(store.getState().ownerId).toBe(OWNER);
-  });
-});
-
-describe("the server seed", () => {
-  const seedFor = (ownerId: string, marks: Marks) => ({ ok: true, ownerId, marks }) as const;
-  const seed = seedFor(OWNER, { JPN: "visited", PER: "want" });
-
-  const shownOver = (store: ReturnType<typeof setup>["store"], shownSeed: MarksSnapshot | null) =>
-    shownMarks(shownSeed, store.getState().seedCover, store.getState().marks);
-
-  test("the store starts and hydrates showing the seed", () => {
-    const { store } = setup();
-
-    expect(shownMarks(seed, store.getInitialState().seedCover, store.getInitialState().marks)).toBe(
-      seed.marks,
-    );
-    expect(shownOver(store, seed)).toBe(seed.marks);
-  });
-
-  test("a stale cache never shows over the seed, before or after the session starts", () => {
-    const fake = fakeTransport();
-    const cache = fakeCache({ ownerId: OWNER, marks: { FRA: "want" } });
-    const owner = createMarksOwner(fake.transport, cache.cache, fakeDeadline().startDeadline);
-    owner.previewCache(() => true);
-    const store = createMarksStore(owner);
-
-    expect(store.getState().marks).toEqual({ FRA: "want" });
-    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
-
-    store.getState().startSession(OWNER);
-
-    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
-  });
-
-  test("a tap before the session starts shows over every other seeded mark", () => {
-    const { store } = setup();
-
-    store.getState().mark("DEU", "visited");
-    store.getState().clear("PER");
-
-    expect(shownOver(store, seed)).toEqual({ JPN: "visited", DEU: "visited" });
-  });
-
-  test("a tap over a stale cache shows over the seed, not over the cache", () => {
-    const { store } = setup({ stored: { ownerId: OWNER, marks: { FRA: "want" } } });
-    store.getState().startSession(OWNER);
-
-    store.getState().mark("DEU", "visited");
-
-    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want", DEU: "visited" });
-  });
-
-  test("the server snapshot takes over from the seed, and no cache brings the seed back", () => {
-    const { store, signIn } = setup({ stored: { ownerId: OWNER, marks: { FRA: "want" } } });
-    signIn(OWNER, { DEU: "visited" });
-
-    expect(shownOver(store, seed)).toEqual({ DEU: "visited" });
-
-    store.getState().startSession(OWNER);
-
-    expect(shownOver(store, seed)).toEqual({ DEU: "visited" });
-  });
-
-  test("a failed snapshot leaves the seed in place", () => {
-    const { store } = setup();
-    store.getState().startSession(OWNER);
-    store.getState().receiveSnapshot({ ok: false, ownerId: OWNER });
-
-    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
-  });
-
-  test("a failed or missing seed shows the store's marks", () => {
-    const { store, signIn } = setup();
-    signIn(OWNER, { DEU: "visited" });
-
-    expect(shownOver(store, { ok: false, ownerId: OWNER })).toEqual({ DEU: "visited" });
-    expect(shownOver(store, null)).toEqual({ DEU: "visited" });
-  });
-
-  test("ending the session hides the ended owner's seed", () => {
-    const { store, signIn } = setup();
-    signIn(OWNER, { JPN: "visited" });
-
-    store.getState().endSession();
-
-    expect(shownOver(store, seed)).toEqual({});
-  });
-
-  test("ending the session before it started hides every seed", () => {
-    const { store } = setup();
-
-    store.getState().endSession();
-
-    expect(shownOver(store, seed)).toEqual({});
-  });
-
-  test("a seed for a new owner after a session end shows at once", () => {
-    const { store, signIn } = setup();
-    signIn(OWNER, { JPN: "visited" });
-    store.getState().endSession();
-
-    const nextSeed = seedFor(OTHER_OWNER, { BRA: "want" });
-
-    expect(shownOver(store, nextSeed)).toEqual({ BRA: "want" });
-  });
-
-  test("the ended owner's own seed shows again once their next session starts", () => {
-    const { store, signIn } = setup();
-    signIn(OWNER, { JPN: "visited" });
-    store.getState().endSession();
-
-    store.getState().startSession(OWNER);
-
-    expect(shownOver(store, seed)).toEqual({ JPN: "visited", PER: "want" });
-  });
-
-  test("another account's seed shows without this account's taps", () => {
-    const { store } = setup();
-    store.getState().startSession(OWNER);
-    store.getState().mark("DEU", "visited");
-
-    const otherSeed = seedFor(OTHER_OWNER, { BRA: "want" });
-
-    expect(shownOver(store, otherSeed)).toEqual({ BRA: "want" });
-  });
-});
-
-describe("hydration", () => {
-  test("a cache previewed before the store exists stays out of the initial state React hydrates with", () => {
-    const fake = fakeTransport();
-    const cache = fakeCache({ ownerId: OWNER, marks: { DEU: "visited" } });
-    const owner = createMarksOwner(fake.transport, cache.cache, fakeDeadline().startDeadline);
-    owner.previewCache(() => true);
-
-    const store = createMarksStore(owner);
-
-    expect(store.getInitialState().marks).toEqual({});
-    expect(store.getState().marks).toEqual({ DEU: "visited" });
-  });
-});
-
 describe("the browser store", () => {
-  const base64Url = (text: string) =>
-    btoa(text).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
-
-  const sessionCookieFor = (ownerId: string) =>
-    `__session=${base64Url('{"alg":"RS256"}')}.${base64Url(`{"sub":"${ownerId}"}`)}.signature`;
-
-  function browserSetup(cookie: string) {
+  function browserSetup() {
     const fake = fakeTransport();
-    const { storage } = createFakeStorage({ "traviz-marks-v2": "ownerId=user_a&FRA=want" });
     const timers: { callback: () => void; milliseconds: number }[] = [];
 
-    const store = createBrowserMarksStore({
-      cookie: () => cookie,
-      storage: () => storage,
-      startTimer: (callback, milliseconds) => {
-        timers.push({ callback, milliseconds });
-      },
-      transport: fake.transport,
+    const store = createBrowserMarksStore(fake.transport, (callback, milliseconds) => {
+      timers.push({ callback, milliseconds });
     });
 
     return { ...fake, store, timers };
   }
 
-  test("another account's cached marks stay hidden", () => {
-    const { store } = browserSetup(sessionCookieFor(OTHER_OWNER));
+  test("it starts with no marks and no owner", () => {
+    const { store } = browserSetup();
 
     expect(store.getState().marks).toEqual({});
-  });
-
-  test("the signed-in account's cached marks show at once", () => {
-    const { store } = browserSetup(sessionCookieFor(OWNER));
-
-    expect(store.getState().marks).toEqual({ FRA: "want" });
+    expect(store.getState().ownerId).toBeNull();
   });
 
   test("a send with no reply rolls back when its 8 s timer fires", async () => {
-    const { store, timers } = browserSetup("");
+    const { store, timers } = browserSetup();
     store.getState().startSession(OWNER);
     store.getState().receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
     store.getState().mark("DEU", "visited");

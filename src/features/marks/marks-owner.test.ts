@@ -2,14 +2,12 @@ import { describe, expect, test } from "bun:test";
 import type { Marks } from "@/features/marks/colors";
 import {
   createMarksOwner,
-  type MarksCache,
   type MarksDeadline,
   type MarksTransport,
 } from "@/features/marks/marks-owner";
 import {
   applyChange,
   visibleMarks,
-  type CachedMarks,
   type MarkChange,
   type MarkChangeResult,
 } from "@/features/marks/marks-sync";
@@ -69,27 +67,6 @@ function fakeTransport() {
 
 type FakeTransport = ReturnType<typeof fakeTransport>;
 
-function fakeCache(
-  options: { stored?: CachedMarks; readFails?: boolean; writeFails?: boolean } = {},
-) {
-  const writes: CachedMarks[] = [];
-
-  const cache: MarksCache = {
-    read: () => {
-      if (options.readFails === true) throw new Error("storage blocked");
-
-      return options.stored ?? null;
-    },
-    write: (cached) => {
-      if (options.writeFails === true) throw new Error("quota exceeded");
-      writes.push(cached);
-    },
-    clear: () => {},
-  };
-
-  return { cache, writes };
-}
-
 function fakeDeadline() {
   const expiries: (() => void)[] = [];
 
@@ -110,13 +87,12 @@ function fakeDeadline() {
   return { startDeadline, expire };
 }
 
-function setup(cacheOptions: Parameters<typeof fakeCache>[0] = {}) {
+function setup() {
   const fake = fakeTransport();
-  const store = fakeCache(cacheOptions);
   const deadline = fakeDeadline();
-  const owner = createMarksOwner(fake.transport, store.cache, deadline.startDeadline);
+  const owner = createMarksOwner(fake.transport, deadline.startDeadline);
 
-  return { ...fake, ...store, ...deadline, owner };
+  return { ...fake, ...deadline, owner };
 }
 
 describe("write, reset, write, appeared in 81cc227, open on main: resetAll calls clearMarksAction outside scheduleWrite's per-country chain", () => {
@@ -176,7 +152,7 @@ describe("write, reset, write, appeared in 81cc227, open on main: resetAll calls
   });
 
   test("a reset after signing back in to the same account waits for the tap still on the wire", async () => {
-    const { owner, sent, answer, writes } = setup();
+    const { owner, sent, answer } = setup();
     owner.startSession(OWNER);
     owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
     owner.requestChange(tapDeu);
@@ -193,7 +169,6 @@ describe("write, reset, write, appeared in 81cc227, open on main: resetAll calls
 
     expect(visibleMarks(owner.getState())).toEqual({});
     expect(owner.getState().problems).toEqual([]);
-    expect(writes).toEqual([{ ownerId: OWNER, marks: {} }]);
     expect(sent()).toEqual([
       [OWNER, tapDeu],
       [OWNER, resetAll],
@@ -214,7 +189,7 @@ describe("F5.2 and F5.3, appeared in 81cc227 (PR #5), open on main: clearLocal c
   for (const { kind, reply } of previousAccountReplies) {
     test(`a ${kind} reply from the previous account never reaches the next account, whose tap goes out after it`, async () => {
       const fake = setup();
-      const { owner, sent, answer, writes } = fake;
+      const { owner, sent, answer } = fake;
       owner.startSession(OWNER);
       owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
       owner.requestChange(tapDeu);
@@ -233,10 +208,7 @@ describe("F5.2 and F5.3, appeared in 81cc227 (PR #5), open on main: clearLocal c
 
       expect(visibleMarks(owner.getState())).toEqual({ ITA: "visited" });
       expect(owner.getState().problems).toEqual([]);
-      expect(writes).toEqual([
-        { ownerId: OWNER, marks: {} },
-        { ownerId: OTHER_OWNER, marks: {} },
-      ]);
+      expect(owner.getState().base).toEqual({ source: "server", marks: {} });
       expect(sent()).toEqual([
         [OWNER, tapDeu],
         [OTHER_OWNER, tapIta],
@@ -249,11 +221,7 @@ describe("F5.2 and F5.3, appeared in 81cc227 (PR #5), open on main: clearLocal c
         [OTHER_OWNER, tapIta],
       ]);
       expect(visibleMarks(owner.getState())).toEqual({ ITA: "visited" });
-      expect(writes).toEqual([
-        { ownerId: OWNER, marks: {} },
-        { ownerId: OTHER_OWNER, marks: {} },
-        { ownerId: OTHER_OWNER, marks: { ITA: "visited" } },
-      ]);
+      expect(owner.getState().base).toEqual({ source: "server", marks: { ITA: "visited" } });
     });
   }
 
@@ -425,7 +393,7 @@ describe("marks owner", () => {
       readMarks: () => new Promise(() => {}),
     };
 
-    const owner = createMarksOwner(transport, fakeCache().cache, fakeDeadline().startDeadline);
+    const owner = createMarksOwner(transport, fakeDeadline().startDeadline);
 
     owner.startSession(OWNER);
     owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
@@ -438,49 +406,15 @@ describe("marks owner", () => {
     expect(owner.getState().problems).toEqual([{ scope: "DEU", reason: "unavailable" }]);
   });
 
-  test("the cache is written for a server base and again when a saved change moves it", async () => {
-    const { owner, answer, writes } = setup();
-    owner.startSession(OWNER);
-    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: { FRA: "want" } });
-
-    expect(writes).toEqual([{ ownerId: OWNER, marks: { FRA: "want" } }]);
-
-    owner.requestChange(tapDeu);
-    await flush();
-
-    expect(writes).toHaveLength(1);
-
-    await answer(0);
-
-    expect(writes).toEqual([
-      { ownerId: OWNER, marks: { FRA: "want" } },
-      { ownerId: OWNER, marks: { FRA: "want", DEU: "visited" } },
-    ]);
-  });
-
-  test("the cache is never written for a cache base", async () => {
-    const { owner, answer, writes } = setup({ stored: { ownerId: OWNER, marks: { FRA: "want" } } });
-    owner.startSession(OWNER);
-    owner.requestChange(tapDeu);
-    await flush();
-    await answer(0);
-
-    expect(owner.getState().base).toEqual({
-      source: "cache",
-      marks: { FRA: "want", DEU: "visited" },
-    });
-    expect(writes).toEqual([]);
-  });
-
-  test("the cache is never written for an empty base", async () => {
-    const { owner, answer, writes } = setup();
+  test("a change saved before the first snapshot still shows", async () => {
+    const { owner, answer } = setup();
     owner.startSession(OWNER);
     owner.requestChange(tapDeu);
     await flush();
     await answer(0);
 
     expect(visibleMarks(owner.getState())).toEqual({ DEU: "visited" });
-    expect(writes).toEqual([]);
+    expect(owner.getState().base).toEqual({ source: "empty" });
   });
 
   test("a reply for another account rolls the change back and records why", async () => {
@@ -493,46 +427,6 @@ describe("marks owner", () => {
 
     expect(visibleMarks(owner.getState())).toEqual({ FRA: "want" });
     expect(owner.getState().problems).toEqual([{ scope: "DEU", reason: "other-account" }]);
-  });
-
-  test("a cached snapshot shows at session start", () => {
-    const { owner } = setup({ stored: { ownerId: OWNER, marks: { FRA: "want" } } });
-    owner.startSession(OWNER);
-
-    expect(visibleMarks(owner.getState())).toEqual({ FRA: "want" });
-  });
-
-  test("a cache from another owner shows nothing", () => {
-    const { owner } = setup({ stored: { ownerId: OTHER_OWNER, marks: { FRA: "want" } } });
-    owner.startSession(OWNER);
-
-    expect(visibleMarks(owner.getState())).toEqual({});
-  });
-
-  test("a cache that throws on read counts as empty and changes still send", async () => {
-    const { owner, sent } = setup({ readFails: true });
-    owner.startSession(OWNER);
-    owner.requestChange(tapDeu);
-    await flush();
-
-    expect(owner.getState().base).toEqual({ source: "empty" });
-    expect(sent()).toEqual([[OWNER, tapDeu]]);
-  });
-
-  test("a cache that throws on write is ignored and the next change still sends", async () => {
-    const { owner, sent, answer } = setup({ writeFails: true });
-    owner.startSession(OWNER);
-    owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
-    owner.requestChange(tapDeu);
-    owner.requestChange(tapFra);
-    await flush();
-    await answer(0);
-
-    expect(visibleMarks(owner.getState())).toEqual({ DEU: "visited", FRA: "want" });
-    expect(sent()).toEqual([
-      [OWNER, tapDeu],
-      [OWNER, tapFra],
-    ]);
   });
 
   test("a session that ended sends nothing new", async () => {
@@ -567,12 +461,11 @@ describe("marks owner listeners", () => {
     expect(heard).toBe(3);
   });
 
-  test("an event that changes nothing reaches no listener and writes no cache", () => {
-    const { owner, writes } = setup();
+  test("an event that changes nothing reaches no listener", () => {
+    const { owner } = setup();
     owner.startSession(OWNER);
     owner.receiveSnapshot({ ok: true, ownerId: OWNER, marks: {} });
     let heard = 0;
-    const writesBefore = writes.length;
 
     owner.subscribe(() => {
       heard += 1;
@@ -582,49 +475,5 @@ describe("marks owner listeners", () => {
     owner.requestChange(tapDeu);
 
     expect(heard).toBe(1);
-    expect(writes.length).toBe(writesBefore);
-  });
-});
-
-describe("marks owner cache preview", () => {
-  const stored: CachedMarks = { ownerId: OWNER, marks: { DEU: "visited" } };
-
-  test("a preview signed in as the cached owner shows the cache", () => {
-    const { owner } = setup({ stored });
-    const asked: string[] = [];
-
-    owner.previewCache((ownerId) => {
-      asked.push(ownerId);
-
-      return true;
-    });
-
-    expect(asked).toEqual([OWNER]);
-    expect(visibleMarks(owner.getState())).toEqual({ DEU: "visited" });
-    expect(owner.getState().ownerId).toBeNull();
-  });
-
-  test("a preview signed in as someone else shows nothing", () => {
-    const { owner } = setup({ stored });
-
-    owner.previewCache(() => false);
-
-    expect(visibleMarks(owner.getState())).toEqual({});
-  });
-
-  test("a preview with no cache shows nothing", () => {
-    const { owner } = setup();
-
-    owner.previewCache(() => true);
-
-    expect(visibleMarks(owner.getState())).toEqual({});
-  });
-
-  test("a preview whose cache read throws shows nothing", () => {
-    const { owner } = setup({ stored, readFails: true });
-
-    owner.previewCache(() => true);
-
-    expect(visibleMarks(owner.getState())).toEqual({});
   });
 });

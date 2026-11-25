@@ -1,0 +1,12 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "../../shared/styles/theme.css";
+
+@source "./account-menu";
+@source "./account-section.ts";
+@source "../marks/danger-zone.astro";
+@source "../marks/mount-danger-zone.ts";
+@source "../marks/mark-status-line.ts";
+@source "../theme/theme-picker.astro";
+@source "../../shared/icons/inline-icon.astro";

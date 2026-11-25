@@ -1,9 +1,4 @@
-import "client-only";
-import { create } from "zustand";
 import type { CountryState, Marks } from "@/features/marks/colors";
-import { applyMarkChange } from "@/features/marks/actions/apply-mark-change";
-import { readMarks } from "@/features/marks/actions/read-marks";
-import { createMarksCache } from "@/features/marks/marks-cache";
 import {
   createMarksOwner,
   type MarksOwner,
@@ -12,23 +7,21 @@ import {
 import {
   changeScope,
   INITIAL_MARKS_SYNC_STATE,
-  seedCover,
   visibleMarks,
   type MarksSnapshot,
   type MarksSyncState,
-  type SeedCover,
   type SyncProblem,
 } from "@/features/marks/marks-sync";
-import { isSignedInAs } from "@/features/marks/session-cookie";
+import { createMarksTransport, postWithFetch } from "@/features/marks/marks-transport";
+import { createStore } from "@/shared/store";
 
 export type SavingScopes = "all" | readonly string[];
 
-type MarksStoreState = {
+export type MarksStoreState = {
   marks: Marks;
   ownerId: string | null;
   saving: SavingScopes;
   problems: readonly SyncProblem[];
-  seedCover: SeedCover;
   mark: (code: string, state: CountryState) => void;
   clear: (code: string) => void;
   resetAll: () => void;
@@ -37,6 +30,8 @@ type MarksStoreState = {
   endSession: () => void;
   receiveSnapshot: (snapshot: MarksSnapshot) => void;
 };
+
+const SAVE_DEADLINE_MS = 8000;
 
 function savingScopes(state: MarksSyncState): SavingScopes {
   const unsaved = state.pending.filter((entry) => entry.phase !== "saved");
@@ -60,26 +55,17 @@ function sameSaving(left: SavingScopes, right: SavingScopes): boolean {
   return left.length === right.length && left.every((scope, index) => scope === right[index]);
 }
 
-function sameCover(left: SeedCover, right: SeedCover): boolean {
-  if (left.kind === "overlays" && right.kind === "overlays") {
-    return left.ownerId === right.ownerId && left.pending === right.pending;
-  }
-
-  return left.kind === right.kind && left.ownerId === right.ownerId;
-}
-
 function project(state: MarksSyncState) {
   return {
     marks: visibleMarks(state),
     ownerId: state.ownerId,
     saving: savingScopes(state),
     problems: state.problems,
-    seedCover: seedCover(state),
   };
 }
 
 export function createMarksStore(owner: MarksOwner) {
-  const store = create<MarksStoreState>()(() => ({
+  const store = createStore<MarksStoreState>(() => ({
     ...project(INITIAL_MARKS_SYNC_STATE),
     mark: (code, state) => owner.requestChange({ kind: "set", code, state }),
     clear: (code) => owner.requestChange({ kind: "clear", code }),
@@ -92,27 +78,13 @@ export function createMarksStore(owner: MarksOwner) {
 
   const syncFromOwner = () => {
     const current = store.getState();
-    const { marks, ownerId, saving, problems, seedCover } = project(owner.getState());
-    const keptMarks = sameMarks(current.marks, marks) ? current.marks : marks;
-    const keptSaving = sameSaving(current.saving, saving) ? current.saving : saving;
-    const keptCover = sameCover(current.seedCover, seedCover) ? current.seedCover : seedCover;
-
-    if (
-      keptMarks === current.marks &&
-      ownerId === current.ownerId &&
-      keptSaving === current.saving &&
-      problems === current.problems &&
-      keptCover === current.seedCover
-    ) {
-      return;
-    }
+    const { marks, ownerId, saving, problems } = project(owner.getState());
 
     store.setState({
-      marks: keptMarks,
+      marks: sameMarks(current.marks, marks) ? current.marks : marks,
       ownerId,
-      saving: keptSaving,
+      saving: sameSaving(current.saving, saving) ? current.saving : saving,
       problems,
-      seedCover: keptCover,
     });
   };
 
@@ -122,37 +94,22 @@ export function createMarksStore(owner: MarksOwner) {
   return store;
 }
 
-type BrowserMarksDependencies = {
-  readonly cookie: () => string;
-  readonly storage: () => Storage;
-  readonly startTimer: (callback: () => void, milliseconds: number) => void;
-  readonly transport: MarksTransport;
-};
+export type MarksStore = ReturnType<typeof createMarksStore>;
 
-export function createBrowserMarksStore({
-  cookie,
-  storage,
-  startTimer,
-  transport,
-}: BrowserMarksDependencies) {
-  const owner = createMarksOwner(transport, createMarksCache(storage), (onExpired) => {
-    startTimer(onExpired, 8000);
-  });
-
-  owner.previewCache((ownerId) => isSignedInAs(cookie(), ownerId));
-
-  return createMarksStore(owner);
+export function createBrowserMarksStore(
+  transport: MarksTransport,
+  startTimer: (callback: () => void, milliseconds: number) => void,
+) {
+  return createMarksStore(
+    createMarksOwner(transport, (onExpired) => {
+      startTimer(onExpired, SAVE_DEADLINE_MS);
+    }),
+  );
 }
 
-export const useCountriesStore = createBrowserMarksStore({
-  cookie: () => (typeof document === "undefined" ? "" : document.cookie),
-  storage: () => localStorage,
-  startTimer: (callback, milliseconds) => {
+export const marksStore = createBrowserMarksStore(
+  createMarksTransport(postWithFetch),
+  (callback, milliseconds) => {
     setTimeout(callback, milliseconds);
   },
-  transport: { applyMarkChange, readMarks },
-});
-
-export function endMarksSession() {
-  useCountriesStore.getState().endSession();
-}
+);

@@ -1,0 +1,73 @@
+---
+import { ROW_HEIGHT } from "@/features/country-list/list-classes";
+import { COUNTRY_STATES, STATE_LABELS, STATE_SHORT_LABELS } from "@/features/marks";
+import type { CountryState } from "@/features/marks";
+import Icon from "@/shared/icons/icon.astro";
+import type { IconName } from "@/shared/icons/icons";
+
+type Props = {
+  code: string;
+  name: string;
+  isTerritory: boolean;
+  state: CountryState | undefined;
+  isDeferred: boolean;
+};
+
+const { code, name, isTerritory, state, isDeferred } = Astro.props;
+
+const STATE_ICONS: Record<CountryState, IconName> = {
+  visited: "check",
+  want: "star",
+  not_interested: "circle-backslash",
+};
+---
+
+<div
+  data-row
+  class:list={[isDeferred && "[content-visibility:auto]"]}
+  style={`height:${ROW_HEIGHT}px;contain-intrinsic-size:auto ${ROW_HEIGHT}px`}
+>
+  <div class="flex h-full items-center gap-3 border-t border-canvas-soft bg-canvas px-4 sm:px-5">
+    <span data-row-code class="hidden w-10 shrink-0 font-mono text-xs text-mute sm:inline"
+      >{code}</span
+    >
+    <div data-row-text class="flex min-w-0 flex-1 flex-col">
+      <span data-row-name class="truncate text-[15px] font-medium text-ink">{name}</span>
+    </div>
+    {
+      isTerritory && (
+        <span
+          data-row-territory
+          title="Territory, not counted toward the 195 headline"
+          class="hidden shrink-0 rounded-full bg-canvas-soft px-2 py-1 font-mono text-[10px] uppercase leading-none tracking-wide text-mute lg:inline"
+        >
+          Territory
+        </span>
+      )
+    }
+    <div
+      role="group"
+      aria-label={`Mark ${name}`}
+      data-code={code}
+      class="flex shrink-0 gap-0.5 rounded-full bg-canvas-soft p-1"
+    >
+      {
+        COUNTRY_STATES.map((countryState) => (
+          <button
+            type="button"
+            data-state={countryState}
+            aria-pressed={state === countryState ? "true" : "false"}
+            aria-label={STATE_LABELS[countryState]}
+            title={STATE_LABELS[countryState]}
+            class="state-option"
+          >
+            <Icon name={STATE_ICONS[countryState]} size="size-[15px]" class="sm:hidden" />
+            <span aria-hidden="true" class="hidden sm:inline">
+              {STATE_SHORT_LABELS[countryState]}
+            </span>
+          </button>
+        ))
+      }
+    </div>
+  </div>
+</div>

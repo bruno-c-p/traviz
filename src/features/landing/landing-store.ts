@@ -1,6 +1,6 @@
-import { createStore } from "zustand/vanilla";
 import { SAMPLE_MARKS, pickMark } from "@/features/landing/landing-marks";
 import type { Marks } from "@/features/marks/core";
+import { createStore } from "@/shared/store";
 
 type FocusRequest = { code: string; id: number };
 
@@ -13,7 +13,7 @@ export type LandingState = {
 };
 
 export function createLandingStore() {
-  return createStore<LandingState>()((set) => ({
+  return createStore<LandingState>((set) => ({
     marks: SAMPLE_MARKS,
     focus: null,
     isSample: true,

@@ -1,15 +1,16 @@
 import { execFileSync } from "node:child_process";
-import { readPerfEnvironment } from "@/shared/testing/perf/environment";
+import { readPerfEnvironment, withSignInMode } from "@/shared/testing/perf/environment";
 import { findSeededUserId, seededUserEmail } from "@/shared/testing/clerk-dev";
 import { launchBrowser, markTableExists } from "@/shared/testing/verify/browser";
 import {
-  buildHasPublicValues,
+  buildMatchesEnvironment,
   treeFingerprint,
   isAlive,
   readBuildStamp,
   readInstance,
   repoRoot,
 } from "@/shared/testing/verify/instance";
+import { listPath, signInPath } from "@/paths";
 
 type Check = { name: string; failure: string | undefined };
 
@@ -30,36 +31,37 @@ function run(command: string, args: string[]): string {
 const perfEnvironment = readPerfEnvironment(repoRoot, process.env);
 
 check(
-  ".env.local is local only (file: database in .data, pk_test_ Clerk key)",
+  ".env.local is local only (file: database in .data, no live Clerk key)",
   perfEnvironment.kind === "refused" ? perfEnvironment.reason : undefined,
 );
 
-for (const tool of ["sqlite3", "clerk"])
-  check(`${tool} is on PATH`, run("which", [tool]) === "" ? `install ${tool}` : undefined);
-
-function failureOf(probe: () => boolean): string | undefined {
+async function failureOf(probe: () => boolean | Promise<boolean>): Promise<string | undefined> {
   try {
-    return probe() ? undefined : "not found. Run bun run setup";
+    return (await probe()) ? undefined : "not found. Run bun run setup";
   } catch (cause: unknown) {
     return cause instanceof Error ? cause.message : String(cause);
   }
 }
 
-check(
-  `the clerk CLI is logged in and the dev user ${seededUserEmail} exists`,
-  failureOf(() => findSeededUserId() !== undefined),
-);
+const stamp = readBuildStamp();
+const signInMode = stamp?.signIn ?? "clerk";
 
-check("the worktree database has a marks table", failureOf(markTableExists));
+if (signInMode === "clerk")
+  check(
+    `Clerk's development instance answers and the dev user ${seededUserEmail} exists`,
+    await failureOf(async () => (await Promise.resolve(findSeededUserId())) !== undefined),
+  );
+else check("the build signs every request in as the fixed local user, without Clerk", undefined);
+
+check("the worktree database has a marks table", await failureOf(markTableExists));
 
 check(
-  ".next was built with this worktree's Clerk key, not bun run check's placeholders",
-  perfEnvironment.kind === "ready" && buildHasPublicValues(perfEnvironment.environment)
+  `dist is a Node adapter build for ${signInMode} sign-in with this worktree's .env.local, not bun run check's placeholders`,
+  perfEnvironment.kind === "ready" &&
+    buildMatchesEnvironment(withSignInMode(perfEnvironment.environment, signInMode))
     ? undefined
     : "run bun run verify:server stop, then bun run verify:server start",
 );
-
-const stamp = readBuildStamp();
 
 check(
   "the build matches HEAD plus the working tree's changes",
@@ -100,11 +102,22 @@ if (instance && isRunning) {
       : `listeners ${listeners.join(",") || "none"} in groups ${groups.join(",") || "none"}`,
   );
 
-  const signIn = await fetch(`http://localhost:${instance.port}/sign-in`).catch(() => undefined);
+  const probePath = instance.signIn === "clerk" ? signInPath() : listPath();
+
+  const probe = await fetch(`http://127.0.0.1:${instance.port}${probePath}`, {
+    redirect: "manual",
+  }).catch(() => undefined);
 
   check(
-    `GET /sign-in answers 200 on port ${instance.port}`,
-    signIn?.ok ? undefined : `got ${signIn?.status ?? "no answer"}`,
+    `GET ${probePath} answers 200 on port ${instance.port}`,
+    probe?.status === 200 ? undefined : `got ${probe?.status ?? "no answer"}`,
+  );
+
+  check(
+    "the running server uses the sign-in mode of the last build",
+    instance.signIn === signInMode
+      ? undefined
+      : `the server signs in with ${instance.signIn}, the build with ${signInMode}. Run bun run verify:server stop, then start`,
   );
 }
 

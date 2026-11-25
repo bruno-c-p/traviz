@@ -1,0 +1,10 @@
+---
+import { iconClass } from "@/shared/icons/icons";
+import type { IconName } from "@/shared/icons/icons";
+
+type Props = { name: IconName; size: string; class?: string };
+
+const { name, size, class: className } = Astro.props;
+---
+
+<span aria-hidden="true" class:list={[iconClass(name, size), className]}></span>

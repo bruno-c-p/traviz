@@ -1,0 +1,54 @@
+---
+import sansFontUrl from "@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2?url";
+import LandingContinents from "@/features/landing/landing-continents.astro";
+import LandingFinale from "@/features/landing/landing-finale.astro";
+import LandingHeader from "@/features/landing/landing-header.astro";
+import LandingHero from "@/features/landing/landing-hero.astro";
+import LandingViews from "@/features/landing/landing-views.astro";
+import "@fontsource-variable/geist-mono/wght.css";
+import "@fontsource-variable/instrument-sans/wght.css";
+import "@/features/landing/landing.css";
+import { THEME_SCRIPT } from "@/features/theme/core";
+import { homePath } from "@/paths";
+import PageHead from "@/shared/page-head.astro";
+
+export const prerender = true;
+
+const themeScript = THEME_SCRIPT;
+const signedInHintScript = `if(/(?:^|; )__client_uat(?:_[^=]+)?=[1-9]/.test(document.cookie))location.replace(${JSON.stringify(homePath())})`;
+
+const title = "Traviz: keep count of the countries you’ve seen";
+
+const description =
+  "Mark every country you’ve visited, want to visit or would skip, on a globe, in a list and in your totals. Sign in with an email link, no password.";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <PageHead title={title} />
+    <link rel="preload" href={sansFontUrl} as="font" type="font/woff2" crossorigin />
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="Traviz" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <script is:inline set:html={themeScript} />
+    <script is:inline set:html={signedInHintScript} />
+  </head>
+  <body class="bg-canvas-soft font-sans text-ink">
+    <div class="relative [--gutter:clamp(1rem,0.4rem+2.2vw,2.5rem)]">
+      <LandingHeader />
+      <main class="px-(--gutter)">
+        <LandingHero />
+        <LandingContinents />
+        <LandingViews />
+        <LandingFinale />
+      </main>
+    </div>
+    <script src="@/features/landing/landing-entry.ts"></script>
+  </body>
+</html>

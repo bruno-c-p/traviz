@@ -4,7 +4,7 @@ import { markChangeSchema } from "@/features/marks/schemas";
 import type { MarkChange, MarkChangeResult } from "@/features/marks/marks-sync";
 import { writeMarkChange } from "@/features/marks/services/marks";
 
-type MarkChangeDependencies = {
+export type MarkChangeDependencies = {
   readonly client: Client;
   readonly getUserId: () => Promise<string | null>;
   readonly logWriteError: (cause: unknown) => void;

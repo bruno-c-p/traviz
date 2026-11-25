@@ -1,4 +1,3 @@
-import "client-only";
 import { parseThemeChoice, resolveTheme, THEME_STORAGE_KEY } from "@/features/theme/theme";
 import type { Theme, ThemeChoice } from "@/features/theme/theme";
 
@@ -12,23 +11,14 @@ function notify() {
   for (const listener of listeners) listener();
 }
 
-function applyChoice(choice: ThemeChoice) {
-  if (choice === "system") {
-    delete document.documentElement.dataset.theme;
-  } else {
-    document.documentElement.dataset.theme = choice;
-  }
-
-  notify();
-}
-
 function watch() {
   if (isWatching) return;
 
   isWatching = true;
   window.matchMedia(DARK_QUERY).addEventListener("change", notify);
-  window.addEventListener("storage", (event) => {
-    if (event.key === THEME_STORAGE_KEY) applyChoice(parseThemeChoice(event.newValue));
+  new MutationObserver(notify).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
   });
 }
 
@@ -60,5 +50,9 @@ export function chooseTheme(choice: ThemeChoice) {
     console.error("The theme could not be saved.", cause);
   }
 
-  applyChoice(choice);
+  if (choice === "system") {
+    delete document.documentElement.dataset.theme;
+  } else {
+    document.documentElement.dataset.theme = choice;
+  }
 }

@@ -1,4 +1,3 @@
-import "client-only";
 import type { HeadlessBrowserClerk } from "@clerk/shared/types";
 
 declare global {
@@ -159,6 +158,10 @@ export function createClerkSession({
       if (currentClerk()?.loaded) start();
       else afterPageLoad(start);
     },
+    loadNow: start,
+    ready: async () => {
+      await load();
+    },
     signOut: async (redirectUrl: string, onSignedOut: () => void) => {
       const clerk = await withinTimeout(load);
       await clerk.signOut({ redirectUrl });
@@ -222,7 +225,7 @@ function whenRecoverable(callback: () => void) {
 export const clerkSession = createClerkSession({
   currentClerk: () => window.Clerk,
   loadScript: (attempt, abort) =>
-    loadClerkScript(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "", attempt, abort),
+    loadClerkScript(import.meta.env.PUBLIC_CLERK_PUBLISHABLE_KEY ?? "", attempt, abort),
   afterPageLoad,
   startTimer: (callback, milliseconds) => {
     const timer = setTimeout(callback, milliseconds);

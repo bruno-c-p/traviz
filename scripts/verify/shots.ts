@@ -29,8 +29,10 @@ const directory = evidenceDirectory(options.label);
 const browser = await launchBrowser();
 const problems: string[] = [];
 
-const contentBottom =
-  "Math.max(...Array.from(document.querySelectorAll('*'), (element) => element.getBoundingClientRect().top + element.scrollHeight))";
+const contentBottom = `(() => {
+  const panel = document.querySelector("[data-panel-scroll]") ?? document.documentElement;
+  return panel.getBoundingClientRect().top + panel.scrollHeight;
+})()`;
 
 const heightCap = 4_000;
 

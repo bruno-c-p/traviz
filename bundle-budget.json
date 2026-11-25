@@ -4,33 +4,60 @@
     "minBytes": 1024
   },
   "routes": {
-    "/sign-in/verify": {
-      "firstLoadGzipBytes": 192157,
-      "lazyGzipBytes": 0
-    },
-    "/sign-in": {
-      "firstLoadGzipBytes": 191053,
-      "lazyGzipBytes": 0
-    },
     "/": {
-      "firstLoadGzipBytes": 163976,
-      "lazyGzipBytes": 71303
+      "firstLoadGzipBytes": 89261,
+      "lazyGzipBytes": 0,
+      "htmlGzipBytes": 30932
     },
     "/list": {
-      "firstLoadGzipBytes": 161239,
-      "lazyGzipBytes": 3348
+      "firstLoadGzipBytes": 13335,
+      "lazyGzipBytes": 0,
+      "htmlGzipBytes": 30913
     },
     "/stats": {
-      "firstLoadGzipBytes": 159871,
-      "lazyGzipBytes": 3348
+      "firstLoadGzipBytes": 13335,
+      "lazyGzipBytes": 0,
+      "htmlGzipBytes": 27794
     },
-    "/_not-found": {
-      "firstLoadGzipBytes": 135666,
-      "lazyGzipBytes": 0
+    "/fragments/globe": {
+      "firstLoadGzipBytes": 0,
+      "lazyGzipBytes": 75926,
+      "htmlGzipBytes": 5639
+    },
+    "/fragments/list": {
+      "firstLoadGzipBytes": 0,
+      "lazyGzipBytes": 0,
+      "htmlGzipBytes": 5243
+    },
+    "/fragments/stats": {
+      "firstLoadGzipBytes": 0,
+      "lazyGzipBytes": 0,
+      "htmlGzipBytes": 2320
+    },
+    "/fragments/account-menu": {
+      "firstLoadGzipBytes": 2156,
+      "lazyGzipBytes": 0,
+      "htmlGzipBytes": 8470
     },
     "/welcome": {
-      "firstLoadGzipBytes": 3992,
-      "lazyGzipBytes": 75140
+      "firstLoadGzipBytes": 4161,
+      "lazyGzipBytes": 75567,
+      "htmlGzipBytes": 16557
+    },
+    "/sign-in": {
+      "firstLoadGzipBytes": 2556,
+      "lazyGzipBytes": 0,
+      "htmlGzipBytes": 7887
+    },
+    "/sign-in/verify": {
+      "firstLoadGzipBytes": 2377,
+      "lazyGzipBytes": 0,
+      "htmlGzipBytes": 7175
+    },
+    "/404": {
+      "firstLoadGzipBytes": 199,
+      "lazyGzipBytes": 0,
+      "htmlGzipBytes": 8173
     }
   }
 }

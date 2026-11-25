@@ -1,0 +1,25 @@
+---
+import Icon from "@/shared/icons/icon.astro";
+
+type Props = { class?: string };
+
+const { class: className } = Astro.props;
+---
+
+<p
+  role="status"
+  data-mark-status
+  hidden
+  class:list={["flex min-w-0 items-center gap-1 text-mute", className]}
+>
+  <span data-status-text class="min-w-0 truncate"></span>
+  <button
+    type="button"
+    data-status-dismiss
+    hidden
+    aria-label="Dismiss"
+    class="pressable flex size-6 shrink-0 items-center justify-center rounded-full hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+  >
+    <Icon name="cross-2" size="size-3" />
+  </button>
+</p>

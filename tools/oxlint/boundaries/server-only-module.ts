@@ -2,7 +2,6 @@ import { defineRule } from "@oxlint/plugins";
 
 import {
   firstStatement,
-  hasDirective,
   isTestPath,
   isTypeOnly,
   moduleSource,
@@ -12,18 +11,17 @@ import {
 import type { ESTree } from "@oxlint/plugins";
 import type { ModuleSourceNode } from "./project-path.ts";
 
-const serverPackagePattern = /^(?:zod|@libsql\/client|@clerk\/nextjs\/server)(?:\/.*)?$/;
+const serverPackagePattern = /^(?:zod|@libsql\/client|@clerk\/backend)(?:\/.*)?$/;
 const bunModulePattern = /^bun(?::.*)?$/;
 
-function isServerModule(program: ESTree.Program, path: string): boolean {
+function isServerModule(program: ESTree.Program): boolean {
   const leadingStatement = firstStatement(program);
 
-  const startsWithServerOnly =
+  return (
     leadingStatement?.type === "ImportDeclaration" &&
     leadingStatement.specifiers.length === 0 &&
-    leadingStatement.source.value === "server-only";
-
-  return startsWithServerOnly || hasDirective(program, "use server") || path === "src/proxy.ts";
+    leadingStatement.source.value === "server-only"
+  );
 }
 
 export const serverOnlyModuleRule = defineRule({
@@ -35,7 +33,7 @@ export const serverOnlyModuleRule = defineRule({
     },
     messages: {
       serverPackage:
-        '"{{source}}" belongs on the server. Import it from a module that starts with import "server-only", a "use server" action, or src/proxy.ts.',
+        '"{{source}}" belongs on the server. Import it from a module that starts with import "server-only".',
       bunModule:
         'The app runs on Node in production. Import "{{source}}" only in tests, src/shared/testing and scripts.',
     },
@@ -63,7 +61,7 @@ export const serverOnlyModuleRule = defineRule({
 
     return {
       Program(node) {
-        serverModule = isServerModule(node, path);
+        serverModule = isServerModule(node);
       },
       ImportDeclaration: checkSource,
       ExportNamedDeclaration: checkSource,

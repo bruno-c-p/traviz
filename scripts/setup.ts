@@ -4,7 +4,10 @@ import { join, resolve, sep } from "node:path";
 import { parseArgs, parseEnv } from "node:util";
 import {
   exitOnClerkCliError,
+  legacyPublishableKeyVariable,
+  publishableKeyVariable,
   runClerkDev,
+  secretKeyVariable,
   seededUserEmail,
   seedUser,
 } from "@/shared/testing/clerk-dev";
@@ -15,11 +18,13 @@ const dataDirectory = join(root, ".data");
 const envLocalPath = join(root, ".env.local");
 const processEnvironmentSource = "the process environment (shell or .env)";
 
-const clerkKeyVariables = ["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "CLERK_SECRET_KEY"] as const;
+const clerkKeyVariables = [publishableKeyVariable, secretKeyVariable] as const;
+const pulledPublishableKeyName = /(?:^|_)CLERK_PUBLISHABLE_KEY$/;
 
 const requiredPrefixes = new Map([
-  ["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", { prefix: "pk_test_", kind: "a Clerk development key" }],
-  ["CLERK_SECRET_KEY", { prefix: "sk_test_", kind: "a Clerk development key" }],
+  [publishableKeyVariable, { prefix: "pk_test_", kind: "a Clerk development key" }],
+  [legacyPublishableKeyVariable, { prefix: "pk_test_", kind: "a Clerk development key" }],
+  [secretKeyVariable, { prefix: "sk_test_", kind: "a Clerk development key" }],
 ]);
 
 function fail(message: string): never {
@@ -76,18 +81,38 @@ function refuseForeignDatabase(existing: Map<string, string>): void {
   }
 }
 
+function pulledKey(pulled: Map<string, string>, name: string): string | undefined {
+  if (name !== publishableKeyVariable) return pulled.get(name);
+
+  return [...pulled].find(([pulledName]) => pulledPublishableKeyName.test(pulledName))?.[1];
+}
+
 function pullClerkKeys(existing: Map<string, string>, additions: Map<string, string>): void {
-  if (clerkKeyVariables.every((name) => existing.has(name))) return;
+  const legacyPublishableKey = existing.get(legacyPublishableKeyVariable);
+
+  if (!existing.has(publishableKeyVariable) && legacyPublishableKey !== undefined) {
+    additions.set(publishableKeyVariable, legacyPublishableKey);
+  }
+
+  if (clerkKeyVariables.every((name) => existing.has(name) || additions.has(name))) return;
 
   const pulled = pullEnvFile("clerk-dev.env", (filePath) => {
     runClerkDev(["env", "pull", "--file", filePath]);
   });
 
   for (const name of clerkKeyVariables) {
-    const pulledValue = pulled.get(name);
+    const pulledValue = pulledKey(pulled, name);
 
-    if (!existing.has(name) && pulledValue !== undefined) additions.set(name, pulledValue);
+    if (!existing.has(name) && !additions.has(name) && pulledValue !== undefined) {
+      additions.set(name, pulledValue);
+    }
   }
+}
+
+function exposeSecretKey(existing: Map<string, string>, additions: Map<string, string>): void {
+  const secretKey = existing.get(secretKeyVariable) ?? additions.get(secretKeyVariable);
+
+  if (secretKey !== undefined) process.env[secretKeyVariable] = secretKey;
 }
 
 function refuseWrongPrefixes(source: string, lookup: (name: string) => string | undefined): void {
@@ -141,6 +166,7 @@ function main(): void {
 
   appendToEnvLocal(additions);
   runMigration();
+  exposeSecretKey(existing, additions);
   seedUser();
 
   console.log(`Dev test user ${seededUserEmail} is ready.`);

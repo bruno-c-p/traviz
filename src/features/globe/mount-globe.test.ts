@@ -1,26 +1,22 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { countryCenter } from "@/features/countries";
-import { useCountriesStore } from "@/features/marks";
-import {
-  createCameraHandoff,
-  resetGlobeOnAccountChange,
-  startGlobe,
-} from "@/features/globe/mount-globe";
-import type { GlobeCamera } from "@/features/globe/mount-globe";
-import { useSelectedCountryStore } from "@/features/globe/selected-country";
+import { marksStore } from "@/features/marks";
+import { DEFAULT_CAMERA, startGlobe } from "@/features/globe/mount-globe";
+import { createSelectionStore } from "@/features/globe/selected-country";
 
 function createFakeMap() {
   const interactionListeners: Array<() => void> = [];
+  const clickListeners: Array<(code: string) => void> = [];
   const calls: string[] = [];
   const flights: unknown[] = [];
   let center = { lng: 0, lat: 20 };
   let zoom = 1.4;
-  let removals = 0;
 
   return {
     getCenter: () => ({ ...center }),
-    jumpTo: (options: { center: [number, number] }) => {
+    jumpTo: (options: { center: [number, number]; zoom?: number }) => {
       center = { lng: options.center[0], lat: options.center[1] };
+      zoom = options.zoom ?? zoom;
       calls.push("jumpTo");
     },
     setMarks: () => {
@@ -29,7 +25,9 @@ function createFakeMap() {
     setSelectedCode: () => {
       calls.push("setSelectedCode");
     },
-    onCountryClick: () => undefined,
+    onCountryClick: (listener: (code: string) => void) => {
+      clickListeners.push(listener);
+    },
     flyTo: (options: { center: [number, number] }) => {
       flights.push(options.center);
       calls.push("flyTo");
@@ -38,11 +36,11 @@ function createFakeMap() {
     onUserInteraction: (listener: () => void) => {
       interactionListeners.push(listener);
     },
-    remove: () => {
-      removals++;
-    },
     interact: () => {
       for (const listener of interactionListeners) listener();
+    },
+    clickCountry: (code: string) => {
+      for (const listener of clickListeners) listener(code);
     },
     moveCamera: (nextCenter: { lng: number; lat: number }, nextZoom: number) => {
       center = { ...nextCenter };
@@ -51,7 +49,7 @@ function createFakeMap() {
     calls,
     flights,
     longitude: () => center.lng,
-    removals: () => removals,
+    camera: () => ({ center: [center.lng, center.lat], zoom }),
   };
 }
 
@@ -86,272 +84,234 @@ function createFakeFrames() {
   };
 }
 
-function mountFakeGlobe({ isSpinning = true }: { isSpinning?: boolean } = {}) {
+type FakeGlobeSetup = {
+  prefersReducedMotion?: boolean;
+  selection?: ReturnType<typeof createSelectionStore>;
+};
+
+function startFakeGlobe({
+  prefersReducedMotion = false,
+  selection = createSelectionStore(),
+}: FakeGlobeSetup = {}) {
   const map = createFakeMap();
   const frames = createFakeFrames();
-  const unmount = startGlobe(map, { frames: frames.scheduler, isSpinning });
 
-  return { map, frames, unmount };
+  const globe = startGlobe(map, {
+    frames: frames.scheduler,
+    stores: { marks: marksStore, selection },
+    prefersReducedMotion,
+  });
+
+  return { map, frames, globe, selection };
 }
 
-function changeMarksAndSelection() {
-  useCountriesStore.setState({ marks: { FRA: "visited" } });
-  useSelectedCountryStore.getState().select("JPN");
-  useSelectedCountryStore.getState().selectAndFly("BRA");
+function isTurning({ map, frames }: ReturnType<typeof startFakeGlobe>) {
+  const before = map.longitude();
+
+  frames.runFrames(3);
+
+  return map.longitude() < before;
 }
 
-describe("globe lifecycle", () => {
-  beforeEach(() => {
-    useCountriesStore.setState({ marks: {} });
-    useSelectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
-  });
-
-  test("spins once started and leaves no frame running after unmount", () => {
-    const globe = mountFakeGlobe();
-
-    globe.frames.runFrames(3);
-
-    expect(globe.frames.scheduledCount()).toBe(1);
-    expect(globe.map.longitude()).toBeLessThan(0);
-
-    globe.unmount();
-    const longitudeAtUnmount = globe.map.longitude();
-    globe.frames.runFrames(5);
-
-    expect(globe.frames.scheduledCount()).toBe(0);
-    expect(globe.map.longitude()).toBe(longitudeAtUnmount);
-    expect(globe.map.removals()).toBe(1);
-  });
-
-  test("a search made before any globe mounts flies there once the next globe starts", () => {
-    useSelectedCountryStore.getState().selectAndFly("JPN");
-
-    const globe = mountFakeGlobe();
-    globe.unmount();
-
-    expect(globe.map.flights).toEqual([countryCenter("JPN")]);
-    expect(useSelectedCountryStore.getState().pendingFlyCode).toBeNull();
-  });
-
-  test("store changes after unmount reach no map method", () => {
-    const globe = mountFakeGlobe();
-
-    useCountriesStore.setState({ marks: { DEU: "want" } });
-
-    expect(globe.map.calls).toContain("setMarks");
-
-    globe.unmount();
-    globe.map.calls.length = 0;
-    changeMarksAndSelection();
-
-    expect(globe.map.calls).toEqual([]);
-  });
-
-  test("reports the camera it ends with, still spinning when the user never touched it", () => {
-    const globe = mountFakeGlobe();
-
-    globe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
-
-    expect(globe.unmount()).toEqual({ center: [42, -12], zoom: 3.5, isSpinning: true });
-  });
-
-  test("reports a spin the user stopped as not spinning", () => {
-    const globe = mountFakeGlobe();
-
-    globe.frames.runFrames(2);
-    globe.map.interact();
-
-    expect(globe.unmount().isSpinning).toBe(false);
-  });
-
-  test("a globe started without spin schedules no frame", () => {
-    const globe = mountFakeGlobe({ isSpinning: false });
-
-    globe.frames.runFrames(3);
-
-    expect(globe.frames.scheduledCount()).toBe(0);
-    expect(globe.unmount().isSpinning).toBe(false);
-  });
+beforeEach(() => {
+  marksStore.setState({ ownerId: null, marks: {} });
 });
 
-describe("camera handoff", () => {
-  function mountFrom(
-    { mountFromLastCamera }: ReturnType<typeof createCameraHandoff>,
-    { prefersReducedMotion = false }: { prefersReducedMotion?: boolean } = {},
-  ) {
-    const frames = createFakeFrames();
-    const cameras: GlobeCamera[] = [];
+afterEach(() => {
+  marksStore.setState({ ownerId: null, marks: {} });
+});
 
-    const globe = mountFromLastCamera(
-      (camera) => {
-        cameras.push(camera);
+describe("globe lifecycle", () => {
+  test("spins once started and runs no frame while paused", () => {
+    const started = startFakeGlobe();
 
-        return createFakeMap();
-      },
-      {
-        frames: frames.scheduler,
-        prefersReducedMotion,
-      },
-    );
+    started.frames.runFrames(3);
 
-    return { ...globe, frames, cameras };
-  }
+    expect(started.frames.scheduledCount()).toBe(1);
+    expect(started.map.longitude()).toBeLessThan(0);
 
-  test("the next globe starts from the last globe's camera and keeps its stopped spin", () => {
-    const handoff = createCameraHandoff();
-    const firstGlobe = mountFrom(handoff);
+    started.globe.pause();
 
-    firstGlobe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
-    firstGlobe.map.interact();
-    firstGlobe.unmount();
-
-    const nextGlobe = mountFrom(handoff);
-    nextGlobe.frames.runFrames(3);
-
-    expect(nextGlobe.cameras).toEqual([{ center: [42, -12], zoom: 3.5, isSpinning: false }]);
-    expect(nextGlobe.frames.scheduledCount()).toBe(0);
-
-    nextGlobe.unmount();
+    expect(started.frames.scheduledCount()).toBe(0);
+    expect(isTurning(started)).toBe(false);
   });
 
-  test("the next globe keeps spinning when the user never stopped the last one", () => {
-    const handoff = createCameraHandoff();
+  test("a paused globe keeps its camera and spins again from it when resumed", () => {
+    const started = startFakeGlobe();
 
-    mountFrom(handoff).unmount();
+    started.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
+    started.globe.pause();
+    started.frames.runFrames(5);
 
-    const nextGlobe = mountFrom(handoff);
-    nextGlobe.frames.runFrames(3);
+    expect(started.map.camera()).toEqual({ center: [42, -12], zoom: 3.5 });
 
-    expect(nextGlobe.frames.scheduledCount()).toBe(1);
+    started.globe.resume();
+    started.frames.runFrames(1);
 
-    nextGlobe.unmount();
+    expect(started.map.longitude()).toBe(42);
+    expect(isTurning(started)).toBe(true);
   });
 
-  describe("on an account change", () => {
-    const MOVED_CAMERA: GlobeCamera = { center: [42, -12], zoom: 3.5, isSpinning: false };
-    const DEFAULT_CAMERA: GlobeCamera = { center: [0, 20], zoom: 1.4, isSpinning: true };
+  test("a spin the user stopped stays stopped after a pause and a resume", () => {
+    const started = startFakeGlobe();
 
-    let unbind = () => {};
+    started.frames.runFrames(2);
+    started.map.interact();
+    started.globe.pause();
+    started.globe.resume();
 
-    afterEach(() => {
-      unbind();
-      useCountriesStore.setState({ ownerId: null, marks: {} });
-      useSelectedCountryStore.setState({ selectedCode: null, pendingFlyCode: null });
-    });
-
-    function bindHandoff() {
-      const handoff = createCameraHandoff();
-      unbind = resetGlobeOnAccountChange(handoff);
-
-      return handoff;
-    }
-
-    function leaveGlobeMovedAndSelected(handoff: ReturnType<typeof createCameraHandoff>) {
-      const globe = mountFrom(handoff);
-      globe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
-      globe.map.interact();
-      globe.unmount();
-      useSelectedCountryStore.getState().selectAndFly("JPN");
-    }
-
-    function nextCamera(handoff: ReturnType<typeof createCameraHandoff>) {
-      const globe = mountFrom(handoff);
-      globe.unmount();
-
-      return globe.cameras[0];
-    }
-
-    test("the first sign-in keeps the selected country and the camera", () => {
-      const handoff = bindHandoff();
-      leaveGlobeMovedAndSelected(handoff);
-
-      useCountriesStore.setState({ ownerId: "user_a" });
-
-      expect(useSelectedCountryStore.getState()).toMatchObject({
-        selectedCode: "JPN",
-        pendingFlyCode: "JPN",
-      });
-      expect(nextCamera(handoff)).toEqual(MOVED_CAMERA);
-    });
-
-    test("a marks change for the same account keeps the selected country and the camera", () => {
-      const handoff = bindHandoff();
-      useCountriesStore.setState({ ownerId: "user_a" });
-      leaveGlobeMovedAndSelected(handoff);
-
-      useCountriesStore.setState({ marks: { JPN: "visited" } });
-
-      expect(useSelectedCountryStore.getState().selectedCode).toBe("JPN");
-      expect(nextCamera(handoff)).toEqual(MOVED_CAMERA);
-    });
-
-    for (const [change, nextOwnerId] of [
-      ["signing out", null],
-      ["another account signing in", "user_b"],
-    ] as const) {
-      test(`${change} clears the selected country and starts the next globe from the default camera`, () => {
-        const handoff = bindHandoff();
-        useCountriesStore.setState({ ownerId: "user_a" });
-        leaveGlobeMovedAndSelected(handoff);
-
-        useCountriesStore.setState({ ownerId: nextOwnerId });
-
-        expect(useSelectedCountryStore.getState()).toMatchObject({
-          selectedCode: null,
-          pendingFlyCode: null,
-        });
-        expect(nextCamera(handoff)).toEqual(DEFAULT_CAMERA);
-      });
-    }
-
-    function moveMountedGlobe(handoff: ReturnType<typeof createCameraHandoff>) {
-      const globe = mountFrom(handoff);
-      globe.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
-      globe.map.interact();
-
-      return globe;
-    }
-
-    test("an account change while a globe is mounted starts the next globe from the default camera", () => {
-      const handoff = bindHandoff();
-      useCountriesStore.setState({ ownerId: "user_a" });
-      const globe = moveMountedGlobe(handoff);
-
-      useCountriesStore.setState({ ownerId: "user_b" });
-      globe.unmount();
-
-      expect(nextCamera(handoff)).toEqual(DEFAULT_CAMERA);
-    });
-
-    test("a mounted globe with no account change hands its camera to the next globe", () => {
-      const handoff = bindHandoff();
-      useCountriesStore.setState({ ownerId: "user_a" });
-      const globe = moveMountedGlobe(handoff);
-
-      useCountriesStore.setState({ marks: { JPN: "visited" } });
-      globe.unmount();
-
-      expect(nextCamera(handoff)).toEqual(MOVED_CAMERA);
-    });
-
-    test("a globe mounted after an account change hands its camera to the next globe", () => {
-      const handoff = bindHandoff();
-      useCountriesStore.setState({ ownerId: "user_a" });
-      useCountriesStore.setState({ ownerId: "user_b" });
-
-      moveMountedGlobe(handoff).unmount();
-
-      expect(nextCamera(handoff)).toEqual(MOVED_CAMERA);
-    });
+    expect(started.frames.scheduledCount()).toBe(0);
+    expect(started.globe.isSpinning()).toBe(false);
   });
 
   test("reduced motion starts no spin", () => {
-    const globe = mountFrom(createCameraHandoff(), { prefersReducedMotion: true });
+    const started = startFakeGlobe({ prefersReducedMotion: true });
 
-    globe.frames.runFrames(3);
+    started.frames.runFrames(3);
 
-    expect(globe.frames.scheduledCount()).toBe(0);
+    expect(started.frames.scheduledCount()).toBe(0);
+    expect(started.globe.isSpinning()).toBe(false);
+  });
 
-    globe.unmount();
+  test("a search made before the globe starts flies there once it starts", () => {
+    const selection = createSelectionStore();
+
+    selection.getState().selectAndFly("JPN");
+
+    const started = startFakeGlobe({ selection });
+
+    expect(started.map.flights).toEqual([countryCenter("JPN")]);
+    expect(selection.getState().pendingFlyCode).toBeNull();
+  });
+
+  test("store changes while paused reach no map method", () => {
+    const started = startFakeGlobe();
+
+    marksStore.setState({ marks: { DEU: "want" } });
+
+    expect(started.map.calls).toContain("setMarks");
+
+    started.globe.pause();
+    started.map.calls.length = 0;
+    marksStore.setState({ marks: { FRA: "visited" } });
+    started.selection.getState().select("JPN");
+
+    expect(started.map.calls).toEqual([]);
+  });
+
+  test("resuming paints the marks and the selection made while paused, and flies to a pending search", () => {
+    const started = startFakeGlobe();
+
+    started.globe.pause();
+    started.map.calls.length = 0;
+    marksStore.setState({ marks: { FRA: "visited" } });
+    started.selection.getState().selectAndFly("BRA");
+    started.globe.resume();
+
+    expect(started.map.calls).toEqual(["setMarks", "setSelectedCode", "flyTo"]);
+    expect(started.map.flights).toEqual([countryCenter("BRA")]);
+    expect(started.globe.isSpinning()).toBe(false);
+  });
+
+  test("resuming twice binds the stores once", () => {
+    const started = startFakeGlobe();
+
+    started.globe.resume();
+    started.map.calls.length = 0;
+    marksStore.setState({ marks: { FRA: "visited" } });
+
+    expect(started.map.calls).toEqual(["setMarks"]);
+  });
+
+  test("a click on a country selects it once, however often the globe was paused", () => {
+    const started = startFakeGlobe();
+    const selections: (string | null)[] = [];
+
+    started.globe.pause();
+    started.globe.resume();
+    started.selection.subscribe((state) => selections.push(state.selectedCode));
+    started.map.clickCountry("UNK");
+
+    expect(selections).toEqual(["UNK"]);
+  });
+});
+
+describe("on an account change", () => {
+  function moveAndSelect(started: ReturnType<typeof startFakeGlobe>) {
+    started.map.moveCamera({ lng: 42, lat: -12 }, 3.5);
+    started.map.interact();
+    started.selection.getState().select("JPN");
+  }
+
+  test("the first sign-in keeps the selected country and the camera", () => {
+    const started = startFakeGlobe();
+
+    moveAndSelect(started);
+    marksStore.setState({ ownerId: "user_a" });
+
+    expect(started.selection.getState().selectedCode).toBe("JPN");
+    expect(started.map.camera()).toEqual({ center: [42, -12], zoom: 3.5 });
+  });
+
+  test("a marks change for the same account keeps the selected country and the camera", () => {
+    marksStore.setState({ ownerId: "user_a" });
+
+    const started = startFakeGlobe();
+
+    moveAndSelect(started);
+    marksStore.setState({ marks: { JPN: "visited" } });
+
+    expect(started.selection.getState().selectedCode).toBe("JPN");
+    expect(started.map.camera()).toEqual({ center: [42, -12], zoom: 3.5 });
+  });
+
+  for (const [change, nextOwnerId] of [
+    ["signing out", null],
+    ["another account signing in", "user_b"],
+  ] as const) {
+    test(`${change} clears the selected country and returns to the default camera, spinning`, () => {
+      marksStore.setState({ ownerId: "user_a" });
+
+      const started = startFakeGlobe();
+
+      moveAndSelect(started);
+      marksStore.setState({ ownerId: nextOwnerId });
+
+      expect(started.selection.getState()).toMatchObject({
+        selectedCode: null,
+        pendingFlyCode: null,
+      });
+      expect(started.map.camera()).toEqual(DEFAULT_CAMERA);
+      expect(isTurning(started)).toBe(true);
+    });
+  }
+
+  test("an account change while paused resets the camera and spins only once resumed", () => {
+    marksStore.setState({ ownerId: "user_a" });
+
+    const started = startFakeGlobe();
+
+    moveAndSelect(started);
+    started.globe.pause();
+    marksStore.setState({ ownerId: "user_b" });
+
+    expect(started.map.camera()).toEqual(DEFAULT_CAMERA);
+    expect(started.frames.scheduledCount()).toBe(0);
+
+    started.globe.resume();
+
+    expect(isTurning(started)).toBe(true);
+  });
+
+  test("an account change with reduced motion resets the camera without spinning", () => {
+    marksStore.setState({ ownerId: "user_a" });
+
+    const started = startFakeGlobe({ prefersReducedMotion: true });
+
+    moveAndSelect(started);
+    marksStore.setState({ ownerId: "user_b" });
+
+    expect(started.map.camera()).toEqual(DEFAULT_CAMERA);
+    expect(started.frames.scheduledCount()).toBe(0);
   });
 });

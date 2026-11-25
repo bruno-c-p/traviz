@@ -9,7 +9,9 @@ export type Visit =
   | "return from /list, warm"
   | "return from /list, cold";
 
-export type Scenario = { path: string; visit: Visit; expectGlobe: boolean };
+export type Session = "signed in" | "signed out";
+
+export type Scenario = { path: string; visit: Visit; expectGlobe: boolean; session: Session };
 
 type Metric = { key: keyof Sample; label: string; unit: Unit };
 
@@ -20,6 +22,7 @@ const metrics: Metric[] = [
   { key: "marksReady", label: "seeded marks on screen", unit: "ms" },
   { key: "globeFrame", label: "first globe frame", unit: "ms" },
   { key: "scriptBytes", label: "script bytes transferred", unit: "bytes" },
+  { key: "totalBytes", label: "all bytes transferred", unit: "bytes" },
 ];
 
 export type MetricRow = Judgment & {
@@ -29,7 +32,7 @@ export type MetricRow = Judgment & {
 };
 
 export function scenarioName(scenario: Scenario): string {
-  return `${scenario.path} ${scenario.visit}`;
+  return `${scenario.path} ${scenario.session === "signed out" ? "signed out, " : ""}${scenario.visit}`;
 }
 
 export function buildRows(
@@ -53,7 +56,10 @@ export function buildRows(
       return [
         {
           scenario: name,
-          metric: metric.label,
+          metric:
+            metric.key === "marksReady" && scenario.session === "signed out"
+              ? "landing page on screen"
+              : metric.label,
           ...judgment,
           test:
             judgment.unit === "bytes"

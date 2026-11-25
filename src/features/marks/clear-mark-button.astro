@@ -1,0 +1,17 @@
+---
+type Props = { class?: string };
+
+const { class: className } = Astro.props;
+---
+
+<button
+  type="button"
+  data-clear-mark
+  hidden
+  class:list={[
+    "pressable min-h-11 rounded-full text-sm font-medium text-body underline underline-offset-4 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink",
+    className,
+  ]}
+>
+  Clear mark
+</button>

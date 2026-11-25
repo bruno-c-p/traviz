@@ -23,7 +23,7 @@ const extraLintConfigPattern =
   /(^|\/)(\.?oxlintrc(\.[a-z]+)?|oxlint\.config\.[cm]?[jt]s|\.eslintignore|\.prettierignore)$/;
 
 const inlineDisablePattern = /(?:es|ox)lint-disable/;
-const lintedSourcePattern = /\.(?:[cm]?[jt]sx?)$/;
+const lintedSourcePattern = /\.(?:[cm]?[jt]sx?|astro)$/;
 
 const jsonSchema = z.json();
 
@@ -69,7 +69,11 @@ const bundleBudgetSchema = z.strictObject({
   tolerance: z.strictObject({ percent: z.number(), minBytes: z.number() }),
   routes: z.record(
     z.string(),
-    z.strictObject({ firstLoadGzipBytes: z.number(), lazyGzipBytes: z.number() }),
+    z.strictObject({
+      firstLoadGzipBytes: z.number(),
+      lazyGzipBytes: z.number(),
+      htmlGzipBytes: z.number(),
+    }),
   ),
 });
 
@@ -120,12 +124,8 @@ for (const [route, pinned] of Object.entries(gates.bundleBudget.routes)) {
     continue;
   }
 
-  checkCeiling(
-    `${route} firstLoadGzipBytes`,
-    routeBudget.firstLoadGzipBytes,
-    pinned.firstLoadGzipBytes,
-  );
-  checkCeiling(`${route} lazyGzipBytes`, routeBudget.lazyGzipBytes, pinned.lazyGzipBytes);
+  for (const field of ["firstLoadGzipBytes", "lazyGzipBytes", "htmlGzipBytes"] as const)
+    checkCeiling(`${route} ${field}`, routeBudget[field], pinned[field]);
 }
 
 for (const route of Object.keys(bundleBudget.routes)) {
@@ -326,12 +326,10 @@ const fallowConfig = z
 if (fallowConfig.health.maxCrap > maxCrapCeiling)
   failures.push(`.fallowrc.json must set health.maxCrap to ${maxCrapCeiling} or lower`);
 
-const doctorConfig = z
-  .object({ blocking: z.string().optional() })
-  .parse(readConfig("doctor.config.json"));
+const astroCheckFloor = "astro check --minimumFailingSeverity warning";
 
-if (doctorConfig.blocking !== "warning")
-  failures.push('doctor.config.json must set blocking to "warning"');
+if (!(gates.scripts.typecheck ?? "").split(" && ").includes(astroCheckFloor))
+  failures.push(`gates.json script typecheck must run ${astroCheckFloor}`);
 
 for (const failure of failures) console.error(failure);
 

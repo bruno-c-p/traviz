@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from "clsx";
+export type ClassValue = string | false | null | undefined;
 
 export function cn(...inputs: ClassValue[]): string {
-  return clsx(inputs);
+  return inputs.filter(Boolean).join(" ");
 }

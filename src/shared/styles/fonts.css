@@ -1,0 +1,13 @@
+@font-face {
+  font-family: "Instrument Sans Fallback";
+  src: local("Arial");
+  ascent-override: 94.42%;
+  descent-override: 24.33%;
+  line-gap-override: 0%;
+  size-adjust: 102.74%;
+}
+
+:root {
+  --font-instrument-sans: "Instrument Sans Variable", "Instrument Sans Fallback";
+  --font-geist-mono: "Geist Mono Variable";
+}

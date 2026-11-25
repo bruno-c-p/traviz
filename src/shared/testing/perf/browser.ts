@@ -30,6 +30,7 @@ const softNavigationSchema = z.object({
 export type Sample = Omit<z.infer<typeof sampleSchema>, "ttfb"> & {
   ttfb?: number;
   scriptBytes: number;
+  totalBytes: number;
   documentRedirects: number;
 };
 
@@ -151,6 +152,12 @@ const readSampleSource = `(() => {
   return { ttfb: navigation.responseStart, fcp: paint?.startTime, lcp: marks.lcp, marksReady: marks.marksReady, globeFrame: marks.globeFrame };
 })()`;
 
+const whereItEndedSource = `(() => {
+  const snapshot = document.getElementById("marks-snapshot")?.textContent ?? "";
+  const status = new URLSearchParams(snapshot).get("status");
+  return location.href + " (" + document.readyState + (status ? ", marks snapshot " + status : "") + ")";
+})()`;
+
 const webGlRendererSource = `(() => {
   const context = document.createElement("canvas").getContext("webgl2");
   const info = context?.getExtension("WEBGL_debug_renderer_info");
@@ -159,6 +166,7 @@ const webGlRendererSource = `(() => {
 
 export class BrowserPage {
   private scriptBytes = 0;
+  private totalBytes = 0;
   private readonly scriptRequests = new Set<string>();
   private readonly pendingRequests = new Map<string, string>();
   private currentLoaderId = "";
@@ -184,6 +192,7 @@ export class BrowserPage {
     });
     connection.on("Network.loadingFinished", sessionId, finishedSchema, (finished) => {
       this.pendingRequests.delete(finished.requestId);
+      this.totalBytes += finished.encodedDataLength;
 
       if (this.scriptRequests.has(finished.requestId))
         this.scriptBytes += finished.encodedDataLength;
@@ -331,12 +340,13 @@ export class BrowserPage {
     const redirectsBefore = this.counters.documentRedirects;
 
     this.scriptBytes = 0;
+    this.totalBytes = 0;
     this.scriptRequests.clear();
     await this.navigate(url, timeoutMs);
 
     if (!(await this.evaluate(readySource(expectGlobe, timeoutMs), z.boolean())))
       throw new Error(
-        `${url} never showed the seeded marks${expectGlobe ? " and a globe frame" : ""} within ${timeoutMs} ms.`,
+        `${url} never showed the seeded marks${expectGlobe ? " and a globe frame" : ""} within ${timeoutMs} ms. It ended on ${await this.evaluate(whereItEndedSource, z.string())}.`,
       );
 
     const { globeFrame, ...timings } = await this.evaluate(readSampleSource, sampleSchema);
@@ -348,6 +358,7 @@ export class BrowserPage {
       ...timings,
       globeFrame: expectGlobe ? globeFrame : undefined,
       scriptBytes: this.scriptBytes,
+      totalBytes: this.totalBytes,
       documentRedirects: this.counters.documentRedirects - redirectsBefore,
     };
   }
@@ -363,6 +374,7 @@ export class BrowserPage {
       throw new Error(`${fromUrl} has no tab bar link to ${path}.`);
 
     this.scriptBytes = 0;
+    this.totalBytes = 0;
     this.scriptRequests.clear();
 
     const timings = await this.evaluate(
@@ -381,6 +393,7 @@ export class BrowserPage {
     return {
       ...timings,
       scriptBytes: this.scriptBytes,
+      totalBytes: this.totalBytes,
       documentRedirects: this.counters.documentRedirects - redirectsBefore,
     };
   }

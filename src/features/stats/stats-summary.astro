@@ -1,0 +1,123 @@
+---
+import { COUNTRY_STATES, STATE_COLORS } from "@/features/marks/core";
+import type { MarksSnapshot } from "@/features/marks";
+import { CONTINENT_POOLS } from "@/features/stats/continent-pools";
+import { encodeContinentCodes, statsModel } from "@/features/stats/stats-model";
+
+type Props = { marks: Promise<MarksSnapshot | null> };
+
+const snapshot = await Astro.props.marks;
+const model = statsModel(CONTINENT_POOLS, snapshot?.ok === true ? snapshot.marks : {});
+
+const tiles = [
+  { stat: "want", label: "Want to go", value: model.want, color: STATE_COLORS.want },
+  {
+    stat: "not-interested",
+    label: "Not interested",
+    value: model.notInterested,
+    color: STATE_COLORS.not_interested,
+  },
+];
+---
+
+<div class="flex flex-wrap gap-4">
+  <section
+    aria-label="Places visited"
+    class="flex min-w-0 flex-[2_1_420px] flex-col justify-center gap-4 rounded-[28px] bg-ink-deep p-6 text-white md:p-7"
+  >
+    <span class="font-mono text-xs uppercase tracking-wider text-primary-neutral">
+      Places visited
+    </span>
+    <span class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      <span class="flex flex-wrap items-baseline gap-x-2.5 tabular-nums">
+        <span
+          data-stat="visited"
+          class="text-7xl font-bold tracking-tight text-primary md:text-8xl">{model.visited}</span
+        >
+        <span data-stat="total" class="text-lg text-primary-neutral md:text-xl"
+          >{model.totalText}</span
+        >
+      </span>
+    </span>
+    <span class="flex h-2.5 gap-1">
+      <span
+        data-stat="reachable"
+        class="block overflow-hidden rounded-full bg-ink-deep-soft transition-[width] duration-300 ease-out"
+        style={`width:${model.reachableWidth}%`}
+      >
+        <span
+          data-stat="bar"
+          class="block h-full rounded-full transition-transform duration-300 ease-out"
+          style={`transform:translateX(${model.visitedOffset}%);background-color:${STATE_COLORS.visited}`}
+        ></span>
+      </span>
+      <span
+        data-stat="excluded-bar"
+        hidden={model.excluded === 0}
+        class="block flex-1 rounded-full bg-[repeating-linear-gradient(135deg,var(--color-ink-deep-soft)_0_4px,transparent_4px_8px)]"
+        aria-hidden="true"></span>
+    </span>
+    <span
+      data-stat="excluded-text"
+      hidden={model.excluded === 0}
+      class="-mt-1 text-[13px] text-primary-neutral">{model.excludedText}</span
+    >
+  </section>
+  <div class="grid min-w-0 flex-[1_1_260px] grid-cols-2 gap-3 md:grid-cols-1">
+    {
+      tiles.map((tile) => (
+        <div class="flex flex-col justify-between gap-2 rounded-3xl bg-canvas p-4 shadow-card md:flex-row md:items-center md:px-5">
+          <span class="order-2 flex items-center gap-2 text-sm font-medium text-body md:order-1">
+            <span
+              aria-hidden="true"
+              class="size-2.5 shrink-0 rounded-full ring-1 ring-ink/10"
+              style={`background-color:${tile.color}`}
+            />
+            {tile.label}
+          </span>
+          <span
+            data-stat={tile.stat}
+            class="order-1 text-3xl font-bold tabular-nums tracking-tight text-ink md:order-2"
+          >
+            {tile.value}
+          </span>
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<section aria-labelledby="continents-heading" class="flex flex-col gap-3">
+  <h2 id="continents-heading" class="font-mono text-xs uppercase tracking-wider text-mute">
+    By continent
+  </h2>
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {
+      model.continents.map((continent) => (
+        <article
+          data-stat-continent={continent.continent}
+          class="flex flex-col gap-3.5 rounded-3xl bg-canvas p-5 shadow-card"
+        >
+          <div class="flex items-baseline justify-between gap-3">
+            <h3 class="text-lg font-semibold text-ink">{continent.continent}</h3>
+            <span data-stat="count" class="font-mono text-[13px] tabular-nums text-mute">
+              {continent.countText}
+            </span>
+          </div>
+          <div class="flex h-2.5 overflow-hidden rounded-full bg-land">
+            {COUNTRY_STATES.map((countryState, index) => (
+              <div
+                data-stat="share"
+                style={`width:${continent.shares[index] ?? 0}%;background-color:${STATE_COLORS[countryState]}`}
+              />
+            ))}
+          </div>
+          <p data-stat="summary" class="text-[13px] text-body">
+            {continent.summary}
+          </p>
+        </article>
+      ))
+    }
+  </div>
+</section>
+<script is:inline type="text/plain" data-continent-codes set:html={encodeContinentCodes(CONTINENT_POOLS)} />

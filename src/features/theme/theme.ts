@@ -12,7 +12,9 @@ export const THEME_LABELS: Record<ThemeChoice, string> = {
 
 export const THEME_STORAGE_KEY = "traviz-theme";
 
-export const THEME_SCRIPT = `try{var theme=localStorage.getItem("${THEME_STORAGE_KEY}");if(theme==="light"||theme==="dark")document.documentElement.dataset.theme=theme}catch(cause){}`;
+const applyStoredTheme = `function(theme){if(theme==="light"||theme==="dark")document.documentElement.dataset.theme=theme;else delete document.documentElement.dataset.theme}`;
+
+export const THEME_SCRIPT = `(function(apply){try{apply(localStorage.getItem("${THEME_STORAGE_KEY}"))}catch(cause){}addEventListener("storage",function(event){if(event.key==="${THEME_STORAGE_KEY}")apply(event.newValue)})})(${applyStoredTheme})`;
 
 export function parseThemeChoice(value: string | null | undefined): ThemeChoice {
   return value === "light" || value === "dark" ? value : "system";

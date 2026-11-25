@@ -30,11 +30,13 @@ const INERTIA_DECELERATION = 2500;
 const INERTIA_MAX_SPEED = 1400;
 const LINE_DELTA_PIXELS = 40;
 
-type GlobeOptions = { camera: Camera; prefersReducedMotion: boolean; isInteractive?: boolean };
+type GlobeOptions = {
+  camera: Camera;
+  prefersReducedMotion: boolean;
+  isInteractive?: boolean;
+};
 
 type Animation = { durationMs: number; startTime: number | null; step: (progress: number) => void };
-
-export type Globe = ReturnType<typeof createGlobe>;
 
 function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   const context = canvas.getContext("2d");

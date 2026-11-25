@@ -1,0 +1,54 @@
+@utility icon {
+  display: block;
+  flex-shrink: 0;
+  background-color: currentColor;
+  mask: var(--icon) center / contain no-repeat;
+}
+
+@utility icon-globe {
+  --icon: url("./globe.svg");
+}
+
+@utility icon-list-bullet {
+  --icon: url("./list-bullet.svg");
+}
+
+@utility icon-bar-chart {
+  --icon: url("./bar-chart.svg");
+}
+
+@utility icon-person {
+  --icon: url("./person.svg");
+}
+
+@utility icon-magnifying-glass {
+  --icon: url("./magnifying-glass.svg");
+}
+
+@utility icon-cross-2 {
+  --icon: url("./cross-2.svg");
+}
+
+@utility icon-check {
+  --icon: url("./check.svg");
+}
+
+@utility icon-star {
+  --icon: url("./star.svg");
+}
+
+@utility icon-circle-backslash {
+  --icon: url("./circle-backslash.svg");
+}
+
+@utility icon-plus {
+  --icon: url("./plus.svg");
+}
+
+@utility icon-minus {
+  --icon: url("./minus.svg");
+}
+
+@utility icon-cursor-arrow {
+  --icon: url("./cursor-arrow.svg");
+}

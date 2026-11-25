@@ -1,3 +1,3 @@
-export { ProgressCard } from "@/features/stats/progress-card";
+export { mountStatsView } from "@/features/stats/stats-view";
 
-export { StatsPanel } from "@/features/stats/stats-panel";
+export { renderProgressCards } from "@/features/stats/progress-card";

@@ -1,0 +1,82 @@
+---
+import { COUNTRY_STATES, STATE_HINTS, STATE_LABELS } from "@/features/marks/colors";
+import type { CountryState } from "@/features/marks/colors";
+import Icon from "@/shared/icons/icon.astro";
+import type { IconName } from "@/shared/icons/icons";
+
+type Props = { layout: "tiles" | "rows" };
+
+const { layout } = Astro.props;
+const isTiles = layout === "tiles";
+
+const STATE_ICONS: Record<CountryState, IconName> = {
+  visited: "check",
+  want: "star",
+  not_interested: "circle-backslash",
+};
+
+const TILE_LABELS: Record<CountryState, string> = {
+  visited: "Visited",
+  want: "Want to go",
+  not_interested: "Skip",
+};
+
+const PRESSED_CLASSES: Record<CountryState, string> = {
+  visited: "aria-pressed:bg-primary aria-pressed:text-on-primary",
+  want: "aria-pressed:bg-want aria-pressed:text-white",
+  not_interested: "aria-pressed:bg-skip aria-pressed:text-ink",
+};
+
+const SWATCH_CLASSES: Record<CountryState, string> = {
+  visited: "bg-primary text-on-primary",
+  want: "bg-want text-white",
+  not_interested: "bg-skip text-ink",
+};
+---
+
+<div
+  role="group"
+  data-mark-choices
+  data-code=""
+  class={isTiles ? "grid grid-cols-3 gap-2" : "flex flex-col gap-2"}
+>
+  {
+    COUNTRY_STATES.map((countryState) => (
+      <button
+        type="button"
+        data-state={countryState}
+        aria-pressed="false"
+        aria-label={isTiles ? STATE_LABELS[countryState] : undefined}
+        class:list={[
+          "group rounded-[18px] bg-canvas-soft font-semibold text-ink pressable not-aria-pressed:hover:bg-land focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
+          PRESSED_CLASSES[countryState],
+          isTiles
+            ? "flex min-h-[76px] flex-col items-center justify-center gap-1.5 px-2 text-[13px]"
+            : "flex min-h-16 items-center gap-3.5 py-2.5 pl-2.5 pr-4 text-left",
+        ]}
+      >
+        {isTiles ? (
+          <>
+            <Icon name={STATE_ICONS[countryState]} size="size-5" />
+            {TILE_LABELS[countryState]}
+          </>
+        ) : (
+          <>
+            <span
+              class:list={[
+                "flex size-11 shrink-0 items-center justify-center rounded-[14px] transition-colors duration-[160ms] ease-out group-aria-pressed:bg-white/35",
+                SWATCH_CLASSES[countryState],
+              ]}
+            >
+              <Icon name={STATE_ICONS[countryState]} size="size-5" />
+            </span>
+            <span class="flex flex-col gap-0.5">
+              <span class="text-base">{STATE_LABELS[countryState]}</span>
+              <span class="text-[13px] font-normal opacity-80">{STATE_HINTS[countryState]}</span>
+            </span>
+          </>
+        )}
+      </button>
+    ))
+  }
+</div>

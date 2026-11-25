@@ -1,0 +1,12 @@
+---
+import GlobeView from "@/features/globe/globe-view.astro";
+import { loadUserMarks } from "@/features/marks/server";
+
+export const partial = true;
+
+const marks = loadUserMarks(Astro.locals.userId);
+
+Astro.response.headers.set("cache-control", "no-store");
+---
+
+<GlobeView marks={marks} isActive={false} />

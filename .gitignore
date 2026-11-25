@@ -1,8 +1,6 @@
 node_modules
 dist
-.next
 tsconfig.tsbuildinfo
-next-env.d.ts
 .env.local
 .env*.local
 test-results
@@ -12,5 +10,4 @@ playwright-report
 .env*
 !.env.example
 .data/
-public/welcome/
 .astro/

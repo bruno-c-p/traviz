@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "entry": ["landing/pages/**/*.astro", "landing/client.ts"],
+  "entry": ["src/features/*/*-entry.ts", "src/shared/testing/clerk-api-call.ts"],
   "ignorePatterns": ["tools/**"],
   "ignoreDependencies": ["@oxlint/plugins"],
   "health": {

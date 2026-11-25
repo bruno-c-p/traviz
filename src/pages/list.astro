@@ -1,0 +1,11 @@
+---
+import AppLayout from "@/features/app-shell/app-layout.astro";
+import ListView from "@/features/country-list/list-view.astro";
+import { loadUserMarks } from "@/features/marks/server";
+
+const marks = loadUserMarks(Astro.locals.userId);
+---
+
+<AppLayout view="list" marks={marks}>
+  <ListView marks={marks} isActive={true} />
+</AppLayout>

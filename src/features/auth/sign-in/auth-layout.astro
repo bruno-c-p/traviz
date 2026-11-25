@@ -1,0 +1,27 @@
+---
+import "@fontsource-variable/geist-mono/wght.css";
+import "@fontsource-variable/instrument-sans/wght.css";
+import "@/features/auth/sign-in.css";
+import { THEME_SCRIPT } from "@/features/theme/core";
+import BrandMark from "@/shared/brand-mark.astro";
+import PageHead from "@/shared/page-head.astro";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <PageHead title="traviz" />
+    <script is:inline set:html={THEME_SCRIPT} />
+  </head>
+  <body class="bg-canvas-soft font-sans text-ink">
+    <div
+      data-auth-panel
+      class="flex min-h-dvh items-center justify-center bg-canvas-soft px-4 py-8"
+    >
+      <div class="w-full max-w-sm rounded-3xl bg-canvas p-7 shadow-card">
+        <BrandMark size={48} class="mb-3 text-primary" />
+        <slot />
+      </div>
+    </div>
+  </body>
+</html>

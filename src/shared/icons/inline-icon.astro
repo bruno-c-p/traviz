@@ -1,0 +1,27 @@
+---
+import type { InlineIconName } from "@/shared/icons/icons";
+
+type Props = { name: InlineIconName; class?: string };
+
+const { name, class: className } = Astro.props;
+
+const sources = import.meta.glob<string>("./*.svg", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+
+const source = sources[`./${name}.svg`];
+
+if (source === undefined) throw new Error(`There is no ${name} icon.`);
+
+const drawing = source.slice(source.indexOf(">") + 1, source.lastIndexOf("</svg>"));
+---
+
+<svg
+  viewBox="0 0 15 15"
+  fill="none"
+  aria-hidden="true"
+  class:list={["shrink-0", className]}
+  set:html={drawing}
+/>

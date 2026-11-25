@@ -384,6 +384,63 @@ describe("loading clerk-js", () => {
   });
 });
 
+describe("loading clerk-js for the sign-in pages", () => {
+  test("loadNow loads at once, without waiting for the page", async () => {
+    const harness = createHarness();
+
+    harness.session.loadNow();
+    await flush();
+
+    expect(harness.events).toEqual(["loadScript", "load"]);
+    expect(harness.fake.clerk.loaded).toBe(true);
+  });
+
+  test("ready resolves once Clerk has loaded and shares the load already in flight", async () => {
+    const harness = createHarness();
+
+    harness.session.loadNow();
+    await Promise.all([harness.session.ready(), harness.session.ready()]);
+
+    expect(harness.events).toEqual(["loadScript", "load"]);
+    expect(harness.fake.clerk.loaded).toBe(true);
+  });
+
+  test("ready rejects when every attempt fails, and the next ready tries again", async () => {
+    const harness = createHarness();
+    harness.setScript("fails");
+
+    const failed = harness.session.ready().then(
+      () => "loaded",
+      () => "failed",
+    );
+
+    await harness.advance(ALL_RETRIES_MS);
+
+    expect(await failed).toBe("failed");
+
+    harness.setScript("runs");
+    await harness.session.ready();
+
+    expect(harness.fake.clerk.loaded).toBe(true);
+  });
+
+  test("a failed loadNow is reported and coming back loads Clerk", async () => {
+    const harness = createHarness();
+    harness.setScript("fails");
+
+    harness.session.loadNow();
+    await harness.advance(ALL_RETRIES_MS);
+
+    expect(harness.failures).toHaveLength(1);
+    expect(harness.recoveryWatchers()).toBe(1);
+
+    harness.setScript("runs");
+    await harness.recover();
+
+    expect(harness.fake.clerk.loaded).toBe(true);
+  });
+});
+
 describe("the account email", () => {
   test("is null until Clerk has loaded, then follows the user", async () => {
     const harness = createHarness();
