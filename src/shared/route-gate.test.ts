@@ -89,6 +89,32 @@ describe("gateRequest", () => {
 
   const neverRendered = () => Promise.reject(new Error("The gate rendered a page."));
 
+  test("a signed-out visitor sent to the landing page carries the cookie that stops it bouncing back", async () => {
+    const clerkHeaders = new Headers();
+    clerkHeaders.append("set-cookie", "__client_uat=0; Path=/");
+
+    const response = await gateRequest(
+      new Request(`${origin}${homePath()}`),
+      () => Promise.resolve({ kind: "resolved", userId: null, headers: clerkHeaders }),
+      neverRendered,
+    );
+
+    expect(response.headers.getSetCookie()).toEqual([
+      "__client_uat=0; Path=/",
+      "traviz-signed-out=1; Max-Age=10; Path=/; SameSite=Lax",
+    ]);
+  });
+
+  test("a redirect to the sign-in page sets no such cookie", async () => {
+    const response = await gateRequest(
+      new Request(`${origin}${listPath()}`),
+      answers(null),
+      neverRendered,
+    );
+
+    expect(response.headers.getSetCookie()).toEqual([]);
+  });
+
   const signedOutCases: { pathname: string; location: Route }[] = [
     { pathname: homePath(), location: welcomePath() },
     { pathname: listPath(), location: signInPath() },
