@@ -129,8 +129,8 @@ test("check:gates fails when a gate script is loosened", () => {
     "package.json script lint differs from gates.json",
     edit(
       "package.json",
-      '"lint": "oxlint --type-aware --deny-warnings"',
-      '"lint": "oxlint --type-aware -A all"',
+      '"lint": "astro sync && oxlint --type-aware --deny-warnings"',
+      '"lint": "astro sync && oxlint --type-aware -A all"',
     ),
   );
   expectFailure(

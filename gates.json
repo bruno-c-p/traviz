@@ -241,14 +241,14 @@
     }
   },
   "scripts": {
-    "lint": "oxlint --type-aware --deny-warnings",
+    "lint": "astro sync && oxlint --type-aware --deny-warnings",
     "typecheck": "astro sync && astro check --minimumFailingSeverity warning && tsc --noEmit && tsc --noEmit -p tsconfig.pure.json",
     "test": "bun test",
     "test:rules": "node --import ./tools/oxlint/node-test-setup.ts --test 'tools/oxlint/**/*.test.ts'",
     "format": "oxfmt .",
     "build": "astro build",
     "build:node": "TRAVIZ_ADAPTER=node astro build",
-    "fallow": "fallow",
+    "fallow": "astro sync && fallow",
     "check:gates": "bun scripts/check-gates.ts",
     "check:docs": "bun scripts/check-docs.ts",
     "check:bundle": "bun scripts/check-bundle.ts",
