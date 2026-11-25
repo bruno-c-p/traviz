@@ -45,6 +45,7 @@ import {
   type Side,
   type Visit,
 } from "@/shared/testing/perf/report";
+import { selectRoutes } from "@/shared/testing/perf/routes";
 import { seedMarks, seededMarks, type SeedPlan } from "@/shared/testing/perf/seed";
 import { byteTolerance, significanceLevel, timingFloor } from "@/shared/testing/perf/stats";
 import { countries } from "@/features/countries";
@@ -128,7 +129,7 @@ const allRoutes: MeasuredRoute[] = [
   },
 ];
 
-const routes = allRoutes.filter((route) => options.route?.includes(route.path) ?? true);
+const { measured: routes, readyProbes } = selectRoutes(allRoutes, options.route);
 
 const signInMode: SignInMode = options["fixed-user"] ? "fixed-user" : "clerk";
 const sessions: Session[] = ["signed in", "signed out"];
@@ -543,9 +544,14 @@ async function main(): Promise<void> {
 
     rmSync(profileDirectory, { recursive: true, force: true });
 
-    const browser = await BrowserPage.launch(options.chrome, profileDirectory, routes, (child) => {
-      chromes.push(child);
-    });
+    const browser = await BrowserPage.launch(
+      options.chrome,
+      profileDirectory,
+      readyProbes,
+      (child) => {
+        chromes.push(child);
+      },
+    );
 
     browsers.push(browser);
 
