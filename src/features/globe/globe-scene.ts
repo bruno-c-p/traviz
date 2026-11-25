@@ -1,16 +1,12 @@
-import { geoBounds, geoCentroid, geoContains, geoDistance, geoProjection } from "d3-geo";
+import { geoContains, geoProjection } from "d3-geo";
 import type { GeoProjection, GeoRawProjection } from "d3-geo";
-import type { Feature, Geometry, MultiLineString, Position } from "geojson";
-import { feature, mesh } from "topojson-client";
-import type { GeometryCollection, GeometryObject, Topology } from "topojson-specification";
+import type { Feature, MultiLineString, Position } from "geojson";
 import { globeScale } from "@/features/globe/globe-camera";
 import type { Camera, LngLat } from "@/features/globe/globe-camera";
+import { unpackTopology } from "@/features/globe/topology-codec";
+import type { PackedTopology } from "@/features/globe/topology-codec";
 
 const DEGREES = 180 / Math.PI;
-
-export type CountryTopology = Topology<{ countries: GeometryCollection }>;
-
-type Bounds = [southWest: LngLat, northEast: LngLat];
 
 export type Vector = [x: number, y: number, z: number];
 
@@ -21,23 +17,11 @@ type CountryPart = { area: Feature; rings: Float64Array[]; cap: Cap };
 type GlobeCountry = {
   code: string | null;
   feature: Feature;
-  geometry: GeometryObject;
-  bounds: Bounds;
+  outline: MultiLineString;
   parts: CountryPart[];
 };
 
-export type GlobeScene = {
-  topology: CountryTopology;
-  countries: GlobeCountry[];
-};
-
-function polygons(geometry: Geometry): Position[][][] {
-  if (geometry.type === "Polygon") return [geometry.coordinates];
-
-  if (geometry.type === "MultiPolygon") return geometry.coordinates;
-
-  return [];
-}
+export type GlobeScene = { countries: GlobeCountry[] };
 
 export function unitVector([longitude, latitude]: Position): Vector {
   const cosPhi = Math.cos(latitude / DEGREES);
@@ -53,37 +37,55 @@ function unitVectors(rings: Position[][]): Float64Array[] {
   return rings.map((ring) => Float64Array.from(ring.flatMap(unitVector)));
 }
 
-function countryPart(rings: Position[][]): CountryPart {
-  const area: Feature = {
-    type: "Feature",
-    properties: null,
-    geometry: { type: "Polygon", coordinates: rings },
-  };
+function boundingCap(ring: Float64Array): Cap {
+  let sumX = 0;
+  let sumY = 0;
+  let sumZ = 0;
 
-  const center = geoCentroid(area);
+  for (let index = 0; index < ring.length; index += 3) {
+    sumX += ring[index];
+    sumY += ring[index + 1];
+    sumZ += ring[index + 2];
+  }
 
-  const radius = Math.max(
-    ...rings.flat().map(([longitude, latitude]) => geoDistance(center, [longitude, latitude])),
-  );
+  const length = Math.hypot(sumX, sumY, sumZ);
+  const vector: Vector = length > 0 ? [sumX / length, sumY / length, sumZ / length] : [0, 0, 1];
+  let minCos = 1;
 
-  return { area, rings: unitVectors(rings), cap: { vector: unitVector(center), radius } };
+  for (let index = 0; index < ring.length; index += 3) {
+    minCos = Math.min(
+      minCos,
+      ring[index] * vector[0] + ring[index + 1] * vector[1] + ring[index + 2] * vector[2],
+    );
+  }
+
+  return { vector, radius: length > 0 ? Math.acos(Math.max(minCos, -1)) : Math.PI };
 }
 
-export function buildScene(topology: CountryTopology): GlobeScene {
-  const { geometries } = topology.objects.countries;
-  const { features } = feature(topology, topology.objects.countries);
+function countryPart(rings: Position[][]): CountryPart {
+  const vectors = unitVectors(rings);
 
   return {
-    topology,
-    countries: geometries.map((geometry, index) => {
-      const area = features[index];
+    area: { type: "Feature", properties: null, geometry: { type: "Polygon", coordinates: rings } },
+    rings: vectors,
+    cap: boundingCap(vectors[0] ?? new Float64Array()),
+  };
+}
+
+export function buildScene(topology: PackedTopology): GlobeScene {
+  return {
+    countries: unpackTopology(topology).map(({ code, polygons }) => {
+      const area: Feature = {
+        type: "Feature",
+        properties: null,
+        geometry: { type: "MultiPolygon", coordinates: polygons },
+      };
 
       return {
-        code: geometry.id === undefined ? null : String(geometry.id),
+        code,
         feature: area,
-        geometry,
-        bounds: geoBounds(area),
-        parts: polygons(area.geometry).map(countryPart),
+        outline: { type: "MultiLineString", coordinates: polygons.flat() },
+        parts: polygons.map(countryPart),
       };
     }),
   };
@@ -183,29 +185,32 @@ export function globeView(
   };
 }
 
-export function partVisibility({ cap }: CountryPart, { direction, horizon }: GlobeView) {
-  const [x, y, z] = cap.vector;
-  const [directionX, directionY, directionZ] = direction;
+function capAngle({ vector: [x, y, z] }: Cap, [directionX, directionY, directionZ]: Vector) {
   const cosAngle = x * directionX + y * directionY + z * directionZ;
-  const angle = Math.acos(Math.min(Math.max(cosAngle, -1), 1));
+
+  return Math.acos(Math.min(Math.max(cosAngle, -1), 1));
+}
+
+export function partVisibility({ cap }: CountryPart, { direction, horizon }: GlobeView) {
+  const angle = capAngle(cap, direction);
 
   if (angle - cap.radius >= horizon) return "hidden";
 
   return angle + cap.radius < horizon ? "front" : "horizon";
 }
 
-function isWithinBounds([longitude, latitude]: LngLat, [[west, south], [east, north]]: Bounds) {
-  if (latitude < south || latitude > north) return false;
-
-  return west <= east
-    ? longitude >= west && longitude <= east
-    : longitude >= west || longitude <= east;
-}
+const CAP_MARGIN = 1e-9;
 
 export function countryAt(scene: GlobeScene, point: LngLat): string | null {
+  const direction = unitVector(point);
+
   const country = scene.countries.find(
-    ({ code, bounds, feature: area }) =>
-      code !== null && isWithinBounds(point, bounds) && geoContains(area, point),
+    ({ code, parts }) =>
+      code !== null &&
+      parts.some(
+        ({ cap, area }) =>
+          capAngle(cap, direction) <= cap.radius + CAP_MARGIN && geoContains(area, point),
+      ),
   );
 
   return country?.code ?? null;
@@ -214,5 +219,5 @@ export function countryAt(scene: GlobeScene, point: LngLat): string | null {
 export function countryOutline(scene: GlobeScene, code: string | null): MultiLineString | null {
   const selected = code ? scene.countries.find((country) => country.code === code) : undefined;
 
-  return selected ? mesh(scene.topology, selected.geometry) : null;
+  return selected?.outline ?? null;
 }

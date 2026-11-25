@@ -224,6 +224,7 @@
         "src/features/globe/country-search-state.ts",
         "src/features/globe/sheet-exit.ts",
         "src/features/globe/globe-countries.ts",
+        "src/features/globe/topology-codec.ts",
         "src/features/auth/account-menu-loader.ts",
         "src/features/auth/account-section.ts",
         "src/features/auth/email-link-sign-in.ts",
@@ -268,7 +269,7 @@
     },
     "routes": {
       "/": {
-        "firstLoadGzipBytes": 89261,
+        "firstLoadGzipBytes": 71674,
         "lazyGzipBytes": 0,
         "htmlGzipBytes": 30932
       },
@@ -284,7 +285,7 @@
       },
       "/fragments/globe": {
         "firstLoadGzipBytes": 0,
-        "lazyGzipBytes": 75926,
+        "lazyGzipBytes": 58339,
         "htmlGzipBytes": 5639
       },
       "/fragments/list": {
@@ -304,7 +305,7 @@
       },
       "/welcome": {
         "firstLoadGzipBytes": 4161,
-        "lazyGzipBytes": 75567,
+        "lazyGzipBytes": 57980,
         "htmlGzipBytes": 16557
       },
       "/sign-in": {

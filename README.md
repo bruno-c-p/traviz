@@ -20,7 +20,7 @@ Mark the countries you've visited, want to visit, or aren't interested in, on an
 - [Astro 7](https://astro.build) with `output: "server"`: every page is rendered on the server with the user's marks in the HTML. There is no client framework. The browser code is hand-written TypeScript that Astro bundles, and the CSS is Tailwind 4, inlined into each page.
 - [Clerk](https://clerk.com) for email link sign-in, through `@clerk/backend` on the server and clerk-js, loaded after the page, in the browser.
 - [Turso](https://turso.tech) (libSQL) for the marks.
-- A Canvas 2D globe drawn with `d3-geo` and `topojson-client`.
+- A Canvas 2D globe drawn with `d3-geo`.
 - Bun for packages, scripts and tests. oxlint, oxfmt, fallow and `astro check` are the gates.
 
 ## Screenshots
@@ -153,7 +153,7 @@ Open http://localhost:4321, enter your email, and open the link in the sign-in e
 
 `src/features/countries/countries.generated.ts` has 250 entries generated from the `world-countries` package. Each entry has a `kind`. The 195 `sovereign` entries count toward the headline total. The 55 `territory` entries appear on the map and in the list, but they aren't counted. Each entry also has the `center` the globe flies to and a `hasGlobeLabel` flag for its label.
 
-The globe draws the country outlines in `src/features/globe/country-topology.generated.ts`. They come from the Natural Earth 50m topology in the `world-atlas` package, keyed by the same codes, simplified and quantized to about 52 KB gzipped. Gibraltar, Tokelau, Tuvalu, Bouvet Island and the US Minor Outlying Islands are too small for that data, so they have no outline, and you mark them from the list or the search.
+The globe draws the country outlines in `src/features/globe/country-topology.generated.ts`. They come from the Natural Earth 50m topology in the `world-atlas` package, keyed by the same codes, simplified, quantized and packed into text of about 36 KB gzipped. Gibraltar, Tokelau, Tuvalu, Bouvet Island and the US Minor Outlying Islands are too small for that data, so they have no outline, and you mark them from the list or the search.
 
 `bun run gen:countries` writes both files. They are committed, so only run it after you update `world-countries` or `world-atlas`. `bun run check` runs `bun run gen:countries --check`, which fails when a committed file differs from a fresh run.
 

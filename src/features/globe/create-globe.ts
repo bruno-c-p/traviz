@@ -13,7 +13,8 @@ import type { Point } from "@/features/globe/globe-gestures";
 import { keyAction } from "@/features/globe/globe-keys";
 import { buildMarkers, pickCountry, placeMarkers } from "@/features/globe/globe-markers";
 import { buildScene, countryAt, countryOutline, globeView } from "@/features/globe/globe-scene";
-import type { CountryTopology, GlobeView } from "@/features/globe/globe-scene";
+import type { GlobeView } from "@/features/globe/globe-scene";
+import type { PackedTopology } from "@/features/globe/topology-codec";
 import type { Marks } from "@/features/marks";
 import { countryCenter } from "@/features/countries/core";
 import type { TappedOutline } from "@/features/globe/globe-markers";
@@ -48,7 +49,7 @@ function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
 
 export function createGlobe(
   container: HTMLElement,
-  topology: CountryTopology,
+  topology: PackedTopology,
   { camera: initialCamera, prefersReducedMotion, isInteractive = true }: GlobeOptions,
 ) {
   const scene = buildScene(topology);
