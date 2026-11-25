@@ -6,6 +6,12 @@ import { fileURLToPath } from "node:url";
 import { build } from "vite";
 import type { Plugin } from "vite";
 
+const legacyPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+if (!process.env.PUBLIC_CLERK_PUBLISHABLE_KEY && legacyPublishableKey) {
+  process.env.PUBLIC_CLERK_PUBLISHABLE_KEY = legacyPublishableKey;
+}
+
 const SERVER_ONLY_ID = "\0traviz-server-only";
 const INLINE_SCRIPT_PREFIX = "virtual:traviz-inline-script/";
 const RESOLVED_INLINE_SCRIPT_PREFIX = `\0${INLINE_SCRIPT_PREFIX}`;

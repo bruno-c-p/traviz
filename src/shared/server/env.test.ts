@@ -5,12 +5,15 @@ const envModulePath = "@/shared/server/env";
 const originalDatabaseUrl = process.env.TURSO_DATABASE_URL;
 const originalAuthToken = process.env.TURSO_AUTH_TOKEN;
 const originalFixedUserId = process.env.TRAVIZ_FIXED_USER_ID;
+const originalPublishableKey = process.env.PUBLIC_CLERK_PUBLISHABLE_KEY;
+const originalLegacyPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 const envModuleSchema = z.object({
   env: z.object({
     TURSO_DATABASE_URL: z.string(),
     TURSO_AUTH_TOKEN: z.string().optional(),
     TRAVIZ_FIXED_USER_ID: z.string().optional(),
+    PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
   }),
 });
 
@@ -42,6 +45,8 @@ async function importFailure(caseName: string): Promise<string> {
 afterEach(() => {
   useDatabase(originalDatabaseUrl, originalAuthToken);
   setVariable("TRAVIZ_FIXED_USER_ID", originalFixedUserId);
+  setVariable("PUBLIC_CLERK_PUBLISHABLE_KEY", originalPublishableKey);
+  setVariable("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", originalLegacyPublishableKey);
 });
 
 test("a missing database URL fails at import", async () => {
@@ -105,4 +110,24 @@ test("a database delay is refused with a remote database", async () => {
   expect(await importFailure("delay-remote")).toBe(
     "Invalid environment: TRAVIZ_DB_DELAY_MS is allowed only when TURSO_DATABASE_URL starts with file:",
   );
+});
+
+test("the publishable key is still read from the name the Next app used", async () => {
+  useDatabase("file:.data/dev.db", undefined);
+  setVariable("PUBLIC_CLERK_PUBLISHABLE_KEY", undefined);
+  setVariable("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "pk_test_old_name");
+
+  expect(await importEnv("legacy-key")).toMatchObject({
+    PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_old_name",
+  });
+});
+
+test("the new publishable key name wins over the old one", async () => {
+  useDatabase("file:.data/dev.db", undefined);
+  setVariable("PUBLIC_CLERK_PUBLISHABLE_KEY", "pk_test_new_name");
+  setVariable("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "pk_test_old_name");
+
+  expect(await importEnv("both-keys")).toMatchObject({
+    PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_new_name",
+  });
 });

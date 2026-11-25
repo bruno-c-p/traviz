@@ -16,6 +16,7 @@ const envSchema = z
     TRAVIZ_DB_DELAY_MS: z.coerce.number().int().min(0).optional(),
     CLERK_SECRET_KEY: optionalText,
     PUBLIC_CLERK_PUBLISHABLE_KEY: optionalText,
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: optionalText,
     CLERK_AUTHORIZED_PARTIES: optionalText,
   })
   .refine(
@@ -55,4 +56,8 @@ if (!parsedEnv.success) {
   throw new Error(`Invalid environment: ${problems.join("; ")}`);
 }
 
-export const env = parsedEnv.data;
+export const env = {
+  ...parsedEnv.data,
+  PUBLIC_CLERK_PUBLISHABLE_KEY:
+    parsedEnv.data.PUBLIC_CLERK_PUBLISHABLE_KEY ?? parsedEnv.data.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+};
