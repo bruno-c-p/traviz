@@ -38,12 +38,13 @@ describe("the landing page's signed-in hint", () => {
     expect(isSentHome(`__client_uat=1795000000; ${SIGNED_OUT_COOKIE}=1`, unsuffixed)).toBe(false);
   });
 
-  test("the inline script calls the tested function with this app's cookie names", () => {
+  test("the inline script calls the function with this app's cookie names and nothing from outside it", () => {
     const script = signedInHintScript("/", "AbCd1234");
 
-    expect(script).toContain(isSignedInVisitor.toString());
+    expect(script.startsWith("if((function isSignedInVisitor(")).toBe(true);
     expect(script).toContain(`(document.cookie,"__client_uat_AbCd1234","${SIGNED_OUT_COOKIE}")`);
     expect(script.endsWith('location.replace("/")')).toBe(true);
     expect(script).not.toContain("import");
+    expect(script).not.toContain("SIGNED_OUT_COOKIE");
   });
 });
