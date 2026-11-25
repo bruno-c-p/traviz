@@ -1,5 +1,6 @@
 import { ROUTES, homePath, signInPath, welcomePath } from "@/paths";
 import type { Route, RouteAccess } from "@/paths";
+import { signedOutCookie } from "@/shared/signed-out-cookie";
 
 export const routeAccess = (pathname: string): RouteAccess =>
   ROUTES.find((route) => route.path === pathname)?.access ?? "signedIn";
@@ -51,7 +52,13 @@ export async function gateRequest(
 
   const redirectPath = redirectFor(new URL(request.url).pathname, auth.userId !== null);
 
-  if (redirectPath !== undefined) return redirectTo(redirectPath, auth.headers);
+  if (redirectPath !== undefined) {
+    const response = redirectTo(redirectPath, auth.headers);
+
+    if (redirectPath === welcomePath()) response.headers.append("set-cookie", signedOutCookie());
+
+    return response;
+  }
 
   return withHeaders(await render(auth.userId), auth.headers);
 }
