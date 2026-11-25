@@ -18,6 +18,7 @@
     "src/features/globe/country-search-state.ts",
     "src/features/globe/sheet-exit.ts",
     "src/features/globe/globe-countries.ts",
+    "src/features/globe/topology-codec.ts",
     "src/features/auth/account-menu-loader.ts",
     "src/features/auth/account-section.ts",
     "src/features/auth/email-link-sign-in.ts",

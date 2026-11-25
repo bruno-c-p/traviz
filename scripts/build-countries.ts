@@ -9,6 +9,8 @@ import { presimplify, quantile, simplify } from "topojson-simplify";
 import type { ArcIndexes, GeometryCollection, Topology } from "topojson-specification";
 import countries from "world-countries";
 import { z } from "zod";
+import { packTopology, unpackTopology } from "@/features/globe/core";
+import type { PackedTopology } from "@/features/globe/core";
 
 const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const countriesRelativePath = "src/features/countries/countries.generated.ts";
@@ -159,7 +161,7 @@ function groupPolygonsByCode(): Map<string | undefined, ArcIndexes[][]> {
   return groups;
 }
 
-function buildCountryTopology() {
+function buildCountryTopology(): PackedTopology {
   const geometries = [...groupPolygonsByCode()]
     .sort(([first], [second]) => (first ?? "").localeCompare(second ?? ""))
     .map(([code, polygons]) => ({
@@ -191,7 +193,39 @@ function buildCountryTopology() {
     })),
   };
 
-  return topology({ countries: countryCollection }, TOPOLOGY_QUANTIZATION);
+  const quantized = topology({ countries: countryCollection }, TOPOLOGY_QUANTIZATION);
+  const outlines = quantized.objects.countries;
+
+  if (outlines?.type !== "GeometryCollection" || !quantized.transform) {
+    throw new Error("The quantized topology has no country collection");
+  }
+
+  const packed = packTopology({
+    scale: quantized.transform.scale,
+    translate: quantized.transform.translate,
+    arcs: quantized.arcs,
+    countries: outlines.geometries.map((geometry) => {
+      if (geometry.type !== "MultiPolygon") {
+        throw new Error(`Expected a MultiPolygon outline, got ${geometry.type}`);
+      }
+
+      return {
+        code: geometry.id === undefined ? undefined : String(geometry.id),
+        polygons: geometry.arcs,
+      };
+    }),
+  });
+
+  const expected = feature(quantized, outlines).features.map(({ id, geometry }) => ({
+    code: id === undefined ? null : String(id),
+    polygons: geometry.type === "MultiPolygon" ? geometry.coordinates : [],
+  }));
+
+  if (JSON.stringify(unpackTopology(packed)) !== JSON.stringify(expected)) {
+    throw new Error("The packed outlines do not unpack to the quantized topology");
+  }
+
+  return packed;
 }
 
 const outputs = [
@@ -202,7 +236,7 @@ const outputs = [
   },
   {
     relativePath: topologyRelativePath,
-    source: `import type { GeometryCollection, Topology } from "topojson-specification";\n\nexport const COUNTRY_TOPOLOGY: Topology<{ countries: GeometryCollection }> = ${JSON.stringify(buildCountryTopology())};\n`,
+    source: `import type { PackedTopology } from "@/features/globe/core";\n\nexport const COUNTRY_TOPOLOGY: PackedTopology = ${JSON.stringify(buildCountryTopology())};\n`,
     summary: "the country outlines",
   },
 ];

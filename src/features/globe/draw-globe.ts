@@ -1,5 +1,5 @@
-import { geoDistance, geoPath } from "d3-geo";
-import type { GeoContext } from "d3-geo";
+import { geoDistance, geoStream } from "d3-geo";
+import type { GeoStream } from "d3-geo";
 import type { MultiLineString } from "geojson";
 import { countries } from "@/features/countries/core";
 import type { Camera, LngLat } from "@/features/globe/globe-camera";
@@ -145,13 +145,31 @@ function groupByColor({ scene, marks, view, palette }: GlobeFrame): Map<string, 
   return groups;
 }
 
-function pathContext(path: Path2D): GeoContext {
+type PathTarget = Pick<Path2D, "moveTo" | "lineTo" | "closePath">;
+
+function pathStream(target: PathTarget): GeoStream {
+  let isRing = false;
+  let isLineStart = false;
+
   return {
-    beginPath: () => undefined,
-    moveTo: (x, y) => path.moveTo(x, y),
-    lineTo: (x, y) => path.lineTo(x, y),
-    closePath: () => path.closePath(),
-    arc: (x, y, radius, startAngle, endAngle) => path.arc(x, y, radius, startAngle, endAngle),
+    point: (x, y) => {
+      if (isLineStart) target.moveTo(x, y);
+      else target.lineTo(x, y);
+
+      isLineStart = false;
+    },
+    lineStart: () => {
+      isLineStart = true;
+    },
+    lineEnd: () => {
+      if (isRing) target.closePath();
+    },
+    polygonStart: () => {
+      isRing = true;
+    },
+    polygonEnd: () => {
+      isRing = false;
+    },
   };
 }
 
@@ -161,11 +179,11 @@ function drawCountries(frame: GlobeFrame) {
 
   for (const [color, { front, horizon }] of groupByColor(frame)) {
     const colorPath = new Path2D();
-    const projectClipped = geoPath(view.projection, pathContext(colorPath));
+    const clipped = view.projection.stream(pathStream(colorPath));
 
     for (const part of front) view.traceFront(colorPath, part.rings);
 
-    for (const part of horizon) projectClipped(part.area);
+    for (const part of horizon) geoStream(part.area, clipped);
 
     context.fillStyle = color;
     context.fill(colorPath);
@@ -182,7 +200,7 @@ function drawCountries(frame: GlobeFrame) {
   if (!selectedOutline) return;
 
   context.beginPath();
-  geoPath(view.projection, context)(selectedOutline);
+  geoStream(selectedOutline, view.projection.stream(pathStream(context)));
   context.strokeStyle = palette.selected;
   context.lineWidth = widthAtZoom(camera.zoom, SELECTED_WIDTHS);
   context.stroke();
