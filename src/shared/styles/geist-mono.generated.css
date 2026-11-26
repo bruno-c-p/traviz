@@ -1,0 +1,8 @@
+@font-face {
+  font-family: "Geist Mono Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url("./geist-mono-subset.woff2") format("woff2-variations");
+  unicode-range: U+0020-007E, U+00B7;
+}
