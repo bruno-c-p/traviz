@@ -137,6 +137,7 @@ Open http://localhost:4321, enter your email, and open the link in the sign-in e
 | `bun run perf`          | A/B a production build of HEAD against `--baseline <ref>` (default `main`) in a throttled Chrome                                      |
 | `bun run db:migrate`    | Create the `marks` table                                                                                                              |
 | `bun run gen:countries` | Regenerate `src/features/countries/countries.generated.ts` from the `world-countries` package. `--check` fails when it is out of date |
+| `bun run gen:fonts`     | Regenerate the Geist Mono subset in `src/shared/styles`. `--check` fails when it is out of date                                       |
 | `bun run lint`          | Lint with Oxlint                                                                                                                      |
 | `bun run format`        | Format with Oxfmt                                                                                                                     |
 | `bun run typecheck`     | Type-check with `astro check` and `tsc --noEmit`                                                                                      |
