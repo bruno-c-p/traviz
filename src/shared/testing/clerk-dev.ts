@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { z } from "zod";
 
@@ -150,7 +151,7 @@ export function seedUser(): string {
 
   const body = JSON.stringify({
     email_address: [seededUserEmail],
-    skip_password_requirement: true,
+    password: randomBytes(32).toString("base64url"),
   });
 
   return userSchema.parse(JSON.parse(callClerk({ method: "POST", path: "/users", body }))).id;

@@ -1,0 +1,46 @@
+---
+import { CODE_LENGTH } from "@/features/auth/password-sign-in";
+import {
+  ERROR_CLASS,
+  INPUT_CLASS,
+  HINT_CLASS,
+  LABEL_CLASS,
+  PRIMARY_ACTION_CLASS,
+  SUBMIT_LABELS,
+  TEXT_ACTION_CLASS,
+} from "@/features/auth/sign-in/sign-in-classes";
+import InlineIcon from "@/shared/icons/inline-icon.astro";
+---
+
+<form data-sign-in-step="code" hidden class="flex flex-col gap-3">
+  <div class="mb-2 flex items-start gap-3 rounded-2xl bg-primary-pale p-4">
+    <InlineIcon name="envelope-closed" class="mt-0.5 size-5 text-on-primary-pale" />
+    <p class="min-w-0 text-[15px] leading-relaxed text-on-primary-pale">
+      We sent a {CODE_LENGTH}-digit code to{" "}<span
+        data-code-email
+        class="font-semibold wrap-anywhere"></span>. Enter it to{" "}<span data-code-reason
+      ></span>.
+    </p>
+  </div>
+  <label for="code" class={LABEL_CLASS}>Code</label>
+  <input
+    id="code"
+    name="code"
+    type="text"
+    inputmode="numeric"
+    autocomplete="one-time-code"
+    pattern={`[0-9]{${CODE_LENGTH}}`}
+    maxlength={CODE_LENGTH}
+    required
+    placeholder={"0".repeat(CODE_LENGTH)}
+    data-sign-in-field="code"
+    class:list={["tracking-[0.3em]", INPUT_CLASS]}
+  />
+  <p id="code-error" data-sign-in-error role="alert" hidden class={ERROR_CLASS}></p>
+  <p data-code-resent role="status" hidden class={HINT_CLASS}>We sent a new code.</p>
+  <button type="submit" class={PRIMARY_ACTION_CLASS}>{SUBMIT_LABELS.code}</button>
+  <div class="flex flex-wrap items-center justify-center gap-x-2">
+    <button type="button" data-resend-code class={TEXT_ACTION_CLASS}>Send a new code</button>
+    <button type="button" data-restart class={TEXT_ACTION_CLASS}>Use a different email</button>
+  </div>
+</form>

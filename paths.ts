@@ -3,7 +3,6 @@ export type Route = `/${string}`;
 export const homePath = (): Route => "/";
 export const welcomePath = (): Route => "/welcome";
 export const signInPath = (): Route => "/sign-in";
-export const signInVerifyPath = (): Route => "/sign-in/verify";
 export const listPath = (): Route => "/list";
 export const statsPath = (): Route => "/stats";
 export const notFoundPath = (): Route => "/404";
@@ -26,7 +25,6 @@ export const ROUTES: readonly { path: Route; access: RouteAccess }[] = [
   { path: accountMenuFragmentPath(), access: "anyone" },
   { path: welcomePath(), access: "signedOut" },
   { path: signInPath(), access: "signedOut" },
-  { path: signInVerifyPath(), access: "anyone" },
   { path: applyMarkChangePath(), access: "anyone" },
   { path: readMarksPath(), access: "anyone" },
   { path: notFoundPath(), access: "anyone" },

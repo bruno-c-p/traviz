@@ -35,5 +35,5 @@ Each feature file starts with an H1 title and one paragraph on what the user see
 - [Globe](globe.md) covers the spinning globe on `/`, picking a country by click or search, the card and the mobile sheet, fly-to and zoom.
 - [Country list](country-list.md) covers `/list`: continent and status filters, search, the full list and marking from a row.
 - [Stats](stats.md) covers `/stats`: the visited headline, the three totals and the continent cards.
-- [Sign-in and sign-out](auth.md) covers the email-link form, the verify page, sign-out and the redirects in the route table.
+- [Sign-in and sign-out](auth.md) covers the email and password form, its code and new-password steps, sign-out and the redirects in the route table.
 - [Marks](marks.md) covers setting, changing, clearing and resetting marks, the saving and failure notices and how marks persist.

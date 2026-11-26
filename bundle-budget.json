@@ -45,14 +45,9 @@
       "htmlGzipBytes": 16557
     },
     "/sign-in": {
-      "firstLoadGzipBytes": 2556,
+      "firstLoadGzipBytes": 3614,
       "lazyGzipBytes": 0,
-      "htmlGzipBytes": 7887
-    },
-    "/sign-in/verify": {
-      "firstLoadGzipBytes": 2377,
-      "lazyGzipBytes": 0,
-      "htmlGzipBytes": 7175
+      "htmlGzipBytes": 9277
     },
     "/404": {
       "firstLoadGzipBytes": 199,

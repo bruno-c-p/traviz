@@ -6,9 +6,9 @@ The public page at `/welcome`, prerendered from `src/pages/welcome.astro` and th
 
 - Subject: traviz, a web app where each person marks countries on a globe as visited, want to go or not interested, synced to their account.
 - Audience: people who keep count of the countries they have seen, and people building a wish list.
-- Job: make them sign in with an email link and start marking.
+- Job: make them sign in with an email and a password and start marking.
 - Assets: the product's own canvas globe engine, the country dataset (250 entries, 195 sovereign countries), the app's mark colours and fonts.
-- Facts used on the page come from the code: the 195 headline, the per-continent counts (Africa 54, Asia 47, Europe 45, North America 23, South America 12, Oceania 14), email-link sign-in with no password, the globe, list and stats views, territories labeled and left out of the 195.
+- Facts used on the page come from the code: the 195 headline, the per-continent counts (Africa 54, Asia 47, Europe 45, North America 23, South America 12, Oceania 14), email and password sign-in, the globe, list and stats views, territories labeled and left out of the 195.
 - Assumptions: no pricing, no user numbers and no testimonials are shown, because none are known. The sample marks in the hero belong to an invented traveller and are labeled as a sample. Marks made on this page stay on this page.
 
 ## Concepts
@@ -96,7 +96,7 @@ Asia     ...                                       Stats   | sentence
                                                    Sign-in | sentence
 Finale (poster)
 Start your map.        (whole line is the link, mega type)
-one line on the email link    credits
+one line on signing in       credits
 ```
 
 404: "Not on the map." with "map" painted in the skip grey, and a way back.
