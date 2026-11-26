@@ -144,15 +144,15 @@ export function startSignInPage() {
     show: (view) => {
       for (const stepForm of stepForms) showStepForm(stepForm, view);
 
-      showCodeDetails(view);
+      if (!view.isBusy) {
+        for (const stepForm of stepForms) {
+          if (stepForm.step === view.step) settle(stepForm, view, view.step !== shownStep);
+        }
 
-      if (view.isBusy) return;
-
-      for (const stepForm of stepForms) {
-        if (stepForm.step === view.step) settle(stepForm, view, view.step !== shownStep);
+        shownStep = view.step;
       }
 
-      shownStep = view.step;
+      showCodeDetails(view);
     },
   });
 

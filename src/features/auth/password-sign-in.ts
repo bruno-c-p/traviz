@@ -271,7 +271,7 @@ export function createPasswordSignIn({ loadAttempts, goHome, show }: PasswordSig
     action: (attempts: PasswordAttempts) => Promise<FlowError | null>,
     changes: Partial<SignInView> = {},
   ) {
-    if (view.isBusy || view.step !== step) return null;
+    if (view.isBusy || view.step !== step) return;
 
     update({ ...changes, ...NO_ERROR, isBusy: true, wasCodeResent: false });
 
@@ -280,8 +280,6 @@ export function createPasswordSignIn({ loadAttempts, goHome, show }: PasswordSig
       .catch((): FlowError => ({ message: GENERIC_ERROR }));
 
     update({ isBusy: isLeaving, ...(error === null ? NO_ERROR : describeError(error)) });
-
-    return error;
   }
 
   return {
@@ -308,13 +306,17 @@ export function createPasswordSignIn({ loadAttempts, goHome, show }: PasswordSig
       await run("code", (attempts) => submitCode(attempts, code));
     },
     resendCode: async () => {
-      const error = await run("code", async (attempts) => {
+      let wasSent = false;
+
+      await run("code", async (attempts) => {
         const sent = await sendCode(view.codePurpose, attempts);
+
+        wasSent = sent.error === null;
 
         return sent.error;
       });
 
-      if (error === null && view.step === "code") update({ wasCodeResent: true });
+      if (wasSent && view.step === "code") update({ wasCodeResent: true });
     },
     submitNewPassword: async (password: string) => {
       await run("new-password", (attempts) => submitNewPassword(attempts, password));

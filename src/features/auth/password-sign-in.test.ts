@@ -476,6 +476,28 @@ describe("the code step", () => {
     });
   });
 
+  test("a resend while the code is being checked sends nothing and claims nothing", async () => {
+    const harness = createHarness();
+
+    await harness.flow.forgotPassword(EMAIL);
+
+    const release = harness.hold("signIn.reset.verifyCode");
+
+    harness.reply("signIn.reset.verifyCode", { error: WRONG_CODE });
+
+    const checking = harness.flow.submitCode("111111");
+
+    await harness.flow.resendCode();
+
+    expect(harness.flow.view()).toMatchObject({ isBusy: true, wasCodeResent: false });
+
+    release();
+    await checking;
+
+    expect(harness.calls.filter((call) => call === "signIn.reset.sendCode")).toHaveLength(1);
+    expect(harness.flow.view()).toMatchObject({ wasCodeResent: false });
+  });
+
   test("restart returns to the credentials and clears the error", async () => {
     const harness = createHarness();
 
