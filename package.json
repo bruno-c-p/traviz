@@ -8,7 +8,6 @@
     "./src/features/app-shell/app-entry.ts",
     "./src/features/auth/account-menu-entry.ts",
     "./src/features/auth/sign-in-entry.ts",
-    "./src/features/auth/verify-entry.ts",
     "./src/features/globe/globe-engine-entry.ts",
     "./src/features/landing/landing-entry.ts"
   ],

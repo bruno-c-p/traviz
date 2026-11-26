@@ -11,14 +11,14 @@ Mark the countries you've visited, want to visit, or aren't interested in, on an
 - **Searchable list.** Every country grouped by continent, with search and filters by state. Territories are labeled.
 - **Stats.** Progress toward all 250 places, countries and territories, minus the ones marked not interested, with totals per state and a breakdown by continent.
 - **Landing page.** Signed-out visitors land on `/welcome`, where all 195 countries are listed and can be marked on the spot, without saving, before signing in. It is prerendered, and its script is a few kilobytes of hand-written TypeScript.
-- **Passwordless sign-in.** Enter your email and open the magic link. No passwords.
+- **Email and password sign-in.** One form signs you in or creates your account, with a code by email to confirm a new address or a new device.
 - **Synced to your account.** Every change is saved to a Turso (libSQL) database.
 - **Works on phones.** Countries are marked from a bottom sheet, and a tab bar at the bottom holds the navigation.
 
 ## Stack
 
 - [Astro 7](https://astro.build) with `output: "server"`: every page is rendered on the server with the user's marks in the HTML. There is no client framework. The browser code is hand-written TypeScript that Astro bundles, and the CSS is Tailwind 4, inlined into each page.
-- [Clerk](https://clerk.com) for email link sign-in, through `@clerk/backend` on the server and clerk-js, loaded after the page, in the browser.
+- [Clerk](https://clerk.com) for email and password sign-in, through `@clerk/backend` on the server and clerk-js, loaded after the page, in the browser.
 - [Turso](https://turso.tech) (libSQL) for the marks.
 - A Canvas 2D globe drawn with `d3-geo`.
 - Bun for packages, scripts and tests. oxlint, oxfmt, fallow and `astro check` are the gates.
@@ -75,7 +75,7 @@ The steps below set up the app by hand, for production or for a remote database.
 - Node.js 24, the version CI and the Vercel function use. Astro 7 needs 22.23.4 or later
 - Bun 1.4.3, the version CI pins. Bun does not check the `devEngines` version, so another version installs without a warning
 - A Turso database
-- A Clerk application set up for email link sign-in only
+- A Clerk application set up for email and password sign-in only
 
 ### Install
 
@@ -106,7 +106,7 @@ TURSO_AUTH_TOKEN=your_turso_auth_token
 
 Both Clerk keys are on the API Keys page of your Clerk dashboard. `PUBLIC_CLERK_PUBLISHABLE_KEY` must be set when the app is built, not only when it runs.
 
-The Clerk instance must use email link (magic link) sign-in only: no password or social providers.
+The Clerk instance must use email and password sign-in only: passwords on and required, email verification by code, no email link and no social providers.
 
 ### Set up the database
 
@@ -122,7 +122,7 @@ This creates the `marks` table, which holds one row per user and country.
 bun run dev
 ```
 
-Open http://localhost:4321, enter your email, and open the link in the sign-in email.
+Open http://localhost:4321 and enter your email and a password of 15 characters or more. A new address gets a 6-digit code by email to confirm it.
 
 ## Scripts
 
@@ -170,7 +170,7 @@ The globe draws the country outlines in `src/features/globe/country-topology.gen
     ├── pages/           One thin file per route: the pages, the view fragments and the API routes
     ├── middleware.ts    Authenticates each request and gates it by its ROUTES row
     ├── features/app-shell/ Layout of the signed-in pages, top bar, tab bar, and the view router that switches tabs in one document
-    ├── features/auth/   Session reading on the server, email link sign-in, the account button, and the clerk-js loader
+    ├── features/auth/   Session reading on the server, email and password sign-in, the account button, and the clerk-js loader
     ├── features/countries/ Generated country dataset and search
     ├── features/country-list/ The list view, with its search, status and continent filters
     ├── features/landing/ The landing page's components, styles and client code

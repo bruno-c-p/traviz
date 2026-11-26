@@ -19,7 +19,6 @@ const RESOLVED_INLINE_SCRIPT_PREFIX = `\0${INLINE_SCRIPT_PREFIX}`;
 const INLINE_SCRIPT_ENTRIES = new Map([
   ["app", "./src/features/app-shell/app-entry.ts"],
   ["sign-in", "./src/features/auth/sign-in-entry.ts"],
-  ["verify", "./src/features/auth/verify-entry.ts"],
   ["account-menu", "./src/features/auth/account-menu-entry.ts"],
 ]);
 

@@ -1,11 +1,11 @@
 ---
 name: verify-traviz
-description: Launch, drive and capture evidence from traviz, the Astro app where a signed-in user marks countries on a canvas globe. Drives a local production build in real Chrome through playwright-core. Use it to prove a traviz change works in the browser (the globe on /, the country list on /list, stats on /stats, email-link sign-in, saving marks), to take the 375, 768 and 1440 px screenshots that AGENTS.md requires after a UI change, to pixel-diff two builds, or to check that a local traviz server is healthy before you drive it.
+description: Launch, drive and capture evidence from traviz, the Astro app where a signed-in user marks countries on a canvas globe. Drives a local production build in real Chrome through playwright-core. Use it to prove a traviz change works in the browser (the globe on /, the country list on /list, stats on /stats, email and password sign-in, saving marks), to take the 375, 768 and 1440 px screenshots that AGENTS.md requires after a UI change, to pixel-diff two builds, or to check that a local traviz server is healthy before you drive it.
 ---
 
 # Verify traviz
 
-The surface is the web UI. A user signs in by email link, then marks countries on the globe (`/`), in the list (`/list`) and reads totals on `/stats`. There is no CLI to verify. The two API routes under `/api/marks` take a same-origin `POST` from the page and are verified through the UI.
+The surface is the web UI. A user signs in with an email and a password, then marks countries on the globe (`/`), in the list (`/list`) and reads totals on `/stats`. There is no CLI to verify. The two API routes under `/api/marks` take a same-origin `POST` from the page and are verified through the UI.
 
 Run every command from the worktree root. The helpers live in `scripts/verify/` and `src/shared/testing/verify/`, and `bun run check` covers them.
 
@@ -85,7 +85,7 @@ bun run verify:server stop
 - Screenshots and pixel diffs of `/` need `prefers-reduced-motion: reduce`, or the spin moves the globe between frames. `verify:shots` reduces motion by default. Use `"no-preference"` only to check the spin.
 - Wait at least 700 ms after a click (`settle`). The card, the sheet and the fill colours update after a transition.
 - Globe, List and Stats share one document. A tab click switches views without a page load, the other views stay mounted and hidden, and views that were not in the first HTML arrive as fragments when the browser is idle. So `page.url()` changes with no navigation event, a locator can match an element in a hidden view (filter with `visible=true`), and `openRoute` is the way to get a fresh server render of one route.
-- Clerk development returns 429 when the same address submits the email-link form twice in a short time. Give each submit a new address, such as `verify-<epoch ms>+clerk_test@example.com`. A `+clerk_test` address never sends a real email.
+- Clerk development returns 429 when the same address submits the sign-in form several times in a short time. Give each sign-up a new address, such as `verify-<epoch ms>+clerk_test@example.com`. A `+clerk_test` address never sends a real email, and its code is `424242`.
 - Throttle with CDP `Network.emulateNetworkConditions` and `Emulation.setCPUThrottlingRate` on a `page.context().newCDPSession(page)`. Take the values from `throttle` in `@/shared/testing/perf/browser` (`latencyMs`, `downloadBytesPerSecond`, `uploadBytesPerSecond`, `cpuSlowdown`), the same ones `bun run perf` uses. Never throttle with `context.route`, which turns off the HTTP cache.
 - To test the moment before the globe loads, hold the globe chunks with CDP `Fetch.enable` on `*/_astro/*.js` and continue the paused requests later. The engine chunk is the file in `dist/client/_astro/` that contains the string `The globe needs a 2D canvas.`, and the outline chunk is the one that contains `,ABW,AFG,AGO,`.
 - Never point a helper at production. The helpers refuse a non-`file:` database and a live Clerk key, and the server refuses `TRAVIZ_FIXED_USER_ID` with a remote database. Never copy `.env*` files from another worktree.

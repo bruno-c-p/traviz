@@ -8,7 +8,6 @@ import {
   homePath,
   listPath,
   signInPath,
-  signInVerifyPath,
   statsPath,
   welcomePath,
 } from "@/paths";
@@ -38,7 +37,6 @@ const routesWithModuleScript: string[] = [
   statsPath(),
   welcomePath(),
   signInPath(),
-  signInVerifyPath(),
   accountMenuFragmentPath(),
 ];
 

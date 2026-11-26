@@ -1,10 +1,16 @@
 ---
 import AuthLayout from "@/features/auth/sign-in/auth-layout.astro";
-import EmailLinkForm from "@/features/auth/sign-in/email-link-form.astro";
+import CodeForm from "@/features/auth/sign-in/code-form.astro";
+import CredentialsForm from "@/features/auth/sign-in/credentials-form.astro";
+import NewPasswordForm from "@/features/auth/sign-in/new-password-form.astro";
 import SignInIntro from "@/features/auth/sign-in/sign-in-intro.astro";
+import signInScript from "virtual:traviz-inline-script/sign-in";
 ---
 
 <AuthLayout>
   <SignInIntro />
-  <EmailLinkForm />
+  <CredentialsForm />
+  <CodeForm />
+  <NewPasswordForm />
+  <script is:inline type="module" set:html={signInScript} />
 </AuthLayout>

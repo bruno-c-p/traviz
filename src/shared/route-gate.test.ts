@@ -7,7 +7,6 @@ import {
   notFoundPath,
   readMarksPath,
   signInPath,
-  signInVerifyPath,
   statsPath,
   welcomePath,
 } from "@/paths";
@@ -22,7 +21,6 @@ describe("routeAccess", () => {
     { pathname: statsPath(), access: "signedIn" },
     { pathname: signInPath(), access: "signedOut" },
     { pathname: welcomePath(), access: "signedOut" },
-    { pathname: signInVerifyPath(), access: "anyone" },
     { pathname: listFragmentPath(), access: "signedIn" },
     { pathname: applyMarkChangePath(), access: "anyone" },
     { pathname: readMarksPath(), access: "anyone" },
@@ -56,8 +54,8 @@ describe("decideGate", () => {
 
 describe("redirectFor", () => {
   const cases: { pathname: string; isAuthenticated: boolean; redirect: Route | undefined }[] = [
-    { pathname: signInVerifyPath(), isAuthenticated: true, redirect: undefined },
-    { pathname: signInVerifyPath(), isAuthenticated: false, redirect: undefined },
+    { pathname: notFoundPath(), isAuthenticated: true, redirect: undefined },
+    { pathname: notFoundPath(), isAuthenticated: false, redirect: undefined },
     { pathname: signInPath(), isAuthenticated: true, redirect: homePath() },
     { pathname: listPath(), isAuthenticated: false, redirect: signInPath() },
     { pathname: homePath(), isAuthenticated: false, redirect: welcomePath() },
@@ -137,7 +135,7 @@ describe("gateRequest", () => {
     },
   );
 
-  test.each([welcomePath(), signInPath(), signInVerifyPath(), applyMarkChangePath()])(
+  test.each([welcomePath(), signInPath(), notFoundPath(), applyMarkChangePath()])(
     "a signed-out request to %s is rendered with no user",
     async (pathname) => {
       const response = await gateRequest(new Request(`${origin}${pathname}`), answers(null), page);
@@ -147,7 +145,7 @@ describe("gateRequest", () => {
     },
   );
 
-  test.each([homePath(), listPath(), statsPath(), signInVerifyPath(), readMarksPath()])(
+  test.each([homePath(), listPath(), statsPath(), notFoundPath(), readMarksPath()])(
     "a signed-in request to %s is rendered for its user",
     async (pathname) => {
       const response = await gateRequest(
