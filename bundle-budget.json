@@ -5,7 +5,7 @@
   },
   "routes": {
     "/": {
-      "firstLoadGzipBytes": 71674,
+      "firstLoadGzipBytes": 69075,
       "lazyGzipBytes": 0,
       "htmlGzipBytes": 30932
     },
@@ -21,7 +21,7 @@
     },
     "/fragments/globe": {
       "firstLoadGzipBytes": 0,
-      "lazyGzipBytes": 58339,
+      "lazyGzipBytes": 55740,
       "htmlGzipBytes": 5639
     },
     "/fragments/list": {
@@ -41,7 +41,7 @@
     },
     "/welcome": {
       "firstLoadGzipBytes": 4161,
-      "lazyGzipBytes": 57980,
+      "lazyGzipBytes": 55381,
       "htmlGzipBytes": 16557
     },
     "/sign-in": {

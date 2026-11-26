@@ -16,7 +16,7 @@ import { buildScene, countryAt, countryOutline, globeView } from "@/features/glo
 import type { GlobeView } from "@/features/globe/globe-scene";
 import type { PackedTopology } from "@/features/globe/topology-codec";
 import type { Marks } from "@/features/marks";
-import { countryCenter } from "@/features/countries/core";
+import { placeCenter } from "@/features/globe/globe-places";
 import type { TappedOutline } from "@/features/globe/globe-markers";
 import type { MultiLineString } from "geojson";
 import { GLOBE_PALETTES } from "@/features/globe/globe-palette";
@@ -216,7 +216,7 @@ export function createGlobe(
 
     if (code === null) return null;
 
-    const center = countryCenter(code);
+    const center = placeCenter(code);
     const projected = center ? currentView.projection(center) : null;
 
     return { code, center: projected ? { x: projected[0], y: projected[1] } : null };

@@ -1,4 +1,4 @@
-import { countryCenter } from "@/features/countries/core";
+import { placeCenter } from "@/features/globe/globe-places";
 import type { Marks } from "@/features/marks";
 import type { GlobeStores, SelectionStore } from "@/features/globe/globe-stores";
 
@@ -22,7 +22,7 @@ function bindMarksSync(map: SyncedMap, marks: GlobeStores["marks"]) {
 
 function flyToPendingCountry(map: SyncedMap, selection: SelectionStore, stopSpin: () => void) {
   const code = selection.getState().takePendingFly();
-  const center = code ? countryCenter(code) : null;
+  const center = code ? placeCenter(code) : null;
 
   if (center) {
     stopSpin();

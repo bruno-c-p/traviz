@@ -9,12 +9,18 @@ import { presimplify, quantile, simplify } from "topojson-simplify";
 import type { ArcIndexes, GeometryCollection, Topology } from "topojson-specification";
 import countries from "world-countries";
 import { z } from "zod";
-import { packTopology, unpackTopology } from "@/features/globe/core";
+import {
+  packGlobePlaces,
+  packTopology,
+  unpackGlobePlaces,
+  unpackTopology,
+} from "@/features/globe/core";
 import type { PackedTopology } from "@/features/globe/core";
 
 const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const countriesRelativePath = "src/features/countries/countries.generated.ts";
 const topologyRelativePath = "src/features/globe/country-topology.generated.ts";
+const placesRelativePath = "src/features/globe/globe-places.generated.ts";
 const atlasPath = fileURLToPath(import.meta.resolve("world-atlas/countries-50m.json"));
 
 const COUNTED_OBSERVER_STATES = new Set(["PSE"]);
@@ -228,6 +234,32 @@ function buildCountryTopology(): PackedTopology {
   return packed;
 }
 
+function buildGlobePlaces(): string {
+  const sources = records.map(
+    ({ code, name, center: [longitude, latitude], area, hasGlobeLabel }) => ({
+      code,
+      name,
+      center: [longitude, latitude] as const,
+      area,
+      hasGlobeLabel,
+    }),
+  );
+
+  const packed = packGlobePlaces(sources);
+
+  const expected = sources.map(({ code, name, center, area, hasGlobeLabel }) => ({
+    code,
+    center,
+    label: hasGlobeLabel ? { name, area } : null,
+  }));
+
+  if (JSON.stringify(unpackGlobePlaces(packed)) !== JSON.stringify(expected)) {
+    throw new Error("The packed globe places do not unpack to the country records");
+  }
+
+  return packed;
+}
+
 const outputs = [
   {
     relativePath: countriesRelativePath,
@@ -238,6 +270,11 @@ const outputs = [
     relativePath: topologyRelativePath,
     source: `import type { PackedTopology } from "@/features/globe/core";\n\nexport const COUNTRY_TOPOLOGY: PackedTopology = ${JSON.stringify(buildCountryTopology())};\n`,
     summary: "the country outlines",
+  },
+  {
+    relativePath: placesRelativePath,
+    source: `export const PACKED_GLOBE_PLACES = ${JSON.stringify(buildGlobePlaces())};\n`,
+    summary: "the globe's centres and labels",
   },
 ];
 

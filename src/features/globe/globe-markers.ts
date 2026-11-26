@@ -1,7 +1,7 @@
 import { geoArea } from "d3-geo";
-import { countries } from "@/features/countries/core";
 import type { LngLat } from "@/features/globe/globe-camera";
 import type { Point } from "@/features/globe/globe-gestures";
+import { GLOBE_PLACES } from "@/features/globe/globe-places";
 import { unitVector } from "@/features/globe/globe-scene";
 import type { GlobeScene, GlobeView, Vector } from "@/features/globe/globe-scene";
 
@@ -20,10 +20,10 @@ export function buildMarkers(scene: GlobeScene): GlobeMarker[] {
     if (code !== null) areas.set(code, (areas.get(code) ?? 0) + geoArea(feature));
   }
 
-  return countries.map(({ code, center: [longitude, latitude] }) => ({
+  return GLOBE_PLACES.map(({ code, center }) => ({
     code,
-    center: [longitude, latitude],
-    vector: unitVector([longitude, latitude]),
+    center,
+    vector: unitVector(center),
     size: Math.sqrt(areas.get(code) ?? 0),
   }));
 }
