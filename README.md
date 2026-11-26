@@ -126,32 +126,32 @@ Open http://localhost:4321, enter your email, and open the link in the sign-in e
 
 ## Scripts
 
-| Command                 | What it does                                                                                                                          |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `bun run dev`           | Start the Astro dev server                                                                                                            |
-| `bun run build`         | Build for production with the Vercel adapter, into `.vercel/output`                                                                   |
-| `bun run build:node`    | Build a standalone Node server into `dist`                                                                                            |
-| `bun run start`         | Serve the Node build. `HOST` and `PORT` set where it listens                                                                          |
-| `bun run setup`         | Fill in `.env.local` with development values, migrate `.data/dev.db` and create the development user                                  |
-| `bun run sign-in-token` | Print a sign-in token for the development user                                                                                        |
-| `bun run perf`          | A/B a production build of HEAD against `--baseline <ref>` (default `main`) in a throttled Chrome                                      |
-| `bun run db:migrate`    | Create the `marks` table                                                                                                              |
-| `bun run gen:countries` | Regenerate `src/features/countries/countries.generated.ts` from the `world-countries` package. `--check` fails when it is out of date |
-| `bun run lint`          | Lint with Oxlint                                                                                                                      |
-| `bun run format`        | Format with Oxfmt                                                                                                                     |
-| `bun run typecheck`     | Type-check with `astro check` and `tsc --noEmit`                                                                                      |
-| `bun run check:docs`    | Check that the docs name only paths and scripts that exist                                                                            |
-| `bun run test`          | Run the bun tests under `src`                                                                                                         |
-| `bun run test:rules`    | Run the lint rule tests in `tools/oxlint` with Node 24                                                                                |
-| `bun run check:bundle`  | Check each page's JS, HTML and preloads in the last Node build against `bundle-budget.json`                                           |
-| `bun run fallow`        | Report dead code, duplication and complexity                                                                                          |
-| `bun run check`         | Run CI's checks, except fallow, with both builds                                                                                      |
+| Command                 | What it does                                                                                                                                               |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun run dev`           | Start the Astro dev server                                                                                                                                 |
+| `bun run build`         | Build for production with the Vercel adapter, into `.vercel/output`                                                                                        |
+| `bun run build:node`    | Build a standalone Node server into `dist`                                                                                                                 |
+| `bun run start`         | Serve the Node build. `HOST` and `PORT` set where it listens                                                                                               |
+| `bun run setup`         | Fill in `.env.local` with development values, migrate `.data/dev.db` and create the development user                                                       |
+| `bun run sign-in-token` | Print a sign-in token for the development user                                                                                                             |
+| `bun run perf`          | A/B a production build of HEAD against `--baseline <ref>` (default `main`) in a throttled Chrome                                                           |
+| `bun run db:migrate`    | Create the `marks` table                                                                                                                                   |
+| `bun run gen:countries` | Regenerate `src/features/countries/countries.generated.ts`, the globe outlines and the globe's centres and labels. `--check` fails when one is out of date |
+| `bun run lint`          | Lint with Oxlint                                                                                                                                           |
+| `bun run format`        | Format with Oxfmt                                                                                                                                          |
+| `bun run typecheck`     | Type-check with `astro check` and `tsc --noEmit`                                                                                                           |
+| `bun run check:docs`    | Check that the docs name only paths and scripts that exist                                                                                                 |
+| `bun run test`          | Run the bun tests under `src`                                                                                                                              |
+| `bun run test:rules`    | Run the lint rule tests in `tools/oxlint` with Node 24                                                                                                     |
+| `bun run check:bundle`  | Check each page's JS, HTML and preloads in the last Node build against `bundle-budget.json`                                                                |
+| `bun run fallow`        | Report dead code, duplication and complexity                                                                                                               |
+| `bun run check`         | Run CI's checks, except fallow, with both builds                                                                                                           |
 
 `bun run perf` refuses a dirty tree, a `bun.lock` that differs from the baseline (unless `--allow-lockfile-diff`, for a change that adds or removes dependencies), a bun other than the `devEngines` pin, a database outside `.data/`, fewer than 5 runs, and a second run anywhere on the machine (`~/.local/state/traviz/perf.lock`). AGENTS.md describes the method and how to read the report.
 
 ## Country data
 
-`src/features/countries/countries.generated.ts` has 250 entries generated from the `world-countries` package. Each entry has a `kind`. The 195 `sovereign` entries count toward the headline total. The 55 `territory` entries appear on the map and in the list, but they aren't counted. Each entry also has the `center` the globe flies to and a `hasGlobeLabel` flag for its label.
+`src/features/countries/countries.generated.ts` has 250 entries generated from the `world-countries` package. Each entry has a `kind`. The 195 `sovereign` entries count toward the headline total. The 55 `territory` entries appear on the map and in the list, but they aren't counted. Each entry also has the `center` the globe flies to and a `hasGlobeLabel` flag for its label. The globe itself downloads only `src/features/globe/globe-places.generated.ts`, a packed copy of the codes, the centres and the labeled names and areas.
 
 The globe draws the country outlines in `src/features/globe/country-topology.generated.ts`. They come from the Natural Earth 50m topology in the `world-atlas` package, keyed by the same codes, simplified, quantized and packed into text of about 36 KB gzipped. Gibraltar, Tokelau, Tuvalu, Bouvet Island and the US Minor Outlying Islands are too small for that data, so they have no outline, and you mark them from the list or the search.
 

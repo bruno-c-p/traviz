@@ -1,7 +1,6 @@
 import { geoDistance, geoStream } from "d3-geo";
 import type { GeoStream } from "d3-geo";
 import type { MultiLineString } from "geojson";
-import { countries } from "@/features/countries/core";
 import type { Camera, LngLat } from "@/features/globe/globe-camera";
 import {
   continentLabelOpacity,
@@ -13,6 +12,7 @@ import {
 import type { Box } from "@/features/globe/globe-labels";
 import { placeMarkers } from "@/features/globe/globe-markers";
 import type { GlobeMarker, PlacedMarker } from "@/features/globe/globe-markers";
+import { GLOBE_PLACES } from "@/features/globe/globe-places";
 import { partVisibility } from "@/features/globe/globe-scene";
 import type { GlobeScene, GlobeView } from "@/features/globe/globe-scene";
 import type { GlobePalette } from "@/features/globe/globe-palette";
@@ -45,9 +45,9 @@ const CONTINENTS: { name: string; center: LngLat }[] = [
   { name: "Oceania", center: [135, -25] },
 ];
 
-const COUNTRY_LABELS = countries
-  .filter((country) => country.hasGlobeLabel)
-  .toSorted((first, second) => second.area - first.area);
+const COUNTRY_LABELS = GLOBE_PLACES.flatMap(({ code, center, label }) =>
+  label ? [{ code, center, ...label }] : [],
+).toSorted((first, second) => second.area - first.area);
 
 export type GlobeFrame = {
   context: CanvasRenderingContext2D;
@@ -310,7 +310,7 @@ function labelCandidates(frame: GlobeFrame, markerCodes: Set<string>): LabelCand
       : []),
     ...COUNTRY_LABELS.map(({ code, name, center, area }) => ({
       text: name,
-      center: [center[0], center[1]] satisfies LngLat,
+      center,
       style: {
         size: roundLabelSize(countryLabelSize(area, zoom)),
         opacity: 1,

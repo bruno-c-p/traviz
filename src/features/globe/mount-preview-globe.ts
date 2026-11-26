@@ -1,7 +1,7 @@
 import type { LngLat } from "@/features/globe/globe-camera";
 import type { GlobeModules } from "@/features/globe/load-globe";
 import { startPreviewGlobe } from "@/features/globe/preview-globe-driver";
-import { countryCenter } from "@/features/countries/core";
+import { placeCenter } from "@/features/globe/globe-places";
 import type { Marks } from "@/features/marks";
 
 type PreviewOptions = { initialCenter: LngLat; marks: Marks };
@@ -26,7 +26,7 @@ export function mountPreviewGlobe(
   return {
     setMarks: globe.setMarks,
     focus: (code: string) => {
-      const center = countryCenter(code);
+      const center = placeCenter(code);
 
       if (center) driver.focus(center);
     },
